@@ -3,20 +3,97 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827">
 <title>22 DRIVE — Agendamento</title>
+<style>
+:root{--p:#111827;--p2:#1f2937;--green:#16a34a;--bg:#f4f6f8;--card:#fff;--line:#e5e7eb;--muted:#6b7280;--red:#dc2626}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:#111827}
+.app{max-width:560px;margin:auto;min-height:100vh;padding-bottom:30px}
+.hero{background:linear-gradient(145deg,#030712,#1f2937);color:white;padding:30px 20px 34px;border-radius:0 0 30px 30px}
+.logo{font-size:14px;font-weight:800;letter-spacing:2px;color:#d1d5db}.hero h1{font-size:32px;margin:7px 0}.hero p{margin:0;color:#cbd5e1}
+main{padding:16px}.card{background:white;border:1px solid var(--line);border-radius:20px;padding:17px;margin-bottom:14px;box-shadow:0 7px 22px #1118270a}
+h2{font-size:17px;margin:0 0 14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{margin-bottom:11px}
+label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:white;font:inherit;outline:none}
+input:focus,select:focus,textarea:focus{border-color:#6b7280}.choices{display:grid;grid-template-columns:1fr 1fr;gap:9px}.choices label{margin:0}.choices input{display:none}.choices span{display:block;text-align:center;padding:12px;border:1px solid var(--line);border-radius:12px;cursor:pointer}.choices input:checked+span{background:var(--p);color:#fff;border-color:var(--p)}
+.price{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:17px;padding:16px}.price small{color:#166534}.price strong{display:block;font-size:29px;margin-top:3px}.notice{background:#fffbeb;border:1px solid #fde68a;padding:12px;border-radius:13px;font-size:12px;line-height:1.5;color:#854d0e}
+.btn{width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:900;cursor:pointer}.primary{background:var(--green);color:#fff}.dark{background:var(--p);color:#fff;margin-top:9px}.muted{font-size:11px;color:var(--muted);line-height:1.5}
+.admin{display:none}.admin.on{display:block}.admin table{width:100%;border-collapse:collapse;font-size:12px}.admin th,.admin td{border-bottom:1px solid var(--line);padding:8px;text-align:left}.admin input{padding:8px}.tag{display:inline-block;padding:5px 8px;border-radius:999px;background:#f3f4f6;font-size:11px}.map{height:280px;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-top:10px}.route-status{font-size:12px;color:var(--muted);margin-top:8px}.place-wrap{margin-bottom:11px}.place-wrap label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}.place-wrap gmp-place-autocomplete{width:100%;--gmpx-color-surface:#fff;--gmpx-color-on-surface:#111827;--gmpx-color-on-surface-variant:#6b7280;--gmpx-color-primary:#16a34a}
+hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none;text-align:center}.success h2{margin-top:5px}.check{font-size:44px}
+@media(max-width:400px){.grid{grid-template-columns:1fr}.choices{grid-template-columns:1fr}}
+
+.autocomplete-wrap{position:relative}
+.search-row{display:flex;gap:7px;align-items:center}.search-row input{flex:1}.search-btn{width:48px;height:46px;border:1px solid var(--line);border-radius:12px;background:var(--p);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}.search-btn:active{transform:scale(.97)}
+.suggestions{position:absolute;left:0;right:0;top:100%;z-index:1000;background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;box-shadow:0 8px 20px #11182718;overflow:hidden}
+.suggestion{display:block;width:100%;padding:11px 12px;border:0;background:#fff;text-align:left;font:inherit;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line)}
+.suggestion:last-child{border-bottom:0}.suggestion:hover{background:#f3f4f6}
+.leaflet-container{font:inherit}.leaflet-control-attribution{font-size:10px}
+
+.confirm-overlay{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.confirm-box{background:#fff;border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 18px 50px #0005}.confirm-box h3{margin:0 0 12px}.confirm-warning{white-space:pre-line;font-size:14px;line-height:1.5;color:#111827}.confirm-actions{display:flex;gap:10px;margin-top:18px}.confirm-actions button{flex:1}.btn.secondary{background:#e5e7eb;color:#111827}
+</style>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+
+ crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+ crossorigin=""></script>
 </head>
 <body>
-<p style="font-family:Arial,sans-serif;text-align:center;margin-top:40px">Carregando 22 DRIVE...</p>
-<script>
-(async function () {
-  const arquivoOriginal = "22-drive-etapa4-aviso-pagamento-atualizado.html";
-  try {
-    const resposta = await fetch(arquivoOriginal, { cache: "no-store" });
-    if (!resposta.ok) throw new Error("HTTP " + resposta.status);
-    let html = await resposta.text();
-    html = html.replace('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"\n\n crossorigin=""/>','<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">');
-    html = html.replace('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"\n crossorigin=""></script>','<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>');
-    const pagamento = `
+<div class="app">
+<header class="hero">
+<div class="logo">22 DRIVE</div>
+<h1>Agende sua viagem</h1>
+<p>Transporte particular com reserva antecipada.</p>
+</header>
+
+<main>
+<form id="form">
+<section class="card">
+<h2>🚗 Tipo de viagem</h2>
+<div class="choices">
+<label><input type="radio" name="type" value="ida" checked><span>➡️ Somente ida</span></label>
+<label><input type="radio" name="type" value="volta"><span>🔄 Ida e volta</span></label>
+</div>
+</section>
+
+<section class="card">
+<h2>📅 Data e horário</h2>
+<div class="grid">
+<div class="field"><label>Data da ida</label><input id="date" type="date" required></div>
+<div class="field"><label>Horário</label><input id="time" type="time" required></div>
+</div>
+<div id="returnBox" style="display:none;margin-top:4px">
+<div class="grid">
+<div class="field"><label>Data da volta</label><input id="rdate" type="date"></div>
+<div class="field"><label>Horário da volta</label><input id="rtime" type="time"></div>
+</div>
+</div>
+</section>
+
+<section class="card">
+<h2>📍 Rota</h2>
+<div class="place-wrap"><label>Local de embarque</label><div class="autocomplete-wrap"><div class="search-row"><input id="fromPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('fromPlace')" aria-label="Buscar local de embarque">🔍</button></div></div></div>
+<div class="place-wrap"><label>Destino</label><div class="autocomplete-wrap"><div class="search-row"><input id="toPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('toPlace')" aria-label="Buscar destino">🔍</button></div></div></div>
+<div id="map" class="map"></div>
+<div id="routeStatus" class="route-status">Digite o endereço e pressione Enter para pesquisar. Depois selecione uma sugestão.</div>
+<input id="from" type="hidden" required>
+<input id="to" type="hidden" required>
+<input id="km" type="hidden" value="0" required>
+<p class="muted">O site calcula a distância real pelas ruas automaticamente. Tarifa: R$ 1,50/km, com mínimo de R$ 20,00 por trecho.</p>
+</section>
+
+<section class="card">
+<h2>👤 Passageiro</h2>
+<div class="grid">
+<div class="field"><label>Nome</label><input id="name" required></div>
+<div class="field"><label>WhatsApp</label><input id="phone" type="tel" required placeholder="(21) 99999-9999"></div>
+</div>
+<div class="grid">
+<div class="field"><label>Passageiros</label><select id="people"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+<div class="field"><label>Bagagem</label><select id="bags"><option>Nenhuma</option><option>1 pequena</option><option>2 pequenas</option><option>Bagagem grande</option></select></div>
+</div>
+<div class="field"><label>Observações</label><textarea id="obs" rows="2" placeholder="Ponto de referência ou informação importante"></textarea></div>
+</section>
+
 <section class="card">
 <h2>💳 Forma de pagamento</h2>
 <div class="choices">
@@ -26,21 +103,536 @@
 <label><input type="radio" name="payment" value="Pix"><span>🟢 Pix</span></label>
 <label><input type="radio" name="payment" value="No amor"><span>❤️ No amor</span></label>
 </div>
+<p class="muted" style="margin:10px 0 0">Escolha como pretende pagar a reserva.</p>
 </section>
-`;
-    if (!html.includes('name="payment"')) {
-      html = html.replace('<button class="btn primary" type="submit">📲 Solicitar reserva pelo WhatsApp</button>', pagamento + '\n<button class="btn primary" type="submit">📲 Solicitar reserva pelo WhatsApp</button>');
-    }
-    html = html.replace('e.preventDefault();\n  if(!(parseFloat($("km").value)>0)', 'e.preventDefault();\n  const payment=document.querySelector(\'input[name="payment"]:checked\');\n  if(!(parseFloat($("km").value)>0)');
-    html = html.replace('msg+=`👥 Passageiros: ${$("people").value}\\n🧳 Bagagem: ${$("bags").value}\\n\\n`;', 'msg+=`👥 Passageiros: ${$("people").value}\\n🧳 Bagagem: ${$("bags").value}\\n💳 Forma de pagamento: ${payment ? payment.value : "Não informada"}\\n\\n`;');
-    html = html.replace('Para ativar o mapa, edite o código e substitua COLE_SUA_CHAVE_AQUI pela sua chave nova do mapa.', 'O mapa usa Leaflet + OpenStreetMap e não precisa de chave de API.');
-    document.open();
-    document.write(html);
-    document.close();
-  } catch (erro) {
-    document.body.innerHTML = '<div style="font-family:Arial,sans-serif;padding:25px"><h2>❌ Não foi possível carregar a 22 DRIVE</h2><p>Verifique se o arquivo <b>' + arquivoOriginal + '</b> continua no mesmo repositório.</p><p>Erro: ' + erro.message + '</p></div>';
+
+<section class="card">
+<h2>💰 Valor da viagem</h2>
+<div class="price"><small>Valor da viagem</small><strong id="price">R$ 0,00</strong><span id="detail" class="muted"></span>
+<hr>
+<div id="tollDetail" class="muted">🛣️ Pedágios: R$ 0,00<br>💰 Total: R$ 0,00</div>
+</div>
+<br>
+<div class="notice">⚠️ <b>AVISO – RESERVAS DE VIAGEM 🚗</b><br><br>A reserva deve ser confirmada com o pagamento de <b>50% do valor da viagem na data do agendamento</b>.<br><br>❗ <b>Cancelamento, desistência ou não comparecimento:</b> o valor do sinal <b>não será devolvido</b>, pois é destinado à cobertura dos custos da reserva, planejamento e deslocamento.<br><br>Ao efetuar o pagamento, o passageiro declara estar <b>ciente e de acordo com essas condições</b>.<br><br>🤝🚗 <b>Agradeço a compreensão!</b></div>
+</section>
+
+<button class="btn primary" type="submit">📲 Solicitar reserva pelo WhatsApp</button>
+<button class="btn dark" type="button" id="reset">Limpar</button>
+</form>
+
+<section class="card success" id="success">
+<div class="check">✅</div><h2>Reserva preparada!</h2>
+<p>A solicitação será enviada para o WhatsApp da 22 DRIVE.</p>
+</section>
+
+<section class="card admin" id="admin">
+<h2>⚙️ Configuração da 22 DRIVE</h2>
+<p class="muted">Regra atual: valor mínimo por trecho + valor por km. O passageiro verá o preço automaticamente.</p>
+<div class="grid">
+<div class="field"><label>Valor mínimo por trecho (R$)</label><input id="base" type="number" step=".01"></div>
+<div class="field"><label>Valor por km (R$)</label><input id="perkm" type="number" step=".01"></div>
+</div>
+<button class="btn primary" type="button" onclick="saveRates()">Salvar tarifas</button>
+<hr>
+<p><span class="tag">WhatsApp</span> 21 99969-6851</p>
+<p class="muted">O mapa usa Leaflet + OpenStreetMap e não precisa de chave de API. O formulário calcula a rota, mostra o valor e envia a solicitação pelo WhatsApp.</p>
+</section>
+</main>
+</div>
+
+<script>
+const WA="5521999696851";
+const defaults={base:20,perkm:1.5};
+let rates=JSON.parse(localStorage.getItem("22drive_rates")||"null")||defaults;
+const $=id=>document.getElementById(id);
+
+let driveMap=null, fromMarker=null, toMarker=null, routeLine=null;
+let fromResult=null, toResult=null;
+let searchTimers={fromPlace:null,toPlace:null};
+let routeController=null;
+let __detectedTolls=[];
+let __detectedTollIds=new Set();
+
+function money(v){return v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+
+function initMap(){
+  if(typeof L==="undefined"){
+    $("routeStatus").textContent="❌ O mapa não carregou. Verifique sua conexão com a internet.";
+    return;
   }
-})();
+  driveMap=L.map("map",{zoomControl:true}).setView([-22.73,-42.63],10);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:19,
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(driveMap);
+}
+
+function clearSuggestions(inputId){
+  const wrap=$(inputId).closest(".autocomplete-wrap");
+  const box=wrap && wrap.querySelector(".suggestions");
+  if(box) box.remove();
+}
+
+function showSuggestions(inputId,results){
+  clearSuggestions(inputId);
+  const input=$(inputId);
+  const wrap=input.closest(".autocomplete-wrap");
+  const box=document.createElement("div");
+  box.className="suggestions";
+  results.slice(0,5).forEach(r=>{
+    const b=document.createElement("button");
+    b.type="button";
+    b.className="suggestion";
+    b.textContent=r.display_name;
+    b.addEventListener("click",()=>{
+      input.value=r.display_name;
+      if(inputId==="fromPlace"){ fromResult=r; $("from").value=r.display_name; }
+      else { toResult=r; $("to").value=r.display_name; }
+      clearSuggestions(inputId);
+      computeDriveRoute();
+    });
+    box.appendChild(b);
+  });
+  wrap.appendChild(box);
+}
+
+async function searchAddress(inputId){
+  const input=$(inputId);
+  const q=input.value.trim();
+  if(q.length<3){clearSuggestions(inputId);return;}
+  clearSuggestions(inputId);
+  const url="https://nominatim.openstreetmap.org/search?"+new URLSearchParams({
+    q:q+", Brasil",
+    format:"jsonv2",
+    addressdetails:"1",
+    limit:"5",
+    countrycodes:"br",
+    "accept-language":"pt-BR"
+  });
+  try{
+    const response=await fetch(url,{headers:{"Accept":"application/json"}});
+    if(!response.ok) throw new Error("Nominatim HTTP "+response.status);
+    const results=await response.json();
+    showSuggestions(inputId,results);
+  }catch(err){
+    console.error(err);
+    $("routeStatus").textContent="❌ Não foi possível buscar o endereço agora.";
+  }
+}
+
+function setupAutocomplete(inputId){
+  $(inputId).addEventListener("input",()=>{
+    if(inputId==="fromPlace"){ fromResult=null; $("from").value=""; } else { toResult=null; $("to").value=""; }
+    clearSuggestions(inputId);
+  });
+  $(inputId).addEventListener("keydown",e=>{
+    if(e.key==="Enter"){
+      e.preventDefault();
+      searchAddress(inputId);
+    }
+    if(e.key==="Escape") clearSuggestions(inputId);
+  });
+  $(inputId).addEventListener("blur",()=>{
+    setTimeout(()=>searchAddress(inputId),150);
+  });
+}
+
+
+/*
+ * 22 DRIVE — ETAPA 2
+ * Detecção geométrica de pedágios.
+ *
+ * Os valores/tarifas da planilha do projeto NÃO são usados aqui.
+ * Esta etapa somente identifica quais pontos de cobrança são atravessados
+ * pela geometria da rota retornada pelo OSRM.
+ *
+ * A lista de referência usa posições geográficas de praças/pórticos.
+ * Para os pontos cuja fonte pública disponível informa apenas o km/local,
+ * a coordenada é tratada como ponto de referência de detecção, com raio
+ * conservador. Os valores da planilha serão aplicados em etapa posterior.
+ */
+const TOLL_DETECTION_RADIUS_KM = 0.08;
+
+const tollPoints = [
+  {id:"ponte-rio-niteroi", name:"Ponte Rio-Niterói", lat:-22.877944, lon:-43.115734},
+  {id:"itaguai", name:"Free Flow - Itaguaí", lat:-22.820833, lon:-43.805000},
+  {id:"mangaratiba", name:"Free Flow - Mangaratiba", lat:-22.938000, lon:-44.000000},
+  {id:"paraty", name:"Free Flow - Paraty", lat:-23.006000, lon:-44.539000},
+  {id:"vialagos", name:"Praça de Pedágio ViaLagos", lat:-22.800775, lon:-42.464542},
+  {id:"itatiaia", name:"Praça de Itatiaia", lat:-22.496000, lon:-44.557000},
+  {id:"xerem", name:"Praça de Xerém", lat:-22.609965, lon:-43.285552},
+  {id:"areal", name:"Praça de Areal", lat:-22.284389, lon:-43.120269},
+  {id:"mage", name:"Praça de Magé", lat:-22.607222, lon:-43.028611},
+  {id:"guapimirim", name:"Praça de Guapimirim", lat:-22.670000, lon:-42.980000},
+  {id:"tres-corregos", name:"Praça de Três Córregos", lat:-22.350000, lon:-42.880000},
+  {id:"santa-rita", name:"Praça de Santa Rita", lat:-21.900000, lon:-42.650000},
+  {id:"casimiro-de-abreu", name:"Praça de Casimiro de Abreu", lat:-22.476441, lon:-42.088519},
+  {id:"campos", name:"Praça de Campos", lat:-21.552594, lon:-41.331597},
+  {id:"itaborai", name:"Praça de Itaboraí", lat:-22.747000, lon:-42.826000},
+  {id:"cachoeiras", name:"Praça de Cachoeiras", lat:-22.420000, lon:-42.620000}
+];
+
+function haversineKm(lat1,lon1,lat2,lon2){
+  const R=6371, toRad=x=>x*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2+
+    Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+
+function pointToSegmentDistanceKm(p,a,b){
+  // Aproxima a pequena área local por coordenadas cartesianas.
+  const lat0=(p[1]+a[1]+b[1])/3*Math.PI/180;
+  const scaleX=111.32*Math.cos(lat0), scaleY=111.32;
+  const px=p[0]*scaleX, py=p[1]*scaleY;
+  const ax=a[0]*scaleX, ay=a[1]*scaleY;
+  const bx=b[0]*scaleX, by=b[1]*scaleY;
+  const dx=bx-ax, dy=by-ay;
+  const len2=dx*dx+dy*dy;
+  let t=len2 ? ((px-ax)*dx+(py-ay)*dy)/len2 : 0;
+  t=Math.max(0,Math.min(1,t));
+  const qx=ax+t*dx, qy=ay+t*dy;
+  return Math.hypot(px-qx,py-qy);
+}
+
+function routeTollsFromGeometry(geometry){
+  if(!geometry || geometry.type!=="LineString" || !Array.isArray(geometry.coordinates)){
+    return [];
+  }
+  const routeLatLon=geometry.coordinates.map(([lon,lat])=>[lat,lon]);
+  return tollPoints.filter(toll=>{
+    for(let i=1;i<routeLatLon.length;i++){
+      if(pointToSegmentDistanceKm([toll.lat,toll.lon],routeLatLon[i-1],routeLatLon[i])<=TOLL_DETECTION_RADIUS_KM){
+        return true;
+      }
+    }
+    return false;
+  });
+}
+
+function setDetectedTolls(tolls){
+  window.__detectedTolls=tolls;
+  window.__detectedTollIds=new Set(tolls.map(t=>t.id));
+}
+
+
+async function computeDriveRoute(){
+  if(!fromResult || !toResult){
+    $("routeStatus").textContent="Digite o endereço e pressione Enter para pesquisar. Depois selecione uma sugestão.";
+    return;
+  }
+  if(routeController) routeController.abort();
+  routeController=new AbortController();
+  $("routeStatus").textContent="🗺️ Calculando rota pelas ruas...";
+  try{
+    const fromLon=parseFloat(fromResult.lon), fromLat=parseFloat(fromResult.lat);
+    const toLon=parseFloat(toResult.lon), toLat=parseFloat(toResult.lat);
+    const url=`https://router.project-osrm.org/route/v1/driving/${fromLon},${fromLat};${toLon},${toLat}?overview=full&geometries=geojson`;
+    const response=await fetch(url,{signal:routeController.signal});
+    if(!response.ok) throw new Error("OSRM HTTP "+response.status);
+    const data=await response.json();
+    if(data.code!=="Ok" || !data.routes || !data.routes.length) throw new Error("Nenhuma rota encontrada.");
+    const route=data.routes[0];
+    const km=route.distance/1000;
+    const mins=Math.round(route.duration/60);
+
+    // ETAPA 2: identifica os pedágios realmente atravessados pela geometria do OSRM.
+    const detectedTolls=routeTollsFromGeometry(route.geometry);
+    setDetectedTolls(detectedTolls);
+    console.log("22 DRIVE — pedágios detectados:", detectedTolls.map(t=>t.name));
+
+    if(fromMarker) driveMap.removeLayer(fromMarker);
+    if(toMarker) driveMap.removeLayer(toMarker);
+    if(routeLine) driveMap.removeLayer(routeLine);
+
+    fromMarker=L.marker([fromLat,fromLon]).addTo(driveMap).bindPopup("Embarque");
+    toMarker=L.marker([toLat,toLon]).addTo(driveMap).bindPopup("Destino");
+    routeLine=L.geoJSON(route.geometry,{style:{weight:5}}).addTo(driveMap);
+    driveMap.fitBounds(routeLine.getBounds(),{padding:[25,25]});
+
+    $("km").value=km.toFixed(2);
+    $("routeStatus").textContent=`✅ ${km.toFixed(1)} km • aproximadamente ${mins} min de carro`;
+    calc();
+  }catch(err){
+    if(err.name==="AbortError") return;
+    console.error(err);
+    $("km").value="0";
+    setDetectedTolls([]);
+    calc();
+    $("routeStatus").textContent="❌ Não foi possível calcular a rota. Selecione novamente os dois endereços.";
+  }
+}
+
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".autocomplete-wrap")){
+    clearSuggestions("fromPlace");
+    clearSuggestions("toPlace");
+  }
+});
+
+document.addEventListener("DOMContentLoaded",()=>{
+  initMap();
+  setupAutocomplete("fromPlace");
+  setupAutocomplete("toPlace");
+});
+
+
+/*
+ * Valores oficiais informados pelo projeto 22 DRIVE.
+ * A planilha fornecida pelo usuário é a fonte dos valores.
+ */
+const tollRates = {
+  "ponte-rio-niteroi": {weekday:6.6, weekend:6.6, rule:"normal"},
+  "itaguai": {weekday:4.9, weekend:8.2, rule:"rio-santos"},
+  "mangaratiba": {weekday:4.9, weekend:8.2, rule:"rio-santos"},
+  "paraty": {weekday:4.9, weekend:8.2, rule:"rio-santos"},
+  "vialagos": {weekday:18.4, weekend:30.6, rule:"vialagos"},
+  "itatiaia": {weekday:14.7, weekend:14.7, rule:"normal"},
+  "xerem": {weekday:21.0, weekend:21.0, rule:"normal"},
+  "areal": {weekday:21.0, weekend:21.0, rule:"normal"},
+  "mage": {weekday:16.3, weekend:16.3, rule:"normal"},
+  "guapimirim": {weekday:21.4, weekend:21.4, rule:"normal"},
+  "tres-corregos": {weekday:21.4, weekend:21.4, rule:"normal"},
+  "santa-rita": {weekday:21.4, weekend:21.4, rule:"normal"},
+  "sao-goncalo": {weekday:7.1, weekend:7.1, rule:"normal"},
+  "casimiro-de-abreu": {weekday:7.1, weekend:7.1, rule:"normal"},
+  "campos": {weekday:7.1, weekend:7.1, rule:"normal"},
+  "itaborai": {weekday:8.6, weekend:8.6, rule:"normal"},
+  "cachoeiras": {weekday:8.6, weekend:8.6, rule:"normal"}
+};
+
+function timeMinutes(hhmm){
+  if(!hhmm) return 0;
+  const [h,m]=hhmm.split(":").map(Number);
+  return h*60+m;
+}
+
+function dateIsWeekend(dateStr){
+  if(!dateStr) return false;
+  const d=new Date(dateStr+"T12:00:00");
+  const day=d.getDay();
+  return day===0 || day===6;
+}
+
+/*
+ * Regras exatamente conforme a descrição fornecida para a planilha:
+ * - Rio-Santos: sexta 18:00 até domingo 22:00 = tarifa de fim de semana.
+ * - Via Lagos: sexta 12:00 até segunda 12:00 = tarifa de fim de semana.
+ *
+ * A identificação de feriados ainda não é feita nesta etapa porque
+ * a fonte fornecida não contém uma lista/calendário de feriados.
+ */
+function tollIsWeekendRate(toll,dateStr,timeStr){
+  if(!dateStr) return false;
+  const d=new Date(dateStr+"T12:00:00");
+  const day=d.getDay();
+  const tm=timeMinutes(timeStr);
+
+  if(toll.rule==="rio-santos"){
+    if(day===5 && tm>=18*60) return true;
+    if(day===6 || day===0) return true;
+    return false;
+  }
+
+  if(toll.rule==="vialagos"){
+    if(day===5 && tm>=12*60) return true;
+    if(day===6 || day===0) return true;
+    if(day===1 && tm<12*60) return true;
+    return false;
+  }
+
+  return dateIsWeekend(dateStr);
+}
+
+function tollAmountForLeg(dateStr,timeStr){
+  const detected=window.__detectedTolls || [];
+  return detected.map(toll=>{
+    const r=tollRates[toll.id];
+    if(!r) return {...toll,value:0,period:"sem tarifa cadastrada"};
+    const weekend=tollIsWeekendRate(r,dateStr,timeStr);
+    return {...toll,value:weekend?r.weekend:r.weekday,period:weekend?"fim de semana/feriado":"dia útil"};
+  });
+}
+
+function tollBreakdownHtml(legs){
+  const all=[];
+  legs.forEach((leg,index)=>{
+    leg.items.forEach(item=>all.push({...item,leg:index+1}));
+  });
+
+  if(!all.length) return "🛣️ <b>Pedágios:</b> R$ 0,00<br><span class=\"muted\">Nenhum pedágio identificado na rota.</span><br>💰 <b>Total:</b> "+money(0);
+
+  let html="🛣️ <b>Pedágios:</b> "+money(all.reduce((s,x)=>s+x.value,0))+"<br>";
+  all.forEach(x=>{
+    html+=`• ${x.name} — ${money(x.value)} (${x.period}${legs.length>1?" • trecho "+x.leg:""})<br>`;
+  });
+  html+="<br>💰 <b>Total:</b> "+money(all.reduce((s,x)=>s+x.value,0));
+  return html;
+}
+
+function calculateTolls(){
+  const type=document.querySelector('input[name="type"]:checked').value;
+  const ida=tollAmountForLeg($("date").value,$("time").value);
+  const legs=[{items:ida}];
+  if(type==="volta"){
+    legs.push({items:tollAmountForLeg($("rdate").value,$("rtime").value)});
+  }
+  const total=legs.reduce((sum,leg)=>sum+leg.items.reduce((s,x)=>s+x.value,0),0);
+  return {legs,total};
+}
+
+function calc(){
+  const km=parseFloat($("km").value)||0;
+  const type=document.querySelector('input[name="type"]:checked').value;
+  const one=Math.max(rates.base,km*rates.perkm);
+  const tripTotal=type==="volta"?one*2:one;
+  const tolls=calculateTolls();
+  const grandTotal=tripTotal+tolls.total;
+
+  $("price").textContent=money(tripTotal);
+  $("detail").textContent=`Mínimo de ${money(rates.base)} • ${km.toFixed(1)} km × ${money(rates.perkm)}/km${type==="volta"?" • ida e volta":""}`;
+  $("tollDetail").innerHTML=tollBreakdownHtml(tolls.legs).replace(
+    money(tolls.total),
+    money(tolls.total)
+  );
+}
+function setMin(){
+ const d=new Date(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
+ $("date").min=`${d.getFullYear()}-${m}-${day}`;$("rdate").min=`${d.getFullYear()}-${m}-${day}`;
+}
+function updateReturnFields(){
+ const volta=document.querySelector('input[name="type"]:checked').value==="volta";
+ $("returnBox").style.display=volta?"block":"none";
+ $("rdate").required=volta;
+ $("rtime").required=volta;
+ if(volta){ $("rdate").min=$("date").value||$("rdate").min; }else{ $("rdate").required=false; $("rtime").required=false; }
+ calc();
+}
+document.querySelectorAll('input[name="type"]').forEach(x=>x.addEventListener("change",updateReturnFields));
+$("time").addEventListener("change",calc);
+$("rdate").addEventListener("change",calc);
+$("rtime").addEventListener("change",calc);
+$("km").addEventListener("input",calc);
+$("date").addEventListener("change",()=>{
+ $("rdate").min=$("date").value;
+ if($("rdate").value && $("rdate").value<$("date").value) $("rdate").value=$("date").value;
+ calc();
+});
+function openAdmin(){
+ $("admin").classList.toggle("on");$("base").value=rates.base;$("perkm").value=rates.perkm;
+}
+function saveRates(){
+ rates={base:parseFloat($("base").value)||0,perkm:parseFloat($("perkm").value)||0};
+ localStorage.setItem("22drive_rates",JSON.stringify(rates));calc();alert("Tarifas salvas!");
+}
+$("form").addEventListener("submit",e=>{
+  e.preventDefault();
+  if(!(parseFloat($("km").value)>0) || !fromResult || !toResult){
+    alert("Pesquise e selecione o local de embarque e o destino antes de continuar.");
+    return;
+  }
+
+  const type=document.querySelector('input[name="type"]:checked').value;
+  if(type==="volta" && (!$("rdate").value || !$("rtime").value)){
+    alert("Informe a data e o horário da volta.");
+    return;
+  }
+  if(type==="volta" && $("rdate").value < $("date").value){
+    alert("A data da volta não pode ser anterior à data da ida.");
+    return;
+  }
+
+  const km=parseFloat($("km").value)||0;
+  const one=Math.max(rates.base,km*rates.perkm);
+  const tripTotal=type==="volta"?one*2:one;
+  const tolls=calculateTolls();
+  const grandTotal=tripTotal+tolls.total;
+
+  let msg=`🚗 22 DRIVE — NOVA SOLICITAÇÃO\n\n`;
+  msg+=`👤 Passageiro: ${$("name").value}\n📱 WhatsApp: ${$("phone").value}\n`;
+  msg+=`🚘 Viagem: ${type==="volta"?"Ida e volta":"Somente ida"}\n`;
+  msg+=`📅 Ida: ${$("date").value.split("-").reverse().join("/")} às ${$("time").value}\n`;
+  if(type==="volta") msg+=`🔄 Volta: ${$("rdate").value.split("-").reverse().join("/")} às ${$("rtime").value}\n`;
+  msg+=`📍 Embarque: ${$("from").value}\n🏁 Destino: ${$("to").value}\n📏 Distância: ${km.toFixed(2)} km\n`;
+  const payment=document.querySelector('input[name="payment"]:checked');
+  if(!payment){
+    alert("Escolha a forma de pagamento antes de continuar.");
+    return;
+  }
+  msg+=`👥 Passageiros: ${$("people").value}\n🧳 Bagagem: ${$("bags").value}\n💳 Forma de pagamento: ${payment.value}\n\n`;
+  msg+=`🚗 Valor da viagem: ${money(tripTotal)}\n`;
+  msg+=`💳 Sinal de 50% para confirmar: ${money(grandTotal*0.5)}\n`;
+  msg+=`🛣️ Pedágios: ${money(tolls.total)}\n`;
+
+  tolls.legs.forEach((leg,index)=>{
+    leg.items.forEach(item=>{
+      msg+=`• ${item.name} — ${money(item.value)} (${item.period}${tolls.legs.length>1?" • trecho "+(index+1):""})\n`;
+    });
+  });
+
+  msg+=`💰 Total: ${money(grandTotal)}\n`;
+  msg+=`📝 Observações: ${$("obs").value||"Nenhuma"}\n\n`;
+  msg+=`🔗 Link da solicitação: ${window.location.href}\n\n`;
+  msg+=`Declaro estar ciente das condições de pagamento da reserva.`;
+
+  window.__pendingWhatsAppMessage=msg;
+  $("confirmOverlay").style.display="flex";
+});;
+
+// Os botões do aviso ficam depois deste <script> no HTML.
+// Por isso, os eventos são ligados somente quando o DOM estiver completo.
+document.addEventListener("DOMContentLoaded",()=>{
+  $("cancelConfirm").onclick=()=>{
+    $("confirmOverlay").style.display="none";
+  };
+
+  $("acceptConfirm").onclick=()=>{
+    const text=encodeURIComponent(window.__pendingWhatsAppMessage||"");
+    const url=`https://wa.me/${WA}?text=${text}`;
+    $("confirmOverlay").style.display="none";
+    $("success").style.display="block";
+
+    // Abre o link diretamente a partir do clique do passageiro.
+    const opened=window.open(url,"_blank");
+    if(!opened){
+      // Fallback caso o navegador bloqueie a nova aba/janela.
+      window.location.href=url;
+    }
+  };
+});
+
+$("reset").onclick=()=>{
+ $("form").reset();
+ document.querySelectorAll('input[name="payment"]').forEach(x=>x.checked=false);
+ fromResult=null;toResult=null;
+ $("km").value="0";
+ updateReturnFields();
+ calc();
+ window.scrollTo({top:0,behavior:"smooth"});
+};
+setMin();
+$("rdate").min=$("date").value;
+updateReturnFields();
+calc();
 </script>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3>⚠️ AVISO – RESERVAS DE VIAGEM 🚗</h3>
+    <div class="confirm-warning">Todas as viagens, somente ida ou ida e volta, devem ter 50% do valor pago com pelo menos 1 dia de antecedência para confirmar a reserva.
+
+❗ Cancelamento ou desistência após o pagamento: *não há devolução de do valor do sinal.* *"O valor será destinados à cobertura de custos relacionados à reserva do horário, planejamento e deslocamento*
+❗ Não comparecimento: também será considerado cancelamento, seguindo a mesma regra acima.
+
+Ao efetuar o pagamento, o passageiro declara estar ciente e de acordo com as condições.
+
+Agradeço a compreensão! 🤝🚗</div>
+    <div class="confirm-actions">
+      <button class="btn secondary" type="button" id="cancelConfirm">Voltar</button>
+      <button class="btn primary" type="button" id="acceptConfirm">✅ Estou ciente e continuar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
