@@ -393,6 +393,11 @@ async function verifySelectedSlots(){
 async function createReservationInSupabase(){
   const type=document.querySelector('input[name="type"]:checked').value;
   const payment=document.querySelector('input[name="payment"]:checked');
+  const sound=document.querySelector('input[name="sound"]:checked');
+  const km=parseFloat($("km").value)||0;
+  const one=Math.max(rates.base,km*rates.perkm);
+  const tolls=calculateTolls();
+  const grandTotal=(type==="volta"?one*2:one)+tolls.total;
   const payload={
     p_data_ida:$("date").value,
     p_hora_ida:$("time").value,
@@ -402,11 +407,19 @@ async function createReservationInSupabase(){
     p_nome:$("name").value.trim(),
     p_whatsapp:$("phone").value.trim(),
     p_embarque:$("from").value,
-    p_destino:$("to").value
+    p_destino:$("to").value,
+    p_valor:grandTotal,
+    p_forma_pagamento:payment?payment.value:null,
+    p_observacoes:$("obs").value.trim()||null,
+    p_passageiros:parseInt($("people").value,10)||null,
+    p_bagagem:$("bags").value||null,
+    p_som:sound?sound.value:null,
+    p_estilo_musical:sound&&sound.value==="Com som"?$("musicStyle").value||null:null,
+    p_artista:sound&&sound.value==="Com som"?$("musicArtist").value.trim()||null:null
   };
-  const result=await supabaseRpc("criar_reserva",payload);
+  const result=await supabaseRpc("criar_solicitacao",payload);
   if(!result || result.sucesso!==true){
-    const err=new Error((result&&result.mensagem)||"Não foi possível confirmar a reserva.");
+    const err=new Error((result&&result.mensagem)||"Não foi possível enviar a solicitação.");
     err.code=result&&result.erro;
     throw err;
   }
@@ -1001,13 +1014,13 @@ document.addEventListener("DOMContentLoaded",()=>{
   $("acceptConfirm").onclick=async()=>{
     const button=$("acceptConfirm");
     button.disabled=true;
-    button.textContent="⏳ Confirmando reserva...";
+    button.textContent="⏳ Enviando solicitação...";
     try{
       const available=await verifySelectedSlots();
       if(!available){
-        alert("Um dos horários escolhidos já está reservado. Escolha outro horário.");
+        alert("🔴 Este horário já está reservado. Escolha outro horário.");
         button.disabled=false;
-        button.textContent="✅ Estou ciente e continuar";
+        button.textContent="✅ Enviar solicitação";
         return;
       }
 
@@ -1021,7 +1034,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const opened=window.open(url,"_blank");
       if(!opened) window.location.href=url;
 
-      console.log("22 DRIVE — reserva confirmada:",result.reserva_id);
+      console.log("22 DRIVE — solicitação enviada:",result.reserva_id);
     }catch(err){
       console.error(err);
       if(err.code==="HORARIO_OCUPADO"){
@@ -1031,7 +1044,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         alert("❌ Não foi possível confirmar a reserva agora. Verifique sua conexão e tente novamente.");
       }
       button.disabled=false;
-      button.textContent="✅ Estou ciente e continuar";
+      button.textContent="✅ Enviar solicitação";
     }
   };
 });
@@ -1066,8 +1079,8 @@ checkSlot($("date").value,$("time").value,"availabilityStatus");
 
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-box">
-    <h3>⚠️ AVISO – RESERVAS DE VIAGEM 🚗</h3>
-    <div class="confirm-warning">Todas as viagens, somente ida ou ida e volta, devem ter 50% do valor pago com pelo menos 1 dia de antecedência para confirmar a reserva.
+    <h3>📋 Enviar solicitação de viagem</h3>
+    <div class="confirm-warning">Sua solicitação será enviada para o painel da 22 DRIVE e ficará <b>aguardando confirmação do motorista</b>.\n\nO horário só será bloqueado definitivamente quando a viagem for confirmada no painel.
 
 ❗ Cancelamento ou desistência após o pagamento: *não há devolução de do valor do sinal.* *"O valor será destinados à cobertura de custos relacionados à reserva do horário, planejamento e deslocamento*
 ❗ Não comparecimento: também será considerado cancelamento, seguindo a mesma regra acima.
@@ -1077,7 +1090,7 @@ Ao efetuar o pagamento, o passageiro declara estar ciente e de acordo com as con
 Agradeço a compreensão! 🤝🚗</div>
     <div class="confirm-actions">
       <button class="btn secondary" type="button" id="cancelConfirm">Voltar</button>
-      <button class="btn primary" type="button" id="acceptConfirm">✅ Estou ciente e continuar</button>
+      <button class="btn primary" type="button" id="acceptConfirm">✅ Enviar solicitação</button>
     </div>
   </div>
 </div>
