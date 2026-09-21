@@ -1106,7 +1106,9 @@ document.addEventListener("DOMContentLoaded",()=>{
         alert("🔴 Este horário acabou de ser reservado por outro passageiro. Escolha outro horário.");
         await verifySelectedSlots();
       }else{
-        alert("❌ Não foi possível confirmar a reserva agora. Verifique sua conexão e tente novamente.");
+        const detail=err&&err.message?String(err.message):String(err||"Erro desconhecido");
+        console.error("22 DRIVE — erro detalhado ao criar reserva:",detail,err);
+        alert("❌ Não foi possível confirmar a reserva.\\n\\nDetalhe técnico: "+detail);
       }
       button.disabled=false;
       button.textContent="✅ Enviar solicitação";
