@@ -127,6 +127,12 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <label><input type="radio" name="payment" value="Pix"><span>🟢 Pix</span></label>
 <label><input type="radio" name="payment" value="No amor"><span>❤️ No amor <strong>(somente para passageiros elegíveis)</strong></span></label>
 </div>
+<div id="noLovePaymentBox" style="display:none;margin-top:12px">
+<div class="field">
+<label>📅 Data prevista para pagamento</label><input id="noLovePaymentDate" type="date">
+<div id="noLovePaymentHint" class="muted" style="margin-top:5px">Escolha uma data de pagamento dentro de 5 dias úteis a partir da data da viagem.</div>
+</div>
+</div>
 <p class="muted" style="margin:10px 0 0">Escolha como pretende pagar a reserva.</p>
 </section>
 
@@ -613,6 +619,38 @@ function setMin(){
  const d=new Date(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
  $("date").min=`${d.getFullYear()}-${m}-${day}`;$("rdate").min=`${d.getFullYear()}-${m}-${day}`;
 }
+
+function addBusinessDays(dateStr,count){
+ let d=new Date(dateStr+"T12:00:00Z");
+ let added=0;
+ while(added<count){
+   d.setUTCDate(d.getUTCDate()+1);
+   const day=d.getUTCDay();
+   if(day!==0 && day!==6) added++;
+ }
+ return d.toISOString().slice(0,10);
+}
+
+function updateNoLovePaymentDate(){
+ const selected=document.querySelector('input[name="payment"]:checked');
+ const isNoLove=selected && selected.value==="No amor";
+ const box=$("noLovePaymentBox");
+ const input=$("noLovePaymentDate");
+ if(!box || !input) return;
+ box.style.display=isNoLove?"block":"none";
+ input.required=isNoLove;
+ if(isNoLove && $("date").value){
+   const min=$("date").value;
+   const max=addBusinessDays(min,5);
+   input.min=min; input.max=max;
+   if(input.value && (input.value<min || input.value>max)) input.value="";
+   $("noLovePaymentHint").textContent="Escolha uma data de pagamento entre "+min.split("-").reverse().join("/")+" e "+max.split("-").reverse().join("/")+", dentro de 5 dias úteis a partir da data da viagem.";
+ }else{
+   input.required=false; input.min=""; input.max="";
+   if(!isNoLove) input.value="";
+   $("noLovePaymentHint").textContent="Escolha uma data de pagamento dentro de 5 dias úteis a partir da data da viagem.";
+ }
+}
 function updateReturnFields(){
  const volta=document.querySelector('input[name="type"]:checked').value==="volta";
  $("returnBox").style.display=volta?"block":"none";
@@ -622,6 +660,8 @@ function updateReturnFields(){
  calc();
 }
 document.querySelectorAll('input[name="type"]').forEach(x=>x.addEventListener("change",updateReturnFields));
+
+document.querySelectorAll('input[name="payment"]').forEach(x=>x.addEventListener("change",updateNoLovePaymentDate));
 
 document.querySelectorAll('input[name="sound"]').forEach(x=>x.addEventListener("change",()=>{
   const withSound=x.value==="Com som" && x.checked;
@@ -637,6 +677,7 @@ $("date").addEventListener("change",async()=>{
  $("rdate").min=$("date").value;
  if($("rdate").value && $("rdate").value<$("date").value) $("rdate").value=$("date").value;
  calc();
+ updateNoLovePaymentDate();
  await checkSlot($("date").value,$("time").value,"availabilityStatus");
 });
 $("rdate").addEventListener("change",async()=>{ await checkSlot($("rdate").value,$("rtime").value,"availabilityReturnStatus"); });
@@ -683,10 +724,19 @@ $("form").addEventListener("submit",e=>{
     alert("Escolha a forma de pagamento antes de continuar.");
     return;
   }
+  let noLovePaymentDate="";
+  if(payment.value==="No amor"){
+    noLovePaymentDate=$("noLovePaymentDate").value;
+    const min=$("date").value;
+    const max=addBusinessDays(min,5);
+    if(!noLovePaymentDate){alert("Escolha a data prevista para o pagamento.");return;}
+    if(noLovePaymentDate<min || noLovePaymentDate>max){alert("A data de pagamento deve ficar dentro de 5 dias úteis a partir da data da viagem.");return;}
+  }
   const sound=document.querySelector('input[name="sound"]:checked');
   if(!sound){alert("Informe se prefere viajar com o som ligado ou sem som.");return;}
   if(sound.value==="Com som" && !$("musicStyle").value){alert("Escolha o estilo de música de sua preferência.");return;}
   msg+=`👥 Passageiros: ${$("people").value}\n🧳 Bagagem: ${$("bags").value}\n💳 Forma de pagamento: ${payment.value}\n`;
+  if(payment.value==="No amor") msg+=`📅 Data prevista para pagamento: ${noLovePaymentDate.split("-").reverse().join("/")}\n`;
   msg+=`🎵 Som: ${sound.value}\n`;
   if(sound.value==="Com som"){
     msg+=`🎶 Estilo musical: ${$("musicStyle").value}\n`;
@@ -765,6 +815,8 @@ $("reset").onclick=()=>{
  $("musicStyle").value="";
  $("musicStyle").required=false;
  $("musicArtist").value="";
+ $("noLovePaymentDate").value="";
+ updateNoLovePaymentDate();
  fromResult=null;toResult=null;
  $("km").value="0";
  updateReturnFields();
@@ -774,6 +826,7 @@ $("reset").onclick=()=>{
 setMin();
 $("rdate").min=$("date").value;
 updateReturnFields();
+updateNoLovePaymentDate();
 calc();
 checkSlot($("date").value,$("time").value,"availabilityStatus");
 </script>
