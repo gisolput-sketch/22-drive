@@ -24,6 +24,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 
 .autocomplete-wrap{position:relative}
 .search-row{display:flex;gap:7px;align-items:center}.search-row input{flex:1}.search-btn{width:48px;height:46px;border:1px solid var(--line);border-radius:12px;background:var(--p);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}.search-btn:active{transform:scale(.97)}
+.location-btn{margin-top:7px!important}.location-status{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
 .suggestions{position:absolute;left:0;right:0;top:100%;z-index:1000;background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;box-shadow:0 8px 20px #11182718;overflow:hidden}
 .suggestion{display:block;width:100%;padding:11px 12px;border:0;background:#fff;text-align:left;font:inherit;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line)}
 .suggestion:last-child{border-bottom:0}.suggestion:hover{background:#f3f4f6}
@@ -73,6 +74,8 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <section class="card">
 <h2>📍 Rota</h2>
 <div class="place-wrap"><label>Local de embarque</label><div class="autocomplete-wrap"><div class="search-row"><input id="fromPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('fromPlace')" aria-label="Buscar local de embarque">🔍</button></div></div></div>
+<button class="btn dark" type="button" id="useLocationBtn" style="margin-top:-3px">📍 Usar minha localização exata</button>
+<div id="locationStatus" class="route-status"></div>
 <div class="place-wrap"><label>Destino</label><div class="autocomplete-wrap"><div class="search-row"><input id="toPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('toPlace')" aria-label="Buscar destino">🔍</button></div></div></div>
 <div id="map" class="map"></div>
 <div id="routeStatus" class="route-status">Digite o endereço completo e escolha uma das sugestões encontradas. Se não aparecer, tente incluir número, bairro e cidade.</div>
@@ -315,6 +318,80 @@ function showSuggestions(inputId,results){
   wrap.appendChild(box);
 }
 
+function reverseGeocodeLocation(lat,lon){
+  return fetch("https://nominatim.openstreetmap.org/reverse?"+new URLSearchParams({
+    lat:String(lat),
+    lon:String(lon),
+    format:"jsonv2",
+    addressdetails:"1",
+    zoom:"18",
+    "accept-language":"pt-BR"
+  }),{headers:{"Accept":"application/json"}}).then(response=>{
+    if(!response.ok) throw new Error("Nominatim reverse HTTP "+response.status);
+    return response.json();
+  });
+}
+
+function setBoardingFromCoordinates(lat,lon,address){
+  const label=address || ("Localização GPS: "+lat.toFixed(6)+", "+lon.toFixed(6));
+  fromResult={
+    lat:String(lat),
+    lon:String(lon),
+    display_name:label,
+    address:{}
+  };
+  $("fromPlace").value=label;
+  $("from").value=label;
+  if(fromMarker && driveMap) driveMap.removeLayer(fromMarker);
+  fromMarker=L.marker([lat,lon]).addTo(driveMap).bindPopup("📍 Embarque — localização exata").openPopup();
+  if(toResult) computeDriveRoute();
+}
+
+async function useCurrentLocation(){
+  const status=$("locationStatus");
+  const button=$("useLocationBtn");
+  if(!navigator.geolocation){
+    status.textContent="❌ Este aparelho/navegador não disponibiliza localização.";
+    return;
+  }
+  button.disabled=true;
+  button.textContent="📍 Localizando...";
+  status.textContent="🔎 Obtendo sua localização exata. Autorize o acesso ao GPS quando aparecer a solicitação.";
+  try{
+    const position=await new Promise((resolve,reject)=>{
+      navigator.geolocation.getCurrentPosition(resolve,reject,{
+        enableHighAccuracy:true,
+        timeout:15000,
+        maximumAge:0
+      });
+    });
+    const lat=position.coords.latitude;
+    const lon=position.coords.longitude;
+    let address="";
+    try{
+      const result=await reverseGeocodeLocation(lat,lon);
+      address=result.display_name||"";
+    }catch(reverseErr){
+      console.warn("Não foi possível obter o endereço da localização:",reverseErr);
+    }
+    setBoardingFromCoordinates(lat,lon,address);
+    status.textContent="✅ Localização exata do embarque definida. Você ainda pode alterar pelo campo acima.";
+    $("routeStatus").textContent=toResult
+      ?"🗺️ Localização de embarque definida. Calculando rota..."
+      :"📍 Local de embarque definido pela localização exata. Agora escolha o destino.";
+  }catch(err){
+    console.error(err);
+    let message="❌ Não foi possível obter sua localização.";
+    if(err && err.code===1) message="❌ Permissão de localização negada. Autorize a localização no celular e tente novamente.";
+    if(err && err.code===2) message="❌ Não foi possível determinar sua localização. Tente novamente em um local com sinal de GPS.";
+    if(err && err.code===3) message="❌ A localização demorou demais. Tente novamente.";
+    status.textContent=message;
+  }finally{
+    button.disabled=false;
+    button.textContent="📍 Usar minha localização exata";
+  }
+}
+
 async function searchAddress(inputId){
   const input=$(inputId);
   const q=input.value.trim();
@@ -341,7 +418,7 @@ async function searchAddress(inputId){
 
 function setupAutocomplete(inputId){
   $(inputId).addEventListener("input",()=>{
-    if(inputId==="fromPlace"){ fromResult=null; $("from").value=""; } else { toResult=null; $("to").value=""; }
+    if(inputId==="fromPlace"){ fromResult=null; $("from").value=""; if($("locationStatus")) $("locationStatus").textContent=""; } else { toResult=null; $("to").value=""; }
     clearSuggestions(inputId);
   });
   $(inputId).addEventListener("keydown",e=>{
@@ -493,6 +570,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   initMap();
   setupAutocomplete("fromPlace");
   setupAutocomplete("toPlace");
+  $("useLocationBtn").addEventListener("click",useCurrentLocation);
 });
 
 
@@ -818,6 +896,7 @@ $("reset").onclick=()=>{
  $("noLovePaymentDate").value="";
  updateNoLovePaymentDate();
  fromResult=null;toResult=null;
+ $("locationStatus").textContent="";
  $("km").value="0";
  updateReturnFields();
  calc();
