@@ -40,6 +40,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
  crossorigin=""></script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="app">
@@ -77,6 +78,11 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 </div>
 <button class="btn primary" type="button" id="saveFavoriteBtn">⭐ Salvar endereço favorito</button>
 <div id="favoriteList" style="margin-top:12px"></div>
+</section>
+
+<section class="card" id="tripStatusCard" style="display:none">
+<h2>📲 Status da sua viagem</h2>
+<div id="tripStatusBox" class="notice"></div>
 </section>
 
 <form id="form">
@@ -211,6 +217,60 @@ const SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
 const defaults={base:20,perkm:1.5};
 const PROFILE_KEY="22drive_passenger_profile";
 const FAVORITES_KEY="22drive_passenger_favorites";
+
+let passengerSupabase=null;
+let passengerRealtimeChannel=null;
+let lastReservationId=localStorage.getItem("22drive_last_reservation_id")||"";
+
+function statusLabel(status){
+  return {
+    new:"⏳ Solicitação enviada. Aguardando o motorista.",
+    accepted:"✅ Motorista aceitou sua solicitação. Aguardando confirmação do horário.",
+    confirmed:"🎉 Viagem confirmada pelo motorista!",
+    cancelled:"❌ Esta solicitação foi cancelada.",
+    finished:"🏁 Viagem finalizada."
+  }[status]||"⏳ Solicitação em processamento.";
+}
+
+function showTripStatus(r){
+  if(!r)return;
+  const box=$("tripStatusBox"),card=$("tripStatusCard");
+  if(!box||!card)return;
+  let html="<b>"+statusLabel(r.status)+"</b>";
+  if(r.confirmed_date||r.confirmed_time){
+    html+="<br>📅 Data confirmada: "+String(r.confirmed_date||"").split("-").reverse().join("/")+"<br>🕐 Horário confirmado: "+(r.confirmed_time||"");
+  }
+  if(r.driver_name) html+="<br>🚗 Motorista: "+r.driver_name;
+  if(r.confirm_note) html+="<br>📝 "+r.confirm_note;
+  box.innerHTML=html;
+  card.style.display="block";
+}
+
+async function loadPassengerReservation(id){
+  if(!passengerSupabase||!id)return;
+  try{
+    const {data,error}=await passengerSupabase.from("reservas").select("*").eq("id",id).single();
+    if(!error&&data)showTripStatus(data);
+  }catch(err){console.error("Status da viagem:",err);}
+}
+
+async function connectPassengerRealtime(){
+  if(!window.supabase||passengerRealtimeChannel)return;
+  try{
+    passengerSupabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    if(lastReservationId) await loadPassengerReservation(lastReservationId);
+    passengerRealtimeChannel=passengerSupabase.channel("22drive-passageiro-"+Math.random().toString(36).slice(2))
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"reservas"},payload=>{
+        if(lastReservationId && String(payload.new.id)===String(lastReservationId)) showTripStatus(payload.new);
+      })
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"reservas"},payload=>{
+        if(lastReservationId && String(payload.new.id)===String(lastReservationId)) showTripStatus(payload.new);
+      })
+      .subscribe();
+  }catch(err){console.error("Supabase Realtime passageiro:",err);}
+}
+
+
 
 function normalizePhone(v){
   return String(v||"").replace(/\D/g,"");
@@ -719,6 +779,7 @@ document.addEventListener("click",e=>{
 });
 
 document.addEventListener("DOMContentLoaded",()=>{
+  connectPassengerRealtime();
   const savedProfile=loadPassengerProfile();
   if(savedProfile) showPassengerProfile(savedProfile);
   renderFavorites();
@@ -1027,6 +1088,8 @@ document.addEventListener("DOMContentLoaded",()=>{
       }
 
       const result=await createReservationInSupabase();
+      lastReservationId=result.reserva_id||result.id||"";
+      if(lastReservationId){localStorage.setItem("22drive_last_reservation_id",String(lastReservationId));connectPassengerRealtime();}
 
       const text=encodeURIComponent(window.__pendingWhatsAppMessage||"");
       const url=`https://wa.me/${WA}?text=${text}`;
