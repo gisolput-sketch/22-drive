@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>22 DRIVE — Área do Motorista</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:Arial,sans-serif}.wrap{max-width:1000px;margin:auto;padding:18px}.top{background:#111827;color:white;padding:18px;border-radius:0 0 18px 18px}.topin{max-width:1000px;margin:auto;display:flex;justify-content:space-between;align-items:center}.brand{font-weight:800;font-size:20px}.brand small{display:block;font-size:12px;font-weight:400;opacity:.75}.card{background:white;border:1px solid #e5e7eb;border-radius:18px;padding:17px;margin:0 0 15px;box-shadow:0 6px 20px #11182712}h2{font-size:19px;margin:0 0 12px}.muted{color:#6b7280;font-size:13px}.grid{display:grid;grid-template-columns:320px 1fr;gap:15px}@media(max-width:800px){.grid{grid-template-columns:1fr}}input,select{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;font-size:15px}label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}.btn{border:0;border-radius:10px;padding:12px 15px;font-weight:800;cursor:pointer}.primary{background:#111827;color:#fff}.green{background:#16a34a;color:#fff}.red{background:#dc2626;color:#fff}.gray{background:#e5e7eb}.btnblock{width:100%;margin-top:10px}.hidden{display:none!important}.notice{padding:12px;border-radius:10px;margin-bottom:12px;background:#dbeafe;color:#1e40af}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{padding:12px;text-align:center;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px}.stat b{display:block;font-size:22px}.request{border:1px solid #e5e7eb;border-radius:15px;padding:15px;margin-bottom:12px}.head{display:flex;justify-content:space-between;gap:8px}.badge{padding:5px 9px;border-radius:99px;font-size:11px;font-weight:800}.new{background:#dbeafe;color:#1e40af}.accepted{background:#fef3c7;color:#92400e}.confirmed{background:#dcfce7;color:#166534}.cancelled{background:#fee2e2;color:#991b1b}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions .btn{flex:1;min-width:120px}.empty{text-align:center;padding:30px;color:#6b7280;border:1px dashed #d1d5db;border-radius:13px}.status{padding:13px;border:1px solid #e5e7eb;border-radius:12px;background:#fafafa}.modal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:15px;z-index:10}.modal.on{display:flex}.box{background:white;border-radius:17px;padding:18px;width:100%;max-width:450px}.row{display:flex;gap:8px}.row>*{flex:1}
+</style>
+</head>
+<body>
+<header class="top"><div class="topin"><div class="brand">🚗 22 DRIVE<small>Área do Motorista</small></div><button class="btn gray" onclick="logout()">Sair</button></div></header>
+
+<main class="wrap">
+<section id="login" class="card" style="max-width:440px;margin:25px auto">
+<h2>🚗 Entrar no painel</h2><p class="muted">Use seu nome e telefone para acessar a Área do Motorista.</p>
+<label>Nome</label><input id="loginName" placeholder="Nome do motorista">
+<label>Telefone</label><input id="loginPhone" placeholder="(21) 99999-9999">
+<button class="btn primary btnblock" onclick="login()">Entrar</button>
+</section>
+
+<section id="app" class="hidden">
+<div id="notice" class="notice hidden"></div>
+<div class="grid">
+<aside>
+<div class="card">
+<h2>Olá, <span id="driverName"></span> 👋</h2><p class="muted" id="driverPhone"></p>
+<div class="status">
+<label>Status do motorista</label>
+<select id="status" onchange="changeStatus()">
+<option value="available">🟢 Disponível</option>
+<option value="busy">🟠 Trabalhando</option>
+<option value="offline">⚫ Indisponível</option>
+</select></div>
+</div>
+<div class="card"><h2>Resumo</h2><div class="stats"><div class="stat"><b id="newCount">0</b><span>Novas</span></div><div class="stat"><b id="acceptedCount">0</b><span>Aceitas</span></div><div class="stat"><b id="confirmedCount">0</b><span>Confirmadas</span></div></div></div>
+<div class="card"><button class="btn gray btnblock" onclick="render()">🔄 Atualizar</button><a class="btn gray btnblock" style="display:block;text-align:center;text-decoration:none;color:#111827" href="./">👤 Área do passageiro</a></div>
+</aside>
+
+<section class="card">
+<h2>📋 Solicitações de viagem</h2>
+<p class="muted">Aceite a solicitação e depois confirme o horário da viagem.</p>
+<div id="requests"></div>
+</section>
+</div>
+</section>
+</main>
+
+<div id="modal" class="modal"><div class="box">
+<h2>🗓️ Confirmar viagem</h2><p class="muted">Informe o horário que será confirmado ao passageiro.</p>
+<label>Data</label><input id="cdate" type="date">
+<label>Horário</label><input id="ctime" type="time">
+<label>Observação</label><input id="cnote" placeholder="Ex.: encontro na portaria">
+<div class="row" style="margin-top:15px"><button class="btn gray" onclick="closeModal()">Cancelar</button><button class="btn green" onclick="confirmRide()">Confirmar</button></div>
+</div></div>
+
+<script>
+const DRIVER_KEY="22drive_driver";
+const REQUESTS_KEY="22drive_requests";
+let driver=null,selected=null;
+const $=id=>document.getElementById(id);
+function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
+function requests(){try{let x=JSON.parse(localStorage.getItem(REQUESTS_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return[]}}
+function save(x){localStorage.setItem(REQUESTS_KEY,JSON.stringify(x))}
+function notice(t){$("notice").textContent=t;$("notice").className="notice";setTimeout(()=>$("notice").className="notice hidden",4000)}
+function login(){let name=$("loginName").value.trim(),phone=$("loginPhone").value.trim();if(!name){alert("Digite o nome do motorista.");return}driver={name,phone,status:"available"};localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));openApp()}
+function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"Telefone não informado";$("status").value=driver.status||"available";render()}
+function logout(){localStorage.removeItem(DRIVER_KEY);location.reload()}
+function changeStatus(){driver.status=$("status").value;localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));notice("Status atualizado.")}
+function dateBR(v){if(!v)return"";let p=String(v).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:v}
+function render(){
+ let rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+ $("newCount").textContent=rs.filter(r=>r.status==="new"||!r.status).length;
+ $("acceptedCount").textContent=rs.filter(r=>r.status==="accepted").length;
+ $("confirmedCount").textContent=rs.filter(r=>r.status==="confirmed").length;
+ if(!rs.length){$("requests").innerHTML='<div class="empty">📭<br><b>Nenhuma solicitação disponível.</b><br><span class="muted">As solicitações aparecerão aqui quando forem conectadas à base online.</span></div>';return}
+ $("requests").innerHTML=rs.map(card).join("")
+}
+function card(r){
+ let s=r.status||"new", map={new:["new","Nova"],accepted:["accepted","Aceita"],confirmed:["confirmed","Confirmada"],cancelled:["cancelled","Cancelada"],finished:["confirmed","Finalizada"]}, b=map[s]||map.new;
+ let passenger=r.passengerName||r.nome||"Passageiro",phone=r.passengerPhone||r.telefone||"",origin=r.origin||r.origem||"Não informado",dest=r.destination||r.destino||"Não informado",date=r.date||r.data||"",time=r.time||r.horario||"";
+ let schedule=r.confirmedDate||r.confirmedTime?'<div style="background:#f0fdf4;padding:10px;border-radius:9px;margin-top:8px;color:#166534"><b>🗓️ Confirmada:</b> '+dateBR(r.confirmedDate)+' às '+esc(r.confirmedTime||"")+(r.confirmNote?"<br>📝 "+esc(r.confirmNote):"")+"</div>":"";
+ let buttons="";
+ if(s==="new"||!r.status)buttons='<button class="btn green" onclick="acceptRide(\''+esc(r.id)+'\')">✓ Aceitar</button><button class="btn red" onclick="cancelRide(\''+esc(r.id)+'\')">✕ Recusar</button>';
+ if(s==="accepted")buttons='<button class="btn green" onclick="openModal(\''+esc(r.id)+'\')">🗓️ Confirmar horário</button><button class="btn red" onclick="cancelRide(\''+esc(r.id)+'\')">Cancelar</button>';
+ if(s==="confirmed")buttons='<button class="btn primary" onclick="messagePassenger(\''+esc(r.id)+'\')">💬 WhatsApp</button><button class="btn gray" onclick="finishRide(\''+esc(r.id)+'\')">✓ Finalizar</button>';
+ return '<article class="request"><div class="head"><div><b>🚕 '+esc(passenger)+'</b>'+(phone?'<div class="muted">📱 '+esc(phone)+'</div>':"")+'</div><span class="badge '+b[0]+'">'+b[1]+'</span></div><div style="line-height:1.7;margin:12px 0;font-size:14px">📍 <b>Origem:</b> '+esc(origin)+'<br>🏁 <b>Destino:</b> '+esc(dest)+(date||time?'<br>🕐 <b>Pedido:</b> '+dateBR(date)+' '+esc(time):"")+(r.payment||r.pagamento?'<br>💳 <b>Pagamento:</b> '+esc(r.payment||r.pagamento):"")+(r.note||r.observacao?'<br>📝 <b>Obs.:</b> '+esc(r.note||r.observacao):"")+schedule+'</div><div class="actions">'+buttons+'</div></article>'
+}
+function acceptRide(id){let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;rs[i].status="accepted";rs[i].acceptedAt=new Date().toISOString();rs[i].driverName=driver.name;rs[i].driverPhone=driver.phone;save(rs);render();notice("Solicitação aceita. Agora confirme o horário.")}
+function cancelRide(id){if(!confirm("Deseja recusar/cancelar esta solicitação?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;rs[i].status="cancelled";rs[i].cancelledAt=new Date().toISOString();rs[i].cancelledBy="driver";save(rs);render();notice("Solicitação cancelada.")}
+function openModal(id){selected=id;let r=requests().find(x=>String(x.id)===String(id));if(!r)return;let d=new Date(),today=d.toISOString().slice(0,10);$("cdate").value=r.date||r.data||today;$("ctime").value=r.time||r.horario||"";$("cnote").value="";$("modal").classList.add("on")}
+function closeModal(){selected=null;$("modal").classList.remove("on")}
+function confirmRide(){if(!selected)return;let date=$("cdate").value,time=$("ctime").value;if(!date||!time){alert("Informe data e horário.");return}let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(selected));if(i<0)return;rs[i].status="confirmed";rs[i].confirmedDate=date;rs[i].confirmedTime=time;rs[i].confirmNote=$("cnote").value.trim();rs[i].confirmedAt=new Date().toISOString();rs[i].driverName=driver.name;rs[i].driverPhone=driver.phone;save(rs);closeModal();render();notice("Viagem confirmada para "+dateBR(date)+" às "+time+".")}
+function messagePassenger(id){let r=requests().find(x=>String(x.id)===String(id));if(!r)return;let p=r.passengerPhone||r.telefone||"",name=r.passengerName||r.nome||"passageiro",msg="Olá, "+name+"! Aqui é o motorista do 22 DRIVE. Sua viagem foi confirmada para "+dateBR(r.confirmedDate)+" às "+(r.confirmedTime||"")+".",n=p.replace(/\D/g,"");if(n.length>=10&&!n.startsWith("55"))n="55"+n;if(n)window.open("https://wa.me/"+n+"?text="+encodeURIComponent(msg),"_blank");else alert(msg+"\n\nTelefone do passageiro não informado.")}
+function finishRide(id){if(!confirm("Marcar viagem como finalizada?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;rs[i].status="finished";rs[i].finishedAt=new Date().toISOString();save(rs);render();notice("Viagem finalizada.")}
+document.addEventListener("DOMContentLoaded",()=>{let d=localStorage.getItem(DRIVER_KEY);if(d)openApp()})
+</script>
+</body>
+</html>
