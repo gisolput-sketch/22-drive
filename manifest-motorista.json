@@ -1,0 +1,30 @@
+{
+  "name": "22 DRIVE — Motorista",
+  "short_name": "22 DRIVE Motorista",
+  "id": "/22-drive/motorista.html?app=motorista",
+  "start_url": "./motorista.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone"
+  ],
+  "orientation": "portrait",
+  "theme_color": "#111827",
+  "background_color": "#f3f4f6",
+  "description": "Painel do motorista 22 DRIVE.",
+  "icons": [
+    {
+      "src": "icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
