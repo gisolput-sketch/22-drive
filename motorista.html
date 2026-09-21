@@ -159,7 +159,7 @@ const $=id=>document.getElementById(id);
 function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
 function requests(){
   if(realtimeReady)return remoteReservations.slice();
-  try{let x=JSON.parse(localStorage.getItem(REQUESTS_KEY)||"[]");return Array.isArray(x):[]}catch(e){return[]}
+  try{let x=JSON.parse(localStorage.getItem(REQUESTS_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return[]}
 }
 function save(x){remoteReservations=x.slice();localStorage.setItem(REQUESTS_KEY,JSON.stringify(x))}
 function notice(t){$("notice").textContent=t;$("notice").className="notice";setTimeout(()=>$("notice").className="notice hidden",4000)}
