@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>22 DRIVE — Painel do Motorista</title>
+<style>
+body{margin:0;background:#f3f4f6;font-family:Arial,sans-serif;color:#111827}.app{max-width:900px;margin:auto;padding:18px}
+header{background:#111827;color:#fff;border-radius:20px;padding:22px;margin-bottom:14px}h1{margin:0 0 6px}.muted{color:#6b7280;font-size:13px}.tabs{display:flex;gap:8px;overflow:auto;margin-bottom:14px}.tab{border:0;border-radius:12px;padding:11px 14px;background:#e5e7eb;font-weight:800;white-space:nowrap}.tab.on{background:#111827;color:#fff}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 5px 18px #1118270a}.pending{border-left:6px solid #f59e0b}.confirmed{border-left:6px solid #16a34a}.refused{border-left:6px solid #dc2626}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:12px;padding:12px 15px;font-weight:900;cursor:pointer}.ok{background:#16a34a;color:#fff}.no{background:#dc2626;color:#fff}.dark{background:#111827;color:#fff}.light{background:#e5e7eb}.tag{display:inline-block;padding:5px 9px;border-radius:999px;background:#f3f4f6;font-size:12px;font-weight:800}.empty{text-align:center;padding:35px}.error{background:#fee2e2;color:#991b1b;padding:12px;border-radius:12px;margin-bottom:12px}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.app{padding:10px}}
+</style></head><body><div class="app">
+<header><b>22 DRIVE</b><h1>🚗 Painel do Motorista</h1><div>Solicitações, confirmações e agenda.</div></header>
+<div id="error"></div>
+<div class="tabs">
+<button class="tab on" data-tab="pendente">📥 Pendentes</button><button class="tab" data-tab="confirmada">✅ Confirmadas</button><button class="tab" data-tab="recusada">❌ Recusadas</button>
+</div><div id="list"></div>
+<script>
+const URL="https://mqvumerrkyddootxeziv.supabase.co",KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
+const $=id=>document.getElementById(id);let data=[],tab="pendente";
+async function rpc(name,body={}){
+ const r=await fetch(URL+"/rest/v1/rpc/"+name,{method:"POST",headers:{"Content-Type":"application/json","apikey":KEY,"Authorization":"Bearer "+KEY},body:JSON.stringify(body)});
+ const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(_){}
+ if(!r.ok)throw new Error(j?.message||j?.hint||t||"Erro Supabase");return j;
+}
+function money(v){return Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+function dt(d){return d?String(d).split("-").reverse().join("/"):""}
+function card(r){
+ const status=r.status||"pendente", cls=status==="confirmada"?"confirmed":status==="recusada"?"refused":"pending";
+ let html='<div class="card '+cls+'"><div class="row"><span class="tag">'+(status==="pendente"?"⏳ AGUARDANDO":status==="confirmada"?"🟢 CONFIRMADA":"🔴 RECUSADA")+'</span><span class="tag">#'+r.id+'</span></div>';
+ html+='<h2>👤 '+(r.nome||"Passageiro")+'</h2><div class="grid">';
+ html+='<div><b>📅 Ida</b><br>'+dt(r.data_ida)+' às '+String(r.hora_ida||"").slice(0,5)+'</div>';
+ html+='<div><b>🚗 Viagem</b><br>'+((r.tipo_viagem||"ida")==="ida_volta"?"Ida e volta":"Somente ida")+'</div>';
+ html+='<div><b>📍 Embarque</b><br>'+(r.embarque||"-")+'</div><div><b>🏁 Destino</b><br>'+(r.destino||"-")+'</div>';
+ html+='<div><b>💰 Valor</b><br>'+money(r.valor)+'</div><div><b>💳 Pagamento</b><br>'+(r.forma_pagamento||"-")+'</div>';
+ html+='<div><b>📱 WhatsApp</b><br>'+ (r.whatsapp||"-")+'</div><div><b>👥 Passageiros</b><br>'+ (r.passageiros||"-")+'</div>';
+ html+='</div>';
+ if(r.data_volta) html+='<p><b>🔄 Volta:</b> '+dt(r.data_volta)+' às '+String(r.hora_volta||"").slice(0,5)+'</p>';
+ if(r.bagagem||r.som||r.estilo_musical||r.artista) html+='<p><b>Detalhes:</b> '+[r.bagagem,r.som,r.estilo_musical,r.artista].filter(Boolean).join(" • ")+'</p>';
+ if(r.observacoes) html+='<p><b>📝 Observações:</b> '+r.observacoes+'</p>';
+ if(status==="pendente") html+='<div class="row" style="margin-top:14px"><button class="btn ok" onclick="confirmar('+r.id+')">🟢 CONFIRMAR VIAGEM</button><button class="btn no" onclick="recusar('+r.id+')">🔴 RECUSAR</button></div>';
+ if(status==="confirmada") html+='<div class="row" style="margin-top:14px"><button class="btn dark" onclick="avisar('+r.id+')">📲 Avisar passageiro no WhatsApp</button></div>';
+ return html+'</div>';
+}
+function render(){const rows=data.filter(r=>(r.status||"pendente")===tab);$("list").innerHTML=rows.length?rows.map(card).join(""):'<div class="card empty"><h2>Nenhuma viagem aqui.</h2><div class="muted">Atualize para consultar novamente.</div></div>'}
+async function load(){try{data=await rpc("listar_solicitacoes_motorista")||[];render()}catch(e){$("error").innerHTML='<div class="error">❌ '+e.message+'</div>'}}
+async function confirmar(id){if(!confirm("Confirmar esta viagem e bloquear o horário?"))return;try{await rpc("confirmar_solicitacao",{p_reserva_id:id});await load();const r=data.find(x=>x.id===id);if(r)avisar(r.id)}catch(e){alert(e.message==="HORARIO_OCUPADO"?"🔴 Este horário já está ocupado. A viagem não foi confirmada.":e.message);await load()}}
+async function recusar(id){if(!confirm("Recusar esta solicitação?"))return;try{await rpc("recusar_solicitacao",{p_reserva_id:id});await load()}catch(e){alert(e.message);}}
+function avisar(id){const r=data.find(x=>x.id===id);if(!r)return;let m="🚗 22 DRIVE — VIAGEM CONFIRMADA\n\n";m+="Olá, "+(r.nome||"passageiro")+"! Sua viagem foi confirmada.\n";m+="📅 "+dt(r.data_ida)+" às "+String(r.hora_ida||"").slice(0,5)+"\n";if(r.data_volta)m+="🔄 Volta: "+dt(r.data_volta)+" às "+String(r.hora_volta||"").slice(0,5)+"\n";m+="📍 Embarque: "+(r.embarque||"")+"\n🏁 Destino: "+(r.destino||"")+"\n";if(r.valor)m+="💰 Valor: "+money(r.valor)+"\n";m+="\nAté lá! 🚗";window.open("https://wa.me/"+String(r.whatsapp||"").replace(/\D/g,"")+"?text="+encodeURIComponent(m),"_blank")}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));b.classList.add("on");tab=b.dataset.tab;render()});
+load();setInterval(load,30000);
+</script></div></body></html>
