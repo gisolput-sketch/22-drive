@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>22 DRIVE — Agendamento</title>
+</head>
+<body>
+<p style="font-family:Arial,sans-serif;text-align:center;margin-top:40px">Carregando 22 DRIVE...</p>
+<script>
+(async function () {
+  const arquivoOriginal = "22-drive-etapa4-aviso-pagamento-atualizado.html";
+  try {
+    const resposta = await fetch(arquivoOriginal, { cache: "no-store" });
+    if (!resposta.ok) throw new Error("HTTP " + resposta.status);
+    let html = await resposta.text();
+    html = html.replace('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"\n\n crossorigin=""/>','<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">');
+    html = html.replace('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"\n crossorigin=""></script>','<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>');
+    const pagamento = `
+<section class="card">
+<h2>💳 Forma de pagamento</h2>
+<div class="choices">
+<label><input type="radio" name="payment" value="Cartão de débito" required><span>💳 Cartão de débito</span></label>
+<label><input type="radio" name="payment" value="Cartão de crédito"><span>💰 Cartão de crédito</span></label>
+<label><input type="radio" name="payment" value="Dinheiro"><span>💵 Dinheiro</span></label>
+<label><input type="radio" name="payment" value="Pix"><span>🟢 Pix</span></label>
+<label><input type="radio" name="payment" value="No amor"><span>❤️ No amor</span></label>
+</div>
+</section>
+`;
+    if (!html.includes('name="payment"')) {
+      html = html.replace('<button class="btn primary" type="submit">📲 Solicitar reserva pelo WhatsApp</button>', pagamento + '\n<button class="btn primary" type="submit">📲 Solicitar reserva pelo WhatsApp</button>');
+    }
+    html = html.replace('e.preventDefault();\n  if(!(parseFloat($("km").value)>0)', 'e.preventDefault();\n  const payment=document.querySelector(\'input[name="payment"]:checked\');\n  if(!(parseFloat($("km").value)>0)');
+    html = html.replace('msg+=`👥 Passageiros: ${$("people").value}\\n🧳 Bagagem: ${$("bags").value}\\n\\n`;', 'msg+=`👥 Passageiros: ${$("people").value}\\n🧳 Bagagem: ${$("bags").value}\\n💳 Forma de pagamento: ${payment ? payment.value : "Não informada"}\\n\\n`;');
+    html = html.replace('Para ativar o mapa, edite o código e substitua COLE_SUA_CHAVE_AQUI pela sua chave nova do mapa.', 'O mapa usa Leaflet + OpenStreetMap e não precisa de chave de API.');
+    document.open();
+    document.write(html);
+    document.close();
+  } catch (erro) {
+    document.body.innerHTML = '<div style="font-family:Arial,sans-serif;padding:25px"><h2>❌ Não foi possível carregar a 22 DRIVE</h2><p>Verifique se o arquivo <b>' + arquivoOriginal + '</b> continua no mesmo repositório.</p><p>Erro: ' + erro.message + '</p></div>';
+  }
+})();
+</script>
+</body>
+</html>
