@@ -10,6 +10,7 @@
 </style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <header class="top"><div class="topin"><div class="brand">🚗 22 DRIVE<small>Área do Motorista</small></div><button class="btn gray" onclick="logout()">Sair</button></div></header>
@@ -61,6 +62,89 @@
 <script>
 const DRIVER_KEY="22drive_driver";
 const REQUESTS_KEY="22drive_requests";
+const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co";
+const SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
+let supabaseClient=null;
+let realtimeChannel=null;
+let remoteReservations=[];
+let realtimeReady=false;
+
+function normalizeReservation(r){
+  return {
+    ...r,
+    id:r.id,
+    createdAt:r.created_at||r.createdAt||new Date().toISOString(),
+    passengerName:r.passenger_name||r.nome||r.p_nome||"Passageiro",
+    passengerPhone:r.passenger_phone||r.whatsapp||r.telefone||r.p_whatsapp||"",
+    passengerEmail:r.passenger_email||r.email||"",
+    date:r.travel_date||r.data_ida||r.data||r.p_data_ida||"",
+    time:r.travel_time||r.hora_ida||r.horario||r.p_hora_ida||"",
+    returnDate:r.return_date||r.data_volta||r.p_data_volta||"",
+    returnTime:r.return_time||r.hora_volta||r.p_hora_volta||"",
+    origin:r.origin||r.embarque||r.origem||r.p_embarque||"",
+    destination:r.destination||r.destino||r.p_destino||"",
+    payment:r.payment_method||r.forma_pagamento||r.pagamento||r.p_forma_pagamento||"",
+    note:r.observation||r.observacoes||r.observacao||r.p_observacoes||"",
+    passengers:r.passengers||r.passageiros||r.p_passageiros||1,
+    baggage:r.baggage||r.bagagem||r.p_bagagem||"",
+    sound:r.sound_preference||r.som||r.p_som||"",
+    musicStyle:r.music_style||r.estilo_musical||r.p_estilo_musical||"",
+    musicArtist:r.music_artist||r.artista||r.p_artista||"",
+    totalValue:r.total_value??r.trip_value??r.valor??r.p_valor??0,
+    status:r.status||"new",
+    driverName:r.driver_name||"",
+    driverPhone:r.driver_phone||"",
+    confirmedDate:r.confirmed_date||r.confirmedDate||"",
+    confirmedTime:r.confirmed_time||r.confirmedTime||"",
+    confirmNote:r.confirm_note||r.confirmNote||""
+  };
+}
+
+async function connectSupabaseRealtime(){
+  if(!window.supabase || realtimeReady)return;
+  try{
+    supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    const {data,error}=await supabaseClient.from("reservas").select("*").order("created_at",{ascending:false}).limit(100);
+    if(error) throw error;
+    remoteReservations=(data||[]).map(normalizeReservation);
+    realtimeReady=true;
+    render();
+    realtimeChannel=supabaseClient.channel("22drive-reservas")
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"reservas"},payload=>{
+        const r=normalizeReservation(payload.new);
+        if(!remoteReservations.some(x=>String(x.id)===String(r.id))){
+          remoteReservations.unshift(r);
+          if((r.status||"new")==="new")showNewRideNotification(r);
+        }
+        render();
+      })
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"reservas"},payload=>{
+        const r=normalizeReservation(payload.new);
+        const i=remoteReservations.findIndex(x=>String(x.id)===String(r.id));
+        if(i>=0)remoteReservations[i]=r;else remoteReservations.unshift(r);
+        render();
+      })
+      .subscribe(status=>{
+        if(status==="SUBSCRIBED") notice("🟢 Conectado à base online. Novas viagens aparecerão automaticamente.");
+        if(status==="CHANNEL_ERROR") notice("⚠️ Não foi possível manter a conexão em tempo real.");
+      });
+  }catch(err){
+    console.error("Supabase Realtime:",err);
+    realtimeReady=false;
+    notice("⚠️ Base online indisponível. O painel continuará funcionando neste aparelho.");
+  }
+}
+
+async function updateRemoteReservation(id,patch){
+  if(!supabaseClient)return false;
+  const {data,error}=await supabaseClient.from("reservas").update(patch).eq("id",id).select("*").single();
+  if(error){console.error("Atualização Supabase:",error);alert("Não foi possível atualizar a viagem na base online: "+error.message);return false;}
+  const r=normalizeReservation(data);
+  const i=remoteReservations.findIndex(x=>String(x.id)===String(id));
+  if(i>=0)remoteReservations[i]=r;else remoteReservations.unshift(r);
+  return true;
+}
+
 let driver=null,selected=null;
 let lastSeenRequestIds=new Set();
 let audioCtx=null;
@@ -73,11 +157,14 @@ function monitorNewRequests(){const rs=requests();const active=rs.filter(r=>(r.s
 
 const $=id=>document.getElementById(id);
 function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
-function requests(){try{let x=JSON.parse(localStorage.getItem(REQUESTS_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return[]}}
-function save(x){localStorage.setItem(REQUESTS_KEY,JSON.stringify(x))}
+function requests(){
+  if(realtimeReady)return remoteReservations.slice();
+  try{let x=JSON.parse(localStorage.getItem(REQUESTS_KEY)||"[]");return Array.isArray(x):[]}catch(e){return[]}
+}
+function save(x){remoteReservations=x.slice();localStorage.setItem(REQUESTS_KEY,JSON.stringify(x))}
 function notice(t){$("notice").textContent=t;$("notice").className="notice";setTimeout(()=>$("notice").className="notice hidden",4000)}
 function login(){unlockDriverSound();let name=$("loginName").value.trim(),phone=$("loginPhone").value.trim();if(!name){alert("Digite o nome do motorista.");return}driver={name,phone,status:"available"};localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));openApp()}
-function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"Telefone não informado";$("status").value=driver.status||"available";render()}
+function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"Telefone não informado";$("status").value=driver.status||"available";render();connectSupabaseRealtime()}
 function logout(){localStorage.removeItem(DRIVER_KEY);location.reload()}
 function changeStatus(){driver.status=$("status").value;localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));notice("Status atualizado.")}
 function dateBR(v){if(!v)return"";let p=String(v).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:v}
@@ -99,13 +186,13 @@ function card(r){
  if(s==="confirmed")buttons='<button class="btn primary" onclick="messagePassenger(\''+esc(r.id)+'\')">💬 WhatsApp</button><button class="btn gray" onclick="finishRide(\''+esc(r.id)+'\')">✓ Finalizar</button>';
  return '<article class="request"><div class="head"><div><b>🚕 '+esc(passenger)+'</b>'+(phone?'<div class="muted">📱 '+esc(phone)+'</div>':"")+'</div><span class="badge '+b[0]+'">'+b[1]+'</span></div><div style="line-height:1.7;margin:12px 0;font-size:14px">📍 <b>Origem:</b> '+esc(origin)+'<br>🏁 <b>Destino:</b> '+esc(dest)+(date||time?'<br>🕐 <b>Pedido:</b> '+dateBR(date)+' '+esc(time):"")+(r.payment||r.pagamento?'<br>💳 <b>Pagamento:</b> '+esc(r.payment||r.pagamento):"")+(r.note||r.observacao?'<br>📝 <b>Obs.:</b> '+esc(r.note||r.observacao):"")+schedule+'</div><div class="actions">'+buttons+'</div></article>'
 }
-function acceptRide(id){let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;rs[i].status="accepted";rs[i].acceptedAt=new Date().toISOString();rs[i].driverName=driver.name;rs[i].driverPhone=driver.phone;save(rs);render();notice("Solicitação aceita. Agora confirme o horário.")}
-function cancelRide(id){if(!confirm("Deseja recusar/cancelar esta solicitação?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;rs[i].status="cancelled";rs[i].cancelledAt=new Date().toISOString();rs[i].cancelledBy="driver";save(rs);render();notice("Solicitação cancelada.")}
+async function acceptRide(id){let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"accepted",accepted_at:new Date().toISOString(),driver_name:driver.name,driver_phone:driver.phone};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"accepted",acceptedAt:patch.accepted_at,driverName:driver.name,driverPhone:driver.phone};save(rs);}render();notice("Solicitação aceita. Agora confirme o horário.")}
+async function cancelRide(id){if(!confirm("Deseja recusar/cancelar esta solicitação?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"cancelled",cancelled_at:new Date().toISOString(),cancelled_by:"driver"};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"cancelled",cancelledAt:patch.cancelled_at,cancelledBy:"driver"};save(rs);}render();notice("Solicitação cancelada.")}
 function openModal(id){selected=id;let r=requests().find(x=>String(x.id)===String(id));if(!r)return;let d=new Date(),today=d.toISOString().slice(0,10);$("cdate").value=r.date||r.data||today;$("ctime").value=r.time||r.horario||"";$("cnote").value="";$("modal").classList.add("on")}
 function closeModal(){selected=null;$("modal").classList.remove("on")}
-function confirmRide(){if(!selected)return;let date=$("cdate").value,time=$("ctime").value;if(!date||!time){alert("Informe data e horário.");return}let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(selected));if(i<0)return;rs[i].status="confirmed";rs[i].confirmedDate=date;rs[i].confirmedTime=time;rs[i].confirmNote=$("cnote").value.trim();rs[i].confirmedAt=new Date().toISOString();rs[i].driverName=driver.name;rs[i].driverPhone=driver.phone;save(rs);closeModal();render();notice("Viagem confirmada para "+dateBR(date)+" às "+time+".")}
+async function confirmRide(){if(!selected)return;let date=$("cdate").value,time=$("ctime").value;if(!date||!time){alert("Informe data e horário.");return}let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(selected));if(i<0)return;const patch={status:"confirmed",confirmed_date:date,confirmed_time:time,confirm_note:$("cnote").value.trim(),confirmed_at:new Date().toISOString(),driver_name:driver.name,driver_phone:driver.phone};if(realtimeReady){if(!(await updateRemoteReservation(selected,patch)))return;}else{rs[i]={...rs[i],status:"confirmed",confirmedDate:date,confirmedTime:time,confirmNote:patch.confirm_note,confirmedAt:patch.confirmed_at,driverName:driver.name,driverPhone:driver.phone};save(rs);}closeModal();render();notice("Viagem confirmada para "+dateBR(date)+" às "+time+".")}
 function messagePassenger(id){let r=requests().find(x=>String(x.id)===String(id));if(!r)return;let p=r.passengerPhone||r.telefone||"",name=r.passengerName||r.nome||"passageiro",msg="Olá, "+name+"! Aqui é o motorista do 22 DRIVE. Sua viagem foi confirmada para "+dateBR(r.confirmedDate)+" às "+(r.confirmedTime||"")+".",n=p.replace(/\D/g,"");if(n.length>=10&&!n.startsWith("55"))n="55"+n;if(n)window.open("https://wa.me/"+n+"?text="+encodeURIComponent(msg),"_blank");else alert(msg+"\n\nTelefone do passageiro não informado.")}
-function finishRide(id){if(!confirm("Marcar viagem como finalizada?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;rs[i].status="finished";rs[i].finishedAt=new Date().toISOString();save(rs);render();notice("Viagem finalizada.")}
+async function finishRide(id){if(!confirm("Marcar viagem como finalizada?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"finished",finished_at:new Date().toISOString()};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"finished",finishedAt:patch.finished_at};save(rs);}render();notice("Viagem finalizada.")}
 document.addEventListener("DOMContentLoaded",()=>{let d=localStorage.getItem(DRIVER_KEY);if(d)openApp();if("Notification" in window&&Notification.permission==="granted")$("notificationStatus").textContent="✅ Notificações já autorizadas.";setInterval(()=>{monitorNewRequests();},3000);});
 </script>
 <div id="pwaInstall" style="display:none;position:sticky;bottom:12px;margin:12px auto;max-width:520px;z-index:9998"><button type="button" style="width:100%;border:0;border-radius:14px;padding:14px;background:#111827;color:#fff;font-weight:900;font-size:15px;box-shadow:0 8px 24px #0003" onclick="install22Drive()">📲 Instalar 22 DRIVE como aplicativo</button></div><script>
