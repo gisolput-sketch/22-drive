@@ -96,6 +96,27 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 </section>
 
 <section class="card">
+<h2>🎵 Preferência de som</h2>
+<div class="choices">
+<label><input type="radio" name="sound" value="Com som" required><span>🔊 Com som</span></label>
+<label><input type="radio" name="sound" value="Sem som"><span>🔇 Sem som</span></label>
+</div>
+<div id="musicBox" style="display:none;margin-top:12px">
+<div class="field">
+<label>🎶 Qual estilo de música você prefere?</label>
+<select id="musicStyle">
+<option value="">Escolha um estilo</option><option>MPB</option><option>Samba</option><option>Pagode</option><option>Samba-enredo</option><option>Funk</option><option>Funk carioca</option><option>Funk melody</option><option>Rap</option><option>Hip-hop</option><option>Trap</option><option>R&B</option><option>Reggae</option><option>Sertanejo</option><option>Sertanejo universitário</option><option>Forró</option><option>Forró eletrônico</option><option>Piseiro</option><option>Arrocha</option><option>Axé</option><option>Frevo</option><option>Maracatu</option><option>Bossa nova</option><option>Rock</option><option>Pop</option><option>Pop rock</option><option>Indie</option><option>Alternativo</option><option>Heavy metal</option><option>Metal</option><option>Hard rock</option><option>Punk rock</option><option>Blues</option><option>Jazz</option><option>Soul</option><option>Disco</option><option>Folk</option><option>Country</option><option>Eletrônica</option><option>House</option><option>Techno</option><option>EDM</option><option>Dance</option><option>Lo-fi</option><option>Clássica</option><option>Instrumental</option><option>Gospel</option><option>Católica</option><option>Internacional</option><option>Latina</option><option>Reggaeton</option><option>K-pop</option><option>J-pop</option><option>Outro</option>
+</select>
+</div>
+<div class="field">
+<label>🎤 Cantor(a), banda ou artista de preferência <span class="muted">(opcional)</span></label>
+<input id="musicArtist" placeholder="Ex.: seu cantor ou banda preferida">
+</div>
+</div>
+<p class="muted" style="margin:10px 0 0">Escolha se prefere viajar com o som ligado ou sem som. Se escolher com som, informe o estilo e, se quiser, o artista.</p>
+</section>
+
+<section class="card">
 <h2>💳 Forma de pagamento</h2>
 <div class="choices">
 <label><input type="radio" name="payment" value="Cartão de débito" required><span>💳 Cartão de débito</span></label>
@@ -599,6 +620,13 @@ function updateReturnFields(){
  calc();
 }
 document.querySelectorAll('input[name="type"]').forEach(x=>x.addEventListener("change",updateReturnFields));
+
+document.querySelectorAll('input[name="sound"]').forEach(x=>x.addEventListener("change",()=>{
+  const withSound=x.value==="Com som" && x.checked;
+  $("musicBox").style.display=withSound?"block":"none";
+  $("musicStyle").required=withSound;
+  if(!withSound){$("musicStyle").value="";$("musicArtist").value="";}
+}));
 $("time").addEventListener("change",async()=>{calc();await checkSlot($("date").value,$("time").value,"availabilityStatus");});
 $("rdate").addEventListener("change",calc);
 $("rtime").addEventListener("change",async()=>{calc();await checkSlot($("rdate").value,$("rtime").value,"availabilityReturnStatus");});
@@ -653,7 +681,16 @@ $("form").addEventListener("submit",e=>{
     alert("Escolha a forma de pagamento antes de continuar.");
     return;
   }
-  msg+=`👥 Passageiros: ${$("people").value}\n🧳 Bagagem: ${$("bags").value}\n💳 Forma de pagamento: ${payment.value}\n\n`;
+  const sound=document.querySelector('input[name="sound"]:checked');
+  if(!sound){alert("Informe se prefere viajar com o som ligado ou sem som.");return;}
+  if(sound.value==="Com som" && !$("musicStyle").value){alert("Escolha o estilo de música de sua preferência.");return;}
+  msg+=`👥 Passageiros: ${$("people").value}\n🧳 Bagagem: ${$("bags").value}\n💳 Forma de pagamento: ${payment.value}\n`;
+  msg+=`🎵 Som: ${sound.value}\n`;
+  if(sound.value==="Com som"){
+    msg+=`🎶 Estilo musical: ${$("musicStyle").value}\n`;
+    msg+=`🎤 Cantor(a)/artista de preferência: ${$("musicArtist").value.trim()||"Não informado"}\n`;
+  }
+  msg+=`\n`;
   msg+=`🚗 Valor da viagem: ${money(tripTotal)}\n`;
   msg+=`💳 Sinal de 50% para confirmar: ${money(grandTotal*0.5)}\n`;
   msg+=`🛣️ Pedágios: ${money(tolls.total)}\n`;
@@ -721,6 +758,11 @@ document.addEventListener("DOMContentLoaded",()=>{
 $("reset").onclick=()=>{
  $("form").reset();
  document.querySelectorAll('input[name="payment"]').forEach(x=>x.checked=false);
+ document.querySelectorAll('input[name="sound"]').forEach(x=>x.checked=false);
+ $("musicBox").style.display="none";
+ $("musicStyle").value="";
+ $("musicStyle").required=false;
+ $("musicArtist").value="";
  fromResult=null;toResult=null;
  $("km").value="0";
  updateReturnFields();
