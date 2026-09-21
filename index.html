@@ -556,7 +556,7 @@ $("form").addEventListener("submit",e=>{
   if(type==="volta") msg+=`🔄 Volta: ${$("rdate").value.split("-").reverse().join("/")} às ${$("rtime").value}\n`;
   const fromMapsUrl="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent($("from").value);
   const toMapsUrl="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent($("to").value);
-  msg+=`📍 Embarque: ${$("from").value}\n🗺️ Maps embarque: ${fromMapsUrl}\n🏁 Destino: ${$("to").value}\n🗺️ Maps destino: ${toMapsUrl}\n📏 Distância: ${km.toFixed(2)} km\n`;
+  msg+=`📍 Embarque: ${$("from").value}\n🗺️ Endereço Maps: ${fromMapsUrl}\n🏁 Destino: ${$("to").value}\n🗺️ Endereço Maps: ${toMapsUrl}\n📏 Distância: ${km.toFixed(2)} km\n`;
   const payment=document.querySelector('input[name="payment"]:checked');
   if(!payment){
     alert("Escolha a forma de pagamento antes de continuar.");
