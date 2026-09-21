@@ -75,7 +75,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <div class="place-wrap"><label>Local de embarque</label><div class="autocomplete-wrap"><div class="search-row"><input id="fromPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('fromPlace')" aria-label="Buscar local de embarque">🔍</button></div></div></div>
 <div class="place-wrap"><label>Destino</label><div class="autocomplete-wrap"><div class="search-row"><input id="toPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('toPlace')" aria-label="Buscar destino">🔍</button></div></div></div>
 <div id="map" class="map"></div>
-<div id="routeStatus" class="route-status">Digite o endereço e pressione Enter para pesquisar. Depois selecione uma sugestão.</div>
+<div id="routeStatus" class="route-status">Digite o endereço completo e escolha uma das sugestões encontradas. Se não aparecer, tente incluir número, bairro e cidade.</div>
 <input id="from" type="hidden" required>
 <input id="to" type="hidden" required>
 <input id="km" type="hidden" value="0" required>
@@ -318,13 +318,13 @@ function showSuggestions(inputId,results){
 async function searchAddress(inputId){
   const input=$(inputId);
   const q=input.value.trim();
-  if(q.length<3){clearSuggestions(inputId);return;}
+  if(q.length<2){clearSuggestions(inputId);return;}
   clearSuggestions(inputId);
   const url="https://nominatim.openstreetmap.org/search?"+new URLSearchParams({
-    q:q+", Brasil",
+    q:q,
     format:"jsonv2",
     addressdetails:"1",
-    limit:"5",
+    limit:"8",
     countrycodes:"br",
     "accept-language":"pt-BR"
   });
