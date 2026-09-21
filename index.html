@@ -58,11 +58,23 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <div class="field"><label>E-mail <span class="muted">(opcional)</span></label><input id="profileEmail" type="email" placeholder="seu@email.com"></div>
 </div>
 <button class="btn primary" type="button" id="saveProfileBtn">💾 Salvar meu cadastro</button>
+<button class="btn dark" type="button" id="findProfileBtn">🔎 Buscar meu cadastro pelo WhatsApp</button>
 </div>
 <div id="profileSavedBox" style="display:none">
 <div class="notice" id="profileSavedText"></div>
 <button class="btn dark" type="button" id="editProfileBtn">✏️ Alterar meu cadastro</button>
 </div>
+</section>
+
+<section class="card" id="favoriteAddressesCard">
+<h2>⭐ Meus endereços favoritos</h2>
+<p class="muted">Salve Casa, Trabalho ou outro endereço para preencher a rota rapidamente nas próximas viagens.</p>
+<div class="grid">
+<div class="field"><label>Nome do favorito</label><select id="favoriteLabel"><option>🏠 Casa</option><option>💼 Trabalho</option><option>⭐ Outro favorito</option></select></div>
+<div class="field"><label>Endereço</label><input id="favoriteAddress" placeholder="Rua, número, bairro e cidade"></div>
+</div>
+<button class="btn primary" type="button" id="saveFavoriteBtn">⭐ Salvar endereço favorito</button>
+<div id="favoriteList" style="margin-top:12px"></div>
 </section>
 
 <form id="form">
@@ -196,6 +208,7 @@ const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co";
 const SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
 const defaults={base:20,perkm:1.5};
 const PROFILE_KEY="22drive_passenger_profile";
+const FAVORITES_KEY="22drive_passenger_favorites";
 
 function normalizePhone(v){
   return String(v||"").replace(/\D/g,"");
@@ -217,7 +230,7 @@ function showPassengerProfile(profile){
   $("profileSavedText").innerHTML="✅ Cadastro encontrado para <b>"+(profile.name||"passageiro")+"</b>.<br>Seus dados já foram preenchidos. Você pode alterá-los a qualquer momento.";
 }
 
-function savePassengerProfile(){
+async function savePassengerProfile(){
   const name=$("profileName").value.trim();
   const phone=$("profilePhone").value.trim();
   const email=$("profileEmail").value.trim();
@@ -225,12 +238,18 @@ function savePassengerProfile(){
     alert("Informe seu nome e um WhatsApp válido para salvar o cadastro.");
     return;
   }
-  const profile={name,phone,email};
+  const profile={name,phone,email,favorites:loadFavorites()};
   localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));
   $("name").value=name;
   $("phone").value=phone;
   showPassengerProfile(profile);
-  alert("✅ Cadastro salvo! Na próxima vez neste aparelho, seus dados serão preenchidos automaticamente.");
+  try{
+    await supabaseRpc("salvar_passageiro",{p_nome:name,p_whatsapp:normalizePhone(phone),p_email:email||null,p_favoritos:profile.favorites||[]});
+    alert("✅ Cadastro salvo na 22 DRIVE! Seus dados e endereços favoritos poderão ser recuperados pelo WhatsApp.");
+  }catch(err){
+    console.error("Cadastro Supabase:",err);
+    alert("✅ Cadastro salvo neste aparelho. A sincronização com a base ainda precisa ser configurada no Supabase.");
+  }
 }
 
 function editPassengerProfile(){
@@ -240,6 +259,61 @@ function editPassengerProfile(){
   $("profileEmail").value=profile.email||"";
   $("profileLoginBox").style.display="block";
   $("profileSavedBox").style.display="none";
+}
+
+function loadFavorites(){try{return JSON.parse(localStorage.getItem(FAVORITES_KEY)||"[]")}catch(_){return []}}
+function saveFavorites(list){
+  localStorage.setItem(FAVORITES_KEY,JSON.stringify(list));
+  const p=loadPassengerProfile();
+  if(p){p.favorites=list;localStorage.setItem(PROFILE_KEY,JSON.stringify(p));}
+}
+function renderFavorites(){
+  const box=$("favoriteList"); if(!box)return;
+  const list=loadFavorites();
+  if(!list.length){box.innerHTML='<div class="muted">Nenhum endereço favorito salvo ainda.</div>';return;}
+  box.innerHTML=list.map((f,i)=>`
+    <div style="border:1px solid var(--line);border-radius:13px;padding:11px;margin-top:8px">
+      <b>${f.label}</b><div class="muted" style="margin:4px 0 9px">${f.address}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <button class="btn dark" type="button" style="margin:0;padding:9px;font-size:12px" onclick="useFavorite(${i},'from')">📍 Embarque</button>
+        <button class="btn dark" type="button" style="margin:0;padding:9px;font-size:12px" onclick="useFavorite(${i},'to')">🏁 Destino</button>
+        <button class="btn secondary" type="button" style="padding:9px;font-size:12px" onclick="deleteFavorite(${i})">Excluir</button>
+      </div>
+    </div>`).join("");
+}
+function useFavorite(index,target){
+  const f=loadFavorites()[index]; if(!f)return;
+  $(target==="from"?"fromPlace":"toPlace").value=f.address;
+  searchAddress(target==="from"?"fromPlace":"toPlace");
+}
+async function syncFavoritesToSupabase(){
+  const p=loadPassengerProfile(); if(!p)return;
+  try{await supabaseRpc("salvar_passageiro",{p_nome:p.name,p_whatsapp:normalizePhone(p.phone),p_email:p.email||null,p_favoritos:loadFavorites()});}
+  catch(err){console.error("Favoritos Supabase:",err);}
+}
+async function saveFavorite(){
+  const label=$("favoriteLabel").value,address=$("favoriteAddress").value.trim(),p=loadPassengerProfile();
+  if(!p || normalizePhone(p.phone).length<10){alert("Salve primeiro o cadastro do passageiro.");return;}
+  if(!address){alert("Informe o endereço do favorito.");return;}
+  const list=loadFavorites(),idx=list.findIndex(x=>x.label===label),item={label,address};
+  if(idx>=0)list[idx]=item;else list.push(item);
+  saveFavorites(list);renderFavorites();await syncFavoritesToSupabase();$("favoriteAddress").value="";
+  alert("⭐ Endereço favorito salvo!");
+}
+async function deleteFavorite(index){
+  const list=loadFavorites();list.splice(index,1);saveFavorites(list);renderFavorites();await syncFavoritesToSupabase();
+}
+async function findPassengerProfile(){
+  const phone=normalizePhone($("profilePhone").value);
+  if(phone.length<10){alert("Informe um WhatsApp válido para buscar o cadastro.");return;}
+  try{
+    const data=await supabaseRpc("buscar_passageiro",{p_whatsapp:phone}),profile=Array.isArray(data)?data[0]:data;
+    if(!profile){alert("Nenhum cadastro encontrado para este WhatsApp.");return;}
+    const normalized={name:profile.nome||"",phone:profile.whatsapp||phone,email:profile.email||"",favorites:profile.favoritos||[]};
+    localStorage.setItem(PROFILE_KEY,JSON.stringify(normalized));localStorage.setItem(FAVORITES_KEY,JSON.stringify(normalized.favorites||[]));
+    $("profileName").value=normalized.name;$("profileEmail").value=normalized.email;$("name").value=normalized.name;$("phone").value=normalized.phone;
+    showPassengerProfile(normalized);renderFavorites();alert("✅ Cadastro encontrado na base da 22 DRIVE!");
+  }catch(err){console.error(err);alert("Não foi possível consultar a base agora. Confira se o cadastro no Supabase já foi configurado.");}
 }
 let rates=JSON.parse(localStorage.getItem("22drive_rates")||"null")||defaults;
 const $=id=>document.getElementById(id);
@@ -632,8 +706,12 @@ document.addEventListener("click",e=>{
 document.addEventListener("DOMContentLoaded",()=>{
   const savedProfile=loadPassengerProfile();
   if(savedProfile) showPassengerProfile(savedProfile);
+  renderFavorites();
   $("saveProfileBtn").addEventListener("click",savePassengerProfile);
   $("editProfileBtn").addEventListener("click",editPassengerProfile);
+  $("findProfileBtn").addEventListener("click",findPassengerProfile);
+  $("saveFavoriteBtn").addEventListener("click",saveFavorite);
+  renderFavorites();
   $("phone").addEventListener("change",()=>{
     const p=loadPassengerProfile();
     if(p && normalizePhone(p.phone)===normalizePhone($("phone").value)){
@@ -962,6 +1040,7 @@ $("reset").onclick=()=>{
  $("form").reset();
  const savedProfile=loadPassengerProfile();
  if(savedProfile){ $("name").value=savedProfile.name||""; $("phone").value=savedProfile.phone||""; }
+  renderFavorites();
  document.querySelectorAll('input[name="payment"]').forEach(x=>x.checked=false);
  document.querySelectorAll('input[name="sound"]').forEach(x=>x.checked=false);
  $("musicBox").style.display="none";
