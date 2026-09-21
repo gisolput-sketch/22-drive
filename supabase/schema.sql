@@ -54,6 +54,9 @@ create index if not exists reservas_schedule_idx
 
 alter table public.reservas enable row level security;
 
+-- Privilégios necessários para o site público consultar e atualizar as reservas.
+grant select, insert, update on table public.reservas to anon, authenticated;
+
 -- Permite ao site público criar solicitações.
 drop policy if exists "public can insert reservas" on public.reservas;
 create policy "public can insert reservas"
