@@ -95,6 +95,18 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 </section>
 
 <section class="card">
+<h2>💳 Forma de pagamento</h2>
+<div class="choices">
+<label><input type="radio" name="payment" value="Cartão de débito" required><span>💳 Cartão de débito</span></label>
+<label><input type="radio" name="payment" value="Cartão de crédito"><span>💰 Cartão de crédito</span></label>
+<label><input type="radio" name="payment" value="Dinheiro"><span>💵 Dinheiro</span></label>
+<label><input type="radio" name="payment" value="Pix"><span>🟢 Pix</span></label>
+<label><input type="radio" name="payment" value="No amor"><span>❤️ No amor</span></label>
+</div>
+<p class="muted" style="margin:10px 0 0">Escolha como pretende pagar a reserva.</p>
+</section>
+
+<section class="card">
 <h2>💰 Valor da viagem</h2>
 <div class="price"><small>Valor da viagem</small><strong id="price">R$ 0,00</strong><span id="detail" class="muted"></span>
 <hr>
@@ -123,7 +135,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <button class="btn primary" type="button" onclick="saveRates()">Salvar tarifas</button>
 <hr>
 <p><span class="tag">WhatsApp</span> 21 99969-6851</p>
-<p class="muted">Para ativar o mapa, edite o código e substitua COLE_SUA_CHAVE_AQUI pela sua chave nova do mapa. Para publicar online com calendário real, pagamento Pix/cartão e bloqueio automático de horários, será necessário conectar este front-end a um banco de dados/backend.</p>
+<p class="muted">O mapa usa Leaflet + OpenStreetMap e não precisa de chave de API. O formulário calcula a rota, mostra o valor e envia a solicitação pelo WhatsApp.</p>
 </section>
 </main>
 </div>
@@ -542,8 +554,14 @@ $("form").addEventListener("submit",e=>{
   msg+=`📅 Ida: ${$("date").value.split("-").reverse().join("/")} às ${$("time").value}\n`;
   if(type==="volta") msg+=`🔄 Volta: ${$("rdate").value.split("-").reverse().join("/")} às ${$("rtime").value}\n`;
   msg+=`📍 Embarque: ${$("from").value}\n🏁 Destino: ${$("to").value}\n📏 Distância: ${km.toFixed(2)} km\n`;
-  msg+=`👥 Passageiros: ${$("people").value}\n🧳 Bagagem: ${$("bags").value}\n\n`;
+  const payment=document.querySelector('input[name="payment"]:checked');
+  if(!payment){
+    alert("Escolha a forma de pagamento antes de continuar.");
+    return;
+  }
+  msg+=`👥 Passageiros: ${$("people").value}\n🧳 Bagagem: ${$("bags").value}\n💳 Forma de pagamento: ${payment.value}\n\n`;
   msg+=`🚗 Valor da viagem: ${money(tripTotal)}\n`;
+  msg+=`💳 Sinal de 50% para confirmar: ${money(grandTotal*0.5)}\n`;
   msg+=`🛣️ Pedágios: ${money(tolls.total)}\n`;
 
   tolls.legs.forEach((leg,index)=>{
@@ -554,6 +572,7 @@ $("form").addEventListener("submit",e=>{
 
   msg+=`💰 Total: ${money(grandTotal)}\n`;
   msg+=`📝 Observações: ${$("obs").value||"Nenhuma"}\n\n`;
+  msg+=`🔗 Link da solicitação: ${window.location.href}\n\n`;
   msg+=`Declaro estar ciente das condições de pagamento da reserva.`;
 
   window.__pendingWhatsAppMessage=msg;
@@ -584,6 +603,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 $("reset").onclick=()=>{
  $("form").reset();
+ document.querySelectorAll('input[name="payment"]').forEach(x=>x.checked=false);
  fromResult=null;toResult=null;
  $("km").value="0";
  updateReturnFields();
@@ -599,7 +619,7 @@ calc();
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-box">
     <h3>⚠️ AVISO – RESERVAS DE VIAGEM 🚗</h3>
-    <div class="confirm-warning">Todas as viagens, somente ida ou ida e volta, devem ser pagas 50% do valor com pelo menos 1 dia de antecedência para confirmar a reserva.
+    <div class="confirm-warning">Todas as viagens, somente ida ou ida e volta, devem ter 50% do valor pago com pelo menos 1 dia de antecedência para confirmar a reserva.
 
 ❗ Cancelamento ou desistência após o pagamento: *não há devolução de do valor do sinal.* *"O valor será destinados à cobertura de custos relacionados à reserva do horário, planejamento e deslocamento*
 ❗ Não comparecimento: também será considerado cancelamento, seguindo a mesma regra acima.
