@@ -1,0 +1,4 @@
+# 22 DRIVE — configuração do Supabase
+
+[functions.push-new-ride]
+verify_jwt = true
