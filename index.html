@@ -17,7 +17,7 @@ h2{font-size:17px;margin:0 0 14px}.grid{display:grid;grid-template-columns:1fr 1
 label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:white;font:inherit;outline:none}
 input:focus,select:focus,textarea:focus{border-color:#6b7280}.choices{display:grid;grid-template-columns:1fr 1fr;gap:9px}.choices label{margin:0}.choices input{display:none}.choices span{display:block;text-align:center;padding:12px;border:1px solid var(--line);border-radius:12px;cursor:pointer}.choices input:checked+span{background:var(--p);color:#fff;border-color:var(--p)}
 .price{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:17px;padding:16px}.price small{color:#166534}.price strong{display:block;font-size:29px;margin-top:3px}.notice{background:#fffbeb;border:1px solid #fde68a;padding:12px;border-radius:13px;font-size:12px;line-height:1.5;color:#854d0e}
-.btn{width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:900;cursor:pointer}.primary{background:var(--green);color:#fff}.dark{background:var(--p);color:#fff;margin-top:9px}.muted{font-size:11px;color:var(--muted);line-height:1.5}
+.btn{width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:900;cursor:pointer}.primary{background:var(--green);color:#fff}.dark{background:var(--p);color:#fff;margin-top:9px}.muted{font-size:11px;color:var(--muted);line-height:1.5}.availability{font-size:12px;margin-top:6px;line-height:1.4}.availability.ok{color:#15803d}.availability.busy{color:#dc2626;font-weight:800}
 .admin{display:none}.admin.on{display:block}.admin table{width:100%;border-collapse:collapse;font-size:12px}.admin th,.admin td{border-bottom:1px solid var(--line);padding:8px;text-align:left}.admin input{padding:8px}.tag{display:inline-block;padding:5px 8px;border-radius:999px;background:#f3f4f6;font-size:11px}.map{height:280px;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-top:10px}.route-status{font-size:12px;color:var(--muted);margin-top:8px}.place-wrap{margin-bottom:11px}.place-wrap label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}.place-wrap gmp-place-autocomplete{width:100%;--gmpx-color-surface:#fff;--gmpx-color-on-surface:#111827;--gmpx-color-on-surface-variant:#6b7280;--gmpx-color-primary:#16a34a}
 hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none;text-align:center}.success h2{margin-top:5px}.check{font-size:44px}
 @media(max-width:400px){.grid{grid-template-columns:1fr}.choices{grid-template-columns:1fr}}
@@ -60,12 +60,12 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <h2>📅 Data e horário</h2>
 <div class="grid">
 <div class="field"><label>Data da ida</label><input id="date" type="date" required></div>
-<div class="field"><label>Horário</label><input id="time" type="time" required></div>
+<div class="field"><label>Horário</label><input id="time" type="time" required><div id="availabilityStatus" class="availability"></div></div>
 </div>
 <div id="returnBox" style="display:none;margin-top:4px">
 <div class="grid">
 <div class="field"><label>Data da volta</label><input id="rdate" type="date"></div>
-<div class="field"><label>Horário da volta</label><input id="rtime" type="time"></div>
+<div class="field"><label>Horário da volta</label><input id="rtime" type="time"><div id="availabilityReturnStatus" class="availability"></div></div>
 </div>
 </div>
 </section>
@@ -143,6 +143,8 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 
 <script>
 const WA="5521999696851";
+const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co";
+const SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
 const defaults={base:20,perkm:1.5};
 let rates=JSON.parse(localStorage.getItem("22drive_rates")||"null")||defaults;
 const $=id=>document.getElementById(id);
@@ -154,7 +156,94 @@ let routeController=null;
 let __detectedTolls=[];
 let __detectedTollIds=new Set();
 
+
 function money(v){return v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+
+async function supabaseRpc(name,body){
+  const response=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "apikey":SUPABASE_KEY,
+      "Authorization":"Bearer "+SUPABASE_KEY
+    },
+    body:JSON.stringify(body)
+  });
+  const text=await response.text();
+  let data=null;
+  try{data=text?JSON.parse(text):null}catch(_){data=null}
+  if(!response.ok) throw new Error((data&&data.message)||text||("Supabase HTTP "+response.status));
+  return data;
+}
+
+async function getOccupiedTimes(dateStr){
+  if(!dateStr) return [];
+  const data=await supabaseRpc("horarios_ocupados",{p_data:dateStr});
+  return Array.isArray(data)?data.map(x=>String(x.hora).slice(0,5)):[];
+}
+
+async function checkSlot(dateStr,timeStr,statusId){
+  const status=$(statusId);
+  if(!dateStr || !timeStr){
+    status.textContent="";
+    status.className="availability";
+    return true;
+  }
+  status.textContent="🔎 Verificando horário...";
+  status.className="availability";
+  try{
+    const occupied=await getOccupiedTimes(dateStr);
+    const busy=occupied.includes(String(timeStr).slice(0,5));
+    if(busy){
+      status.textContent="🔴 Este horário já está reservado. Escolha outro.";
+      status.className="availability busy";
+      return false;
+    }
+    status.textContent="🟢 Horário disponível.";
+    status.className="availability ok";
+    return true;
+  }catch(err){
+    console.error(err);
+    status.textContent="⚠️ Não foi possível verificar o horário agora.";
+    status.className="availability busy";
+    return false;
+  }
+}
+
+async function verifySelectedSlots(){
+  const type=document.querySelector('input[name="type"]:checked').value;
+  const idaOk=await checkSlot($("date").value,$("time").value,"availabilityStatus");
+  if(!idaOk) return false;
+  if(type==="volta"){
+    const voltaOk=await checkSlot($("rdate").value,$("rtime").value,"availabilityReturnStatus");
+    if(!voltaOk) return false;
+  }
+  return true;
+}
+
+async function createReservationInSupabase(){
+  const type=document.querySelector('input[name="type"]:checked').value;
+  const payment=document.querySelector('input[name="payment"]:checked');
+  const payload={
+    p_data_ida:$("date").value,
+    p_hora_ida:$("time").value,
+    p_data_volta:type==="volta"?$("rdate").value:null,
+    p_hora_volta:type==="volta"?$("rtime").value:null,
+    p_tipo_viagem:type==="volta"?"ida_volta":"ida",
+    p_nome:$("name").value.trim(),
+    p_whatsapp:$("phone").value.trim(),
+    p_embarque:$("from").value,
+    p_destino:$("to").value
+  };
+  const result=await supabaseRpc("criar_reserva",payload);
+  if(!result || result.sucesso!==true){
+    const err=new Error((result&&result.mensagem)||"Não foi possível confirmar a reserva.");
+    err.code=result&&result.erro;
+    throw err;
+  }
+  return result;
+}
+
 
 function initMap(){
   if(typeof L==="undefined"){
@@ -510,15 +599,17 @@ function updateReturnFields(){
  calc();
 }
 document.querySelectorAll('input[name="type"]').forEach(x=>x.addEventListener("change",updateReturnFields));
-$("time").addEventListener("change",calc);
+$("time").addEventListener("change",async()=>{calc();await checkSlot($("date").value,$("time").value,"availabilityStatus");});
 $("rdate").addEventListener("change",calc);
-$("rtime").addEventListener("change",calc);
+$("rtime").addEventListener("change",async()=>{calc();await checkSlot($("rdate").value,$("rtime").value,"availabilityReturnStatus");});
 $("km").addEventListener("input",calc);
-$("date").addEventListener("change",()=>{
+$("date").addEventListener("change",async()=>{
  $("rdate").min=$("date").value;
  if($("rdate").value && $("rdate").value<$("date").value) $("rdate").value=$("date").value;
  calc();
+ await checkSlot($("date").value,$("time").value,"availabilityStatus");
 });
+$("rdate").addEventListener("change",async()=>{ await checkSlot($("rdate").value,$("rtime").value,"availabilityReturnStatus"); });
 function openAdmin(){
  $("admin").classList.toggle("on");$("base").value=rates.base;$("perkm").value=rates.perkm;
 }
@@ -589,17 +680,40 @@ document.addEventListener("DOMContentLoaded",()=>{
     $("confirmOverlay").style.display="none";
   };
 
-  $("acceptConfirm").onclick=()=>{
-    const text=encodeURIComponent(window.__pendingWhatsAppMessage||"");
-    const url=`https://wa.me/${WA}?text=${text}`;
-    $("confirmOverlay").style.display="none";
-    $("success").style.display="block";
+  $("acceptConfirm").onclick=async()=>{
+    const button=$("acceptConfirm");
+    button.disabled=true;
+    button.textContent="⏳ Confirmando reserva...";
+    try{
+      const available=await verifySelectedSlots();
+      if(!available){
+        alert("Um dos horários escolhidos já está reservado. Escolha outro horário.");
+        button.disabled=false;
+        button.textContent="✅ Estou ciente e continuar";
+        return;
+      }
 
-    // Abre o link diretamente a partir do clique do passageiro.
-    const opened=window.open(url,"_blank");
-    if(!opened){
-      // Fallback caso o navegador bloqueie a nova aba/janela.
-      window.location.href=url;
+      const result=await createReservationInSupabase();
+
+      const text=encodeURIComponent(window.__pendingWhatsAppMessage||"");
+      const url=`https://wa.me/${WA}?text=${text}`;
+      $("confirmOverlay").style.display="none";
+      $("success").style.display="block";
+
+      const opened=window.open(url,"_blank");
+      if(!opened) window.location.href=url;
+
+      console.log("22 DRIVE — reserva confirmada:",result.reserva_id);
+    }catch(err){
+      console.error(err);
+      if(err.code==="HORARIO_OCUPADO"){
+        alert("🔴 Este horário acabou de ser reservado por outro passageiro. Escolha outro horário.");
+        await verifySelectedSlots();
+      }else{
+        alert("❌ Não foi possível confirmar a reserva agora. Verifique sua conexão e tente novamente.");
+      }
+      button.disabled=false;
+      button.textContent="✅ Estou ciente e continuar";
     }
   };
 });
@@ -617,6 +731,7 @@ setMin();
 $("rdate").min=$("date").value;
 updateReturnFields();
 calc();
+checkSlot($("date").value,$("time").value,"availabilityStatus");
 </script>
 
 <div class="confirm-overlay" id="confirmOverlay">
