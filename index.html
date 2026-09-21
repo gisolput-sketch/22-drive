@@ -24,7 +24,6 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 
 .autocomplete-wrap{position:relative}
 .search-row{display:flex;gap:7px;align-items:center}.search-row input{flex:1}.search-btn{width:48px;height:46px;border:1px solid var(--line);border-radius:12px;background:var(--p);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}.search-btn:active{transform:scale(.97)}
-.maps-links{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.maps-link{display:block;text-align:center;text-decoration:none;padding:10px;border:1px solid var(--line);border-radius:12px;background:#f8fafc;color:#111827;font-size:12px;font-weight:800}.maps-link.disabled{opacity:.5;pointer-events:none}
 .suggestions{position:absolute;left:0;right:0;top:100%;z-index:1000;background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;box-shadow:0 8px 20px #11182718;overflow:hidden}
 .suggestion{display:block;width:100%;padding:11px 12px;border:0;background:#fff;text-align:left;font:inherit;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line)}
 .suggestion:last-child{border-bottom:0}.suggestion:hover{background:#f3f4f6}
@@ -73,8 +72,8 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 
 <section class="card">
 <h2>📍 Rota</h2>
-<div class="place-wrap"><label>Local de embarque</label><div class="autocomplete-wrap"><div class="search-row"><input id="fromPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('fromPlace')" aria-label="Buscar local de embarque">🔍</button></div></div><div class="maps-links"><a id="fromMaps" class="maps-link disabled" href="#" target="_blank" rel="noopener">📍 Abrir embarque no Maps</a></div></div>
-<div class="place-wrap"><label>Destino</label><div class="autocomplete-wrap"><div class="search-row"><input id="toPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('toPlace')" aria-label="Buscar destino">🔍</button></div></div><div class="maps-links"><a id="toMaps" class="maps-link disabled" href="#" target="_blank" rel="noopener">🏁 Abrir destino no Maps</a></div></div>
+<div class="place-wrap"><label>Local de embarque</label><div class="autocomplete-wrap"><div class="search-row"><input id="fromPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('fromPlace')" aria-label="Buscar local de embarque">🔍</button></div></div></div>
+<div class="place-wrap"><label>Destino</label><div class="autocomplete-wrap"><div class="search-row"><input id="toPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('toPlace')" aria-label="Buscar destino">🔍</button></div></div></div>
 <div id="map" class="map"></div>
 <div id="routeStatus" class="route-status">Digite o endereço e pressione Enter para pesquisar. Depois selecione uma sugestão.</div>
 <input id="from" type="hidden" required>
@@ -175,14 +174,6 @@ function clearSuggestions(inputId){
   if(box) box.remove();
 }
 
-function updateMapsLink(inputId,result){
-  const link=$(inputId==="fromPlace"?"fromMaps":"toMaps");
-  if(!link || !result) return;
-  const query=encodeURIComponent(result.display_name || "");
-  link.href="https://www.google.com/maps/search/?api=1&query="+query;
-  link.classList.remove("disabled");
-}
-
 function showSuggestions(inputId,results){
   clearSuggestions(inputId);
   const input=$(inputId);
@@ -196,8 +187,8 @@ function showSuggestions(inputId,results){
     b.textContent=r.display_name;
     b.addEventListener("click",()=>{
       input.value=r.display_name;
-      if(inputId==="fromPlace"){ fromResult=r; $("from").value=r.display_name; updateMapsLink("fromPlace",r); }
-      else { toResult=r; $("to").value=r.display_name; updateMapsLink("toPlace",r); }
+      if(inputId==="fromPlace"){ fromResult=r; $("from").value=r.display_name; }
+      else { toResult=r; $("to").value=r.display_name; }
       clearSuggestions(inputId);
       computeDriveRoute();
     });
@@ -617,8 +608,6 @@ $("reset").onclick=()=>{
  $("form").reset();
  document.querySelectorAll('input[name="payment"]').forEach(x=>x.checked=false);
  fromResult=null;toResult=null;
- $("fromMaps").href="#"; $("fromMaps").classList.add("disabled");
- $("toMaps").href="#"; $("toMaps").classList.add("disabled");
  $("km").value="0";
  updateReturnFields();
  calc();
