@@ -24,6 +24,7 @@
 
 <section id="app" class="hidden">
 <div id="notice" class="notice hidden"></div>
+<div class="card" id="notificationCard"><h2>🔔 Notificações</h2><p class="muted">Ative as notificações para receber aviso de nova solicitação. O som também será ativado depois do primeiro toque.</p><button class="btn primary btnblock" type="button" onclick="enableDriverNotifications()">🔔 Ativar notificações e som</button><div id="notificationStatus" class="muted" style="margin-top:8px"></div></div>
 <div class="grid">
 <aside>
 <div class="card">
@@ -61,12 +62,21 @@
 const DRIVER_KEY="22drive_driver";
 const REQUESTS_KEY="22drive_requests";
 let driver=null,selected=null;
+let lastSeenRequestIds=new Set();
+let audioCtx=null;
+const NOTIFY_KEY="22drive_notifications_enabled";
+function unlockDriverSound(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume();}catch(e){}}
+function playNewRideSound(){try{unlockDriverSound();if(!audioCtx)return;const now=audioCtx.currentTime;[0,0.22,0.44].forEach((delay,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type="sine";o.frequency.value=i===1?1047:880;g.gain.setValueAtTime(0.0001,now+delay);g.gain.exponentialRampToValueAtTime(0.22,now+delay+0.02);g.gain.exponentialRampToValueAtTime(0.0001,now+delay+0.18);o.connect(g);g.connect(audioCtx.destination);o.start(now+delay);o.stop(now+delay+0.2);});if(navigator.vibrate)navigator.vibrate([250,120,250]);}catch(e){console.log(e)}}
+async function enableDriverNotifications(){unlockDriverSound();localStorage.setItem(NOTIFY_KEY,"1");if("Notification" in window){try{const p=await Notification.requestPermission();if(p==="granted")$("notificationStatus").textContent="✅ Notificações permitidas. O motorista receberá alertas quando o sistema estiver conectado à base online.";else $("notificationStatus").textContent="⚠️ Permissão de notificação não concedida.";}catch(e){}}else $("notificationStatus").textContent="Este navegador não oferece notificações.";playNewRideSound()}
+function showNewRideNotification(r){const passenger=r.passengerName||r.nome||"Passageiro";const title="🚨 Nova viagem — 22 DRIVE";const body=passenger+" solicitou uma viagem. Confira origem, destino e horário.";playNewRideSound();if("Notification" in window&&Notification.permission==="granted"){try{new Notification(title,{body,icon:"./icon-192.svg",tag:"22drive-"+r.id});}catch(e){}}notice(body)}
+function monitorNewRequests(){const rs=requests();const active=rs.filter(r=>(r.status||"new")==="new");if(!lastSeenRequestIds.size){active.forEach(r=>lastSeenRequestIds.add(String(r.id)));return;}active.forEach(r=>{const id=String(r.id);if(!lastSeenRequestIds.has(id)){lastSeenRequestIds.add(id);showNewRideNotification(r);}});Array.from(lastSeenRequestIds).forEach(id=>{if(!active.some(r=>String(r.id)===id))lastSeenRequestIds.delete(id)});}
+
 const $=id=>document.getElementById(id);
 function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
 function requests(){try{let x=JSON.parse(localStorage.getItem(REQUESTS_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return[]}}
 function save(x){localStorage.setItem(REQUESTS_KEY,JSON.stringify(x))}
 function notice(t){$("notice").textContent=t;$("notice").className="notice";setTimeout(()=>$("notice").className="notice hidden",4000)}
-function login(){let name=$("loginName").value.trim(),phone=$("loginPhone").value.trim();if(!name){alert("Digite o nome do motorista.");return}driver={name,phone,status:"available"};localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));openApp()}
+function login(){unlockDriverSound();let name=$("loginName").value.trim(),phone=$("loginPhone").value.trim();if(!name){alert("Digite o nome do motorista.");return}driver={name,phone,status:"available"};localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));openApp()}
 function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"Telefone não informado";$("status").value=driver.status||"available";render()}
 function logout(){localStorage.removeItem(DRIVER_KEY);location.reload()}
 function changeStatus(){driver.status=$("status").value;localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));notice("Status atualizado.")}
@@ -96,7 +106,7 @@ function closeModal(){selected=null;$("modal").classList.remove("on")}
 function confirmRide(){if(!selected)return;let date=$("cdate").value,time=$("ctime").value;if(!date||!time){alert("Informe data e horário.");return}let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(selected));if(i<0)return;rs[i].status="confirmed";rs[i].confirmedDate=date;rs[i].confirmedTime=time;rs[i].confirmNote=$("cnote").value.trim();rs[i].confirmedAt=new Date().toISOString();rs[i].driverName=driver.name;rs[i].driverPhone=driver.phone;save(rs);closeModal();render();notice("Viagem confirmada para "+dateBR(date)+" às "+time+".")}
 function messagePassenger(id){let r=requests().find(x=>String(x.id)===String(id));if(!r)return;let p=r.passengerPhone||r.telefone||"",name=r.passengerName||r.nome||"passageiro",msg="Olá, "+name+"! Aqui é o motorista do 22 DRIVE. Sua viagem foi confirmada para "+dateBR(r.confirmedDate)+" às "+(r.confirmedTime||"")+".",n=p.replace(/\D/g,"");if(n.length>=10&&!n.startsWith("55"))n="55"+n;if(n)window.open("https://wa.me/"+n+"?text="+encodeURIComponent(msg),"_blank");else alert(msg+"\n\nTelefone do passageiro não informado.")}
 function finishRide(id){if(!confirm("Marcar viagem como finalizada?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;rs[i].status="finished";rs[i].finishedAt=new Date().toISOString();save(rs);render();notice("Viagem finalizada.")}
-document.addEventListener("DOMContentLoaded",()=>{let d=localStorage.getItem(DRIVER_KEY);if(d)openApp()})
+document.addEventListener("DOMContentLoaded",()=>{let d=localStorage.getItem(DRIVER_KEY);if(d)openApp();if("Notification" in window&&Notification.permission==="granted")$("notificationStatus").textContent="✅ Notificações já autorizadas.";setInterval(()=>{monitorNewRequests();},3000);});
 </script>
 <div id="pwaInstall" style="display:none;position:sticky;bottom:12px;margin:12px auto;max-width:520px;z-index:9998"><button type="button" style="width:100%;border:0;border-radius:14px;padding:14px;background:#111827;color:#fff;font-weight:900;font-size:15px;box-shadow:0 8px 24px #0003" onclick="install22Drive()">📲 Instalar 22 DRIVE como aplicativo</button></div><script>
 let deferredInstallPrompt=null;
