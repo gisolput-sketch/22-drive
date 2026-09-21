@@ -48,6 +48,23 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 </header>
 
 <main>
+<section class="card" id="passengerAccessCard">
+<h2>👤 Cadastro do passageiro</h2>
+<p class="muted">Cadastre-se uma vez. Nas próximas solicitações, seus dados serão preenchidos automaticamente neste aparelho.</p>
+<div id="profileLoginBox">
+<div class="field"><label>WhatsApp cadastrado</label><input id="profilePhone" type="tel" placeholder="(21) 99999-9999"></div>
+<div class="grid">
+<div class="field"><label>Nome completo</label><input id="profileName" placeholder="Seu nome"></div>
+<div class="field"><label>E-mail <span class="muted">(opcional)</span></label><input id="profileEmail" type="email" placeholder="seu@email.com"></div>
+</div>
+<button class="btn primary" type="button" id="saveProfileBtn">💾 Salvar meu cadastro</button>
+</div>
+<div id="profileSavedBox" style="display:none">
+<div class="notice" id="profileSavedText"></div>
+<button class="btn dark" type="button" id="editProfileBtn">✏️ Alterar meu cadastro</button>
+</div>
+</section>
+
 <form id="form">
 <section class="card">
 <h2>🚗 Tipo de viagem</h2>
@@ -178,6 +195,52 @@ const WA="5521999696851";
 const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co";
 const SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
 const defaults={base:20,perkm:1.5};
+const PROFILE_KEY="22drive_passenger_profile";
+
+function normalizePhone(v){
+  return String(v||"").replace(/\D/g,"");
+}
+
+function loadPassengerProfile(){
+  try{return JSON.parse(localStorage.getItem(PROFILE_KEY)||"null")}catch(_){return null}
+}
+
+function showPassengerProfile(profile){
+  if(!profile) return;
+  $("profilePhone").value=profile.phone||"";
+  $("profileName").value=profile.name||"";
+  $("profileEmail").value=profile.email||"";
+  $("name").value=profile.name||"";
+  $("phone").value=profile.phone||"";
+  $("profileLoginBox").style.display="none";
+  $("profileSavedBox").style.display="block";
+  $("profileSavedText").innerHTML="✅ Cadastro encontrado para <b>"+(profile.name||"passageiro")+"</b>.<br>Seus dados já foram preenchidos. Você pode alterá-los a qualquer momento.";
+}
+
+function savePassengerProfile(){
+  const name=$("profileName").value.trim();
+  const phone=$("profilePhone").value.trim();
+  const email=$("profileEmail").value.trim();
+  if(!name || normalizePhone(phone).length<10){
+    alert("Informe seu nome e um WhatsApp válido para salvar o cadastro.");
+    return;
+  }
+  const profile={name,phone,email};
+  localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));
+  $("name").value=name;
+  $("phone").value=phone;
+  showPassengerProfile(profile);
+  alert("✅ Cadastro salvo! Na próxima vez neste aparelho, seus dados serão preenchidos automaticamente.");
+}
+
+function editPassengerProfile(){
+  const profile=loadPassengerProfile()||{};
+  $("profilePhone").value=profile.phone||$("phone").value||"";
+  $("profileName").value=profile.name||$("name").value||"";
+  $("profileEmail").value=profile.email||"";
+  $("profileLoginBox").style.display="block";
+  $("profileSavedBox").style.display="none";
+}
 let rates=JSON.parse(localStorage.getItem("22drive_rates")||"null")||defaults;
 const $=id=>document.getElementById(id);
 
@@ -567,6 +630,16 @@ document.addEventListener("click",e=>{
 });
 
 document.addEventListener("DOMContentLoaded",()=>{
+  const savedProfile=loadPassengerProfile();
+  if(savedProfile) showPassengerProfile(savedProfile);
+  $("saveProfileBtn").addEventListener("click",savePassengerProfile);
+  $("editProfileBtn").addEventListener("click",editPassengerProfile);
+  $("phone").addEventListener("change",()=>{
+    const p=loadPassengerProfile();
+    if(p && normalizePhone(p.phone)===normalizePhone($("phone").value)){
+      $("name").value=p.name||$("name").value;
+    }
+  });
   initMap();
   setupAutocomplete("fromPlace");
   setupAutocomplete("toPlace");
@@ -887,6 +960,8 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 $("reset").onclick=()=>{
  $("form").reset();
+ const savedProfile=loadPassengerProfile();
+ if(savedProfile){ $("name").value=savedProfile.name||""; $("phone").value=savedProfile.phone||""; }
  document.querySelectorAll('input[name="payment"]').forEach(x=>x.checked=false);
  document.querySelectorAll('input[name="sound"]').forEach(x=>x.checked=false);
  $("musicBox").style.display="none";
