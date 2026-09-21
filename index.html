@@ -38,6 +38,8 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
  crossorigin=""/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
  crossorigin=""></script>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.svg">
 </head>
 <body>
 <div class="app">
@@ -1095,5 +1097,10 @@ Agradeço a compreensão! 🤝🚗</div>
   </div>
 </div>
 
-</body>
+<div id="pwaInstall" style="display:none;position:sticky;bottom:12px;margin:12px auto;max-width:520px;z-index:9998"><button type="button" style="width:100%;border:0;border-radius:14px;padding:14px;background:#111827;color:#fff;font-weight:900;font-size:15px;box-shadow:0 8px 24px #0003" onclick="install22Drive()">📲 Instalar 22 DRIVE como aplicativo</button></div><script>
+let deferredInstallPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;const b=document.getElementById("pwaInstall");if(b)b.style.display="block";});
+async function install22Drive(){if(!deferredInstallPrompt){alert("No Android, abra o menu do navegador e escolha 'Instalar aplicativo' ou 'Adicionar à tela inicial'.");return;}deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;const b=document.getElementById("pwaInstall");if(b)b.style.display="none";}
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));}
+</script></body>
 </html>
