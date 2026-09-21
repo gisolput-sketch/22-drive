@@ -13,7 +13,7 @@
 // diretamente neste arquivo.
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import webpush from "npm:web-push@3.6.7";
+import { sendPushNotification, WebPushError } from "npm:@mmmike/web-push@1.0.1/send";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const secretKeysRaw = Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}";
@@ -67,19 +67,12 @@ serve(async (req) => {
       throw new Error("Reserva sem id.");
     }
 
-    webpush.setVapidDetails(
-      VAPID_SUBJECT,
-      VAPID_PUBLIC_KEY,
-      VAPID_PRIVATE_KEY
-    );
-
     const subscriptionsResponse = await fetch(
       SUPABASE_URL +
         "/rest/v1/push_subscriptions?select=endpoint,p256dh,auth",
       {
         headers: {
-          apikey: SERVICE_ROLE_KEY,
-          Authorization: "Bearer " + SERVICE_ROLE_KEY
+          apikey: SERVICE_ROLE_KEY
         }
       }
     );
@@ -98,20 +91,13 @@ serve(async (req) => {
       record.nome ??
       "Passageiro";
 
-    const notificationBody = JSON.stringify({
-      title: "🚨 Nova viagem — 22 DRIVE",
-      body:
-        passengerName +
-        " solicitou uma nova viagem. Toque para abrir o painel.",
-      icon: "./icon-192.svg",
-      badge: "./icon-192.svg",
-      tag: "22drive-new-ride",
-      url: "./motorista.html"
-    });
+    const sent: string[] = [];
+    const failed: Array<{statusCode: number; message: string}> = [];
+    const expired: string[] = [];
 
-    const results = await Promise.allSettled(
-      subscriptions.map((subscription: any) =>
-        webpush.sendNotification(
+    for (const subscription of subscriptions) {
+      try {
+        const delivered = await sendPushNotification(
           {
             endpoint: subscription.endpoint,
             keys: {
@@ -119,42 +105,57 @@ serve(async (req) => {
               auth: subscription.auth
             }
           },
-          notificationBody
-        )
-      )
-    );
-
-    const sent = results.filter(
-      (result) => result.status === "fulfilled"
-    ).length;
-
-    const failed = results.filter(
-      (result) => result.status === "rejected"
-    ).length;
-
-    const expired = subscriptions.filter(
-      (_subscription: any, index: number) => {
-        const result = results[index];
-
-        return (
-          result.status === "rejected" &&
-          [404, 410].includes(
-            Number((result.reason as any)?.statusCode ?? 0)
-          )
+          {
+            title: "🚨 Nova viagem — 22 DRIVE",
+            body:
+              passengerName +
+              " solicitou uma nova viagem. Toque para abrir o painel.",
+            url: "./motorista.html",
+            tag: "22drive-new-ride"
+          },
+          {
+            subject: VAPID_SUBJECT,
+            publicKey: VAPID_PUBLIC_KEY,
+            privateKey: VAPID_PRIVATE_KEY
+          },
+          {
+            ttl: 86400,
+            urgency: "high"
+          }
         );
-      }
-    );
 
-    for (const subscription of expired) {
+        if (delivered) {
+          sent.push(subscription.endpoint);
+        } else {
+          expired.push(subscription.endpoint);
+        }
+      } catch (error) {
+        const statusCode =
+          error instanceof WebPushError
+            ? error.statusCode
+            : Number((error as any)?.statusCode ?? 0);
+
+        if (statusCode === 404 || statusCode === 410) {
+          expired.push(subscription.endpoint);
+        } else {
+          failed.push({
+            statusCode,
+            message:
+              error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
+    }
+
+    for (const endpoint of expired) {
       await fetch(
         SUPABASE_URL +
           "/rest/v1/push_subscriptions?endpoint=eq." +
-          encodeURIComponent(subscription.endpoint),
+          encodeURIComponent(endpoint),
         {
           method: "DELETE",
           headers: {
-            apikey: SERVICE_ROLE_KEY,
-            Authorization: "Bearer " + SERVICE_ROLE_KEY
+            apikey: SERVICE_ROLE_KEY
           }
         }
       );
