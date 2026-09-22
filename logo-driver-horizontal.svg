@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 180" role="img" aria-label="22 DRIVE">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff06a"/><stop offset=".5" stop-color="#ffc400"/><stop offset="1" stop-color="#df8d00"/></linearGradient></defs>
+<g transform="translate(12 15)">
+<circle cx="70" cy="66" r="58" fill="none" stroke="url(#g)" stroke-width="6"/>
+<path d="M70 12c-20 0-36 16-36 36 0 25 36 57 36 57s36-32 36-57c0-20-16-36-36-36zm0 20a16 16 0 1 1 0 32 16 16 0 0 1 0-32z" fill="url(#g)"/>
+<path d="M22 96c12-25 28-37 48-37s36 12 48 37l-7 23H29z" fill="#050505" stroke="#fff" stroke-width="5"/>
+<path d="M42 83h56l10 18H32z" fill="#111" stroke="#ffc400" stroke-width="4"/>
+<path d="M30 105h80l-7 15H37z" fill="#0a0a0a" stroke="#ffc400" stroke-width="4"/>
+<path d="M38 115h64" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+</g>
+<text x="155" y="94" font-family="Arial,Helvetica,sans-serif" font-size="76" font-weight="900" font-style="italic"><tspan fill="url(#g)">22</tspan><tspan fill="#fff"> DRIVE</tspan></text>
+<text x="160" y="128" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="700" letter-spacing="3" fill="#f4c400">SUA VIAGEM, NOSSA PRIORIDADE</text>
+</svg>
