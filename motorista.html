@@ -920,6 +920,67 @@ function renderScheduledRides(){
   }).join("");
 }
 const ROUTE_STATE_KEY="22drive_route_state";
+let destinationArrivalWatchId=null;
+let destinationArrivalWatchRideId=null;
+let destinationAutoFinishing=false;
+
+function stopDestinationArrivalWatch(){
+  if(destinationArrivalWatchId!=null && navigator.geolocation){
+    try{navigator.geolocation.clearWatch(destinationArrivalWatchId);}catch(e){}
+  }
+  destinationArrivalWatchId=null;
+  destinationArrivalWatchRideId=null;
+}
+function showChargeModal(r){
+  if(!$("chargeModal"))return;
+  $("chargePassenger").textContent="👤 "+String(r.passengerName||r.passenger_name||r.nome||"Passageiro");
+  const method=String(r.payment||r.payment_method||r.forma_pagamento||r.pagamento||"Não informado").trim();
+  $("chargePayment").textContent=method||"Não informado";
+  $("chargeValue").textContent=moneyBR(rideValue(r));
+  $("chargeModal").classList.add("on");
+  $("chargeModal").setAttribute("aria-hidden","false");
+}
+function closeChargeModal(){
+  const m=$("chargeModal");
+  if(m){m.classList.remove("on");m.setAttribute("aria-hidden","true");}
+}
+async function autoFinishAtDestination(r){
+  if(!r||destinationAutoFinishing)return;
+  destinationAutoFinishing=true;
+  stopDestinationArrivalWatch();
+  const id=String(r.id);
+  const patch={status:"finished",finished_at:new Date().toISOString()};
+  let ok=true;
+  if(realtimeReady){
+    ok=await updateRemoteReservation(id,patch);
+  }else{
+    const rs=requests(),i=rs.findIndex(x=>String(x.id)===id);
+    if(i>=0){rs[i]={...rs[i],...patch,finishedAt:patch.finished_at};save(rs);}else ok=false;
+  }
+  if(ok){
+    clearRouteState(id);
+    render();
+    loadEarnings();
+    showChargeModal({...r,...patch,status:"finished"});
+    notice("🏁 Você chegou ao destino. Viagem finalizada e cobrança exibida.");
+  }
+  destinationAutoFinishing=false;
+}
+function startDestinationArrivalWatch(r){
+  if(!r||!navigator.geolocation)return;
+  if(destinationArrivalWatchRideId===String(r.id)&&destinationArrivalWatchId!=null)return;
+  stopDestinationArrivalWatch();
+  destinationArrivalWatchRideId=String(r.id);
+  destinationArrivalWatchId=navigator.geolocation.watchPosition(pos=>{
+    const current=[pos.coords.latitude,pos.coords.longitude];
+    driverLocation=current;
+    const destination=rideCoordinate(r,"dropoff");
+    if(destination && distanceMeters(current,destination)<=120){
+      autoFinishAtDestination(r);
+    }
+  },()=>{}, {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+}
+
 let pickupArrivalWatchId=null;
 let pickupArrivalWatchRideId=null;
 
@@ -1002,9 +1063,10 @@ function startRideRoute(id){
       alert("O endereço de desembarque não foi informado.");
       return;
     }
-    clearRouteState(id);
+    setRouteState(id,"dropoff");
+    startDestinationArrivalWatch(r);
     renderTodayAcceptedRoutes();
-    notice("🏁 Percurso iniciado. Navegação aberta para o destino do passageiro.");
+    notice("🏁 Percurso iniciado. Ao chegar a aproximadamente 120 metros do destino, a viagem será finalizada e a cobrança aparecerá.");
     return;
   }
   if(state&&state.phase==="pickup"){
@@ -1047,7 +1109,11 @@ function renderTodayAcceptedRoutes(){
     const status=(r.status||"").toLowerCase()==="confirmed"?"Confirmada":"Aceita";
     return '<div class="scheduled-item today-route-item"><b>🕐 '+esc(t)+' • '+status+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small><button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">"+((getRouteState(r.id)?.phase==="dropoff_ready")?"🏁 Iniciar percurso":(getRouteState(r.id)?.phase==="pickup")?"📍 Rota para embarque":"🚗 Iniciar rota")+"</button></div>';
   }).join("");
-  rows.forEach(r=>startPickupArrivalWatch(r));
+  rows.forEach(r=>{
+    const state=getRouteState(r.id);
+    if(state?.phase==="pickup")startPickupArrivalWatch(r);
+    if(state?.phase==="dropoff")startDestinationArrivalWatch(r);
+  });
 }
 function openScheduledFromMenu(){
   const modal=$("scheduledMenuModal"), panel=$("scheduledMenuPanel");
@@ -1269,5 +1335,21 @@ let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;const b=document.getElementById("pwaInstall");if(b)b.style.display="block";});
 async function install22Drive(){if(!deferredInstallPrompt){alert("No Android, abra o menu do navegador e escolha 'Instalar aplicativo' ou 'Adicionar à tela inicial'.");return;}deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;const b=document.getElementById("pwaInstall");if(b)b.style.display="none";}
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));}
-</script></body>
+</script><style>
+#chargeModal .charge-box{max-width:430px;background:#07111f;color:#fff;border:1px solid #f4c400;border-radius:24px;padding:22px;box-shadow:0 15px 50px #0009}
+#chargeModal .charge-title{font-size:22px;font-weight:900;margin-bottom:6px}
+#chargeModal .charge-sub{color:#b9c8e5;font-size:13px;margin-bottom:18px}
+#chargeModal .charge-method{border:1px solid #29415e;border-radius:16px;padding:14px;margin:10px 0;background:#0b1a2b}
+#chargeModal .charge-method b{display:block;color:#ffc400;font-size:14px}
+#chargeModal .charge-value{font-size:38px;font-weight:900;margin:8px 0 16px}
+#chargeModal .charge-close{width:100%;min-height:50px;border:0;border-radius:16px;background:#08d878;color:#04120d;font-weight:900;font-size:16px}
+</style><div id="chargeModal" class="modal" aria-hidden="true">
+  <div class="charge-box">
+    <div class="charge-title">💳 Cobrança da viagem</div>
+    <div id="chargePassenger" class="charge-sub"></div>
+    <div class="charge-method"><b>FORMA DE PAGAMENTO</b><span id="chargePayment">—</span></div>
+    <div class="charge-method"><b>VALOR DA VIAGEM</b><div id="chargeValue" class="charge-value">R$ 0,00</div></div>
+    <button class="charge-close" type="button" onclick="closeChargeModal()">✓ Cobrança concluída</button>
+  </div>
+</div></body>
 </html>
