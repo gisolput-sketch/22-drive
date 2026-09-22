@@ -7,12 +7,12 @@
 <title>22 DRIVE — Agendamento</title>
 <!-- 22 DRIVE versão publicada: 2026-09-21 -->
 <style>
-:root{--p:#111827;--p2:#1f2937;--green:#16a34a;--bg:#f4f6f8;--card:#fff;--line:#e5e7eb;--muted:#6b7280;--red:#dc2626}
+:root{--p:#080808;--p2:#171717;--gold:#f4c400;--gold2:#d89400;--green:#16a34a;--bg:#f3f4f6;--card:#fff;--line:#e5e7eb;--muted:#6b7280;--red:#dc2626}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:#111827}
 .app{max-width:560px;margin:auto;min-height:100vh;padding-bottom:30px}
-.hero{background:linear-gradient(145deg,#030712,#1f2937);color:white;padding:30px 20px 34px;border-radius:0 0 30px 30px}
-.logo{font-size:14px;font-weight:800;letter-spacing:2px;color:#d1d5db}.hero h1{font-size:32px;margin:7px 0}.hero p{margin:0;color:#cbd5e1}
-main{padding:16px}.card{background:white;border:1px solid var(--line);border-radius:20px;padding:17px;margin-bottom:14px;box-shadow:0 7px 22px #1118270a}
+.hero{background:radial-gradient(circle at 50% -20%,#3b3000 0,#111 42%,#050505 100%);color:white;padding:22px 18px 30px;border-radius:0 0 32px 32px;box-shadow:0 12px 35px #0003;position:relative;overflow:hidden}
+.logo{display:flex;justify-content:center;margin-bottom:12px}.logo img{width:108px;height:108px;object-fit:contain;border-radius:24px;box-shadow:0 10px 30px #0008;border:1px solid #f4c40055}.hero h1{font-size:30px;margin:7px 0;text-align:center;letter-spacing:-.5px}.hero p{margin:0;color:#e5e7eb;text-align:center}.hero:after{content:"";position:absolute;left:12%;right:12%;bottom:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);box-shadow:0 0 18px #f4c400}
+main{padding:16px}.card{background:white;border:1px solid var(--line);border-radius:20px;padding:17px;margin-bottom:14px;box-shadow:0 7px 22px #1118270a}.card h2{color:#111}.primary{background:linear-gradient(135deg,#f4c400,#d89400);color:#080808;box-shadow:0 8px 20px #d8940033}.dark{background:#090909;color:#fff}.choices input:checked+span{background:#0a0a0a;color:#f4c400;border-color:#f4c400}.price{background:linear-gradient(135deg,#fffdf2,#fff);border-color:#f4c40066}.price strong{color:#b27600}
 h2{font-size:17px;margin:0 0 14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{margin-bottom:11px}
 label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:white;font:inherit;outline:none}
 input:focus,select:focus,textarea:focus{border-color:#6b7280}.choices{display:grid;grid-template-columns:1fr 1fr;gap:9px}.choices label{margin:0}.choices input{display:none}.choices span{display:block;text-align:center;padding:12px;border:1px solid var(--line);border-radius:12px;cursor:pointer}.choices input:checked+span{background:var(--p);color:#fff;border-color:var(--p)}
@@ -45,9 +45,9 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <body>
 <div class="app">
 <header class="hero">
-<div class="logo">22 DRIVE</div>
+<div class="logo"><img src="./logo-login.svg" alt="22 DRIVE"></div>
 <h1>Agende sua viagem</h1>
-<p>Transporte particular com reserva antecipada.</p>
+<p>Seu destino. Seu horário. Sua viagem.</p>
 </header>
 
 <main>
