@@ -303,6 +303,7 @@ function showTripStatus(r){
   if(r.confirm_note) html+="<br>📝 "+r.confirm_note;
   box.innerHTML=html;
   card.style.display="block";
+  if(String(r.status).toLowerCase()==="finished") preparePassengerReview(r);
 }
 
 async function loadPassengerReservation(id){
@@ -863,6 +864,8 @@ document.addEventListener("click",e=>{
 });
 
 document.addEventListener("DOMContentLoaded",()=>{
+  document.querySelectorAll(".review-star").forEach(b=>b.addEventListener("click",()=>{selectedReviewRating=Number(b.dataset.star);updateReviewStars();}));
+  $("sendReviewBtn").addEventListener("click",submitPassengerReview);
   connectPassengerRealtime();
   const savedProfile=loadPassengerProfile();
   if(savedProfile) showPassengerProfile(savedProfile);
