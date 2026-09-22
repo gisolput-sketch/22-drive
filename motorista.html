@@ -689,21 +689,38 @@ function toggleScheduledRides(){
   if(opening){renderScheduledRides();p.classList.add("open");if(a)a.textContent="⌄";}
   else{p.classList.remove("open");if(a)a.textContent="›";}
 }
+function reservationDateOnly(r){
+  const d=r.confirmedDate||r.confirmed_date||r.date||r.data;
+  if(!d)return null;
+  const m=String(d).match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+  if(m)return new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));
+  const dt=new Date(String(d));
+  return Number.isNaN(dt.getTime())?null:new Date(dt.getFullYear(),dt.getMonth(),dt.getDate());
+}
+function startOfToday(){
+  const n=new Date();
+  return new Date(n.getFullYear(),n.getMonth(),n.getDate());
+}
+function scheduledCutoffDate(){
+  const d=startOfToday();
+  d.setDate(d.getDate()+2);
+  return d;
+}
+function isScheduledFromTwoDays(r){
+  const d=reservationDateOnly(r);
+  return !!d && d>=scheduledCutoffDate();
+}
 function renderScheduledRides(){
   const p=$("scheduledPanel"); if(!p)return;
-  const now=new Date();
   const rows=requests().filter(r=>{
     const status=r.status||"new";
-    if(!["accepted","confirmed"].includes(status))return false;
-    const d=r.confirmedDate||r.confirmed_date||r.date||r.data;
-    const t=r.confirmedTime||r.confirmed_time||r.time||r.horario||"23:59";
-    if(!d)return false;
-    const dt=new Date(String(d)+"T"+String(t));
-    return !Number.isNaN(dt.getTime()) && dt>now;
+    return ["accepted","confirmed"].includes(status) && isScheduledFromTwoDays(r);
   }).sort((a,b)=>{
-    const da=new Date(String(a.confirmedDate||a.confirmed_date||a.date||a.data)+"T"+String(a.confirmedTime||a.confirmed_time||a.time||a.horario||"23:59"));
-    const db=new Date(String(b.confirmedDate||b.confirmed_date||b.date||b.data)+"T"+String(b.confirmedTime||b.confirmed_time||b.time||b.horario||"23:59"));
-    return da-db;
+    const da=reservationDateOnly(a)||new Date(8640000000000000);
+    const db=reservationDateOnly(b)||new Date(8640000000000000);
+    const ta=String(a.confirmedTime||a.confirmed_time||a.time||a.horario||"23:59");
+    const tb=String(b.confirmedTime||b.confirmed_time||b.time||b.horario||"23:59");
+    return da-db || ta.localeCompare(tb);
   });
   if(!rows.length){p.innerHTML='<div class="scheduled-empty">📅 Nenhuma viagem futura agendada.</div>';return;}
   p.innerHTML=rows.map(r=>{
@@ -718,7 +735,7 @@ function renderScheduledRides(){
 function renderMobileRequests(){
   const el=$("mobileRequests"); if(!el)return;
   const rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
-  const active=rs.filter(r=>["new","accepted","confirmed"].includes(r.status||"new"));
+  const active=rs.filter(r=>["new","accepted","confirmed"].includes(r.status||"new") && !isScheduledFromTwoDays(r));
   if($("sheetCount"))$("sheetCount").textContent=active.length?active.length+" solicitação"+(active.length===1?"":"ões"):"";
   if(!active.length){el.innerHTML="";return;}
   el.innerHTML=active.map(r=>{
