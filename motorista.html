@@ -75,14 +75,14 @@
 </section>
 <section id="login" class="card" style="max-width:440px;margin:25px auto">
 <h2>🚗 Entrar no painel</h2><p class="muted">Acesse a Área do Motorista com seu e-mail e senha.</p>
-<form id="loginForm" autocomplete="on">
+<form id="loginForm" autocomplete="on" onsubmit="return false;">
 <label>E-mail</label><input id="loginEmail" name="username" type="email" autocomplete="username" placeholder="seuemail@exemplo.com" required>
 <label>Senha</label>
 <div style="position:relative">
 <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required style="padding-right:72px">
 <button type="button" id="togglePassword" class="password-toggle" aria-label="Mostrar senha" onclick="toggleLoginPassword();return false;">Mostrar</button>
 </div>
-<button class="btn primary btnblock" id="loginButton" type="submit">Entrar</button>
+<button class="btn primary btnblock" id="loginButton" type="button" onclick="login();return false;">Entrar</button>
 </form>
 <div id="loginError" class="muted" style="margin-top:10px"></div>
 <div class="signup-refined">Ainda não tem acesso? <a href="./cadastro.html" id="signupLink" class="signup-link">Criar login</a></div>
