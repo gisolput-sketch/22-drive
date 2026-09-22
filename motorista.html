@@ -27,15 +27,19 @@ html,body{
   color:var(--white);
   font-family:Inter,Roboto,Arial,sans-serif;
 }
-body{overflow-x:hidden}
+body{overflow:hidden}
 .wrap{width:100%;max-width:none;margin:0;padding:0;background:var(--bg)}
 #driverMapShell{
+  display:none;
   width:100%;
-  min-height:100vh;
+  height:100dvh;
+  min-height:100dvh;
   background:var(--bg);
-  padding-top:92px;
-  padding-bottom:190px;
+  padding-top:78px;
+  padding-bottom:150px;
+  overflow:hidden;
 }
+#driverMapShell.active{display:block}
 .driver-topbar{
   position:fixed;
   top:0;
@@ -325,12 +329,12 @@ body{overflow-x:hidden}
 #chargeModal .charge-value{font-size:34px;font-weight:900;margin:8px 0 16px}
 #chargeModal .charge-close{width:100%;min-height:50px;border:0;border-radius:14px;background:var(--green);color:#04120d;font-weight:900;font-size:16px}
 @media(max-width:700px){
-  #driverMapShell{padding-top:86px;padding-bottom:174px}
+  #driverMapShell{padding-top:74px;padding-bottom:150px}
   .driver-topbar{min-height:74px;padding:8px 10px;gap:8px}
   .driver-logo{width:min(100%,190px);height:48px}
   .driver-status{width:142px;min-height:46px;padding:7px 8px;font-size:15px}
   .driver-menu-button{flex-basis:50px;width:50px;height:50px;font-size:28px}
-  .driver-map{height:calc(100vh - 86px - 174px);min-height:320px}
+  .driver-map{height:calc(100dvh - 74px - 150px);min-height:0}
   .driver-map .leaflet-control-zoom{margin-right:10px;margin-bottom:72px}
   .driver-map .leaflet-control-zoom a{width:40px;height:40px;line-height:40px}
   .driver-location-button{right:10px;bottom:10px;width:50px;height:50px;font-size:28px}
@@ -368,6 +372,14 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 .muted{color:var(--muted);font-size:13px}
 .hidden{display:none!important}
 
+/* Tela principal limpa: somente mapa + cabeçalho + rotas aceitas */
+#app{display:none!important}
+#driverMapShell .driver-bottom-area{height:150px;overflow:auto}
+@media(max-width:700px){
+  #driverMapShell{height:100dvh;min-height:100dvh;padding-top:74px;padding-bottom:150px}
+  #driverMapShell .driver-bottom-area{height:150px;padding:8px 10px 10px}
+  #driverMapShell .today-routes-card{min-height:124px}
+}
 /* Status do motorista: controle exclusivamente no topo */
 #status{display:none!important}
 .status{display:none!important}
@@ -748,7 +760,7 @@ async function login(){
     $("loginError").textContent="❌ "+(e&&e.message?e.message:"E-mail ou senha incorretos.");
   }finally{$("loginButton").disabled=false;$("loginButton").textContent="Entrar";}
 }
-function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"CPF cadastrado";const normalizedStatus=driver.status==="available"?"available":"offline";driver.status=normalizedStatus;$("status").value=normalizedStatus;if($("statusMobile"))$("statusMobile").value=normalizedStatus;initDriverMap();render();loadEarnings();connectSupabaseRealtime()}
+function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.add("hidden");$("driverMapShell").classList.add("active");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"CPF cadastrado";const normalizedStatus=driver.status==="available"?"available":"offline";driver.status=normalizedStatus;$("status").value=normalizedStatus;if($("statusMobile"))$("statusMobile").value=normalizedStatus;initDriverMap();render();loadEarnings();connectSupabaseRealtime()}
 async function logout(){try{const client=getAuthClient();if(client)await client.auth.signOut();}catch(e){console.error("22 DRIVE logout:",e)}localStorage.removeItem(DRIVER_KEY);location.reload()}
 function changeStatus(){const v=$("status").value==="available"?"available":"offline";driver.status=v;localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));if($("statusMobile"))$("statusMobile").value=v;notice(v==="available"?"🟢 Motorista disponível.":"⚫ Motorista indisponível.");updateMapStatus();}
 function focusRequests(){document.querySelector(".grid>section.card")?.scrollIntoView({behavior:"smooth",block:"start"});}
@@ -1474,8 +1486,8 @@ document.addEventListener("DOMContentLoaded",async()=>{
   const togglePassword=$("togglePassword");
   if(togglePassword)togglePassword.addEventListener("click",event=>{event.preventDefault();toggleLoginPassword();});
   await loadAuthenticatedDriver();
-  if(driver){}else{$("login").classList.remove("hidden");$("app").classList.add("hidden");}
-  initDriverMap();
+  if(driver){}else{$("login").classList.remove("hidden");$("app").classList.add("hidden");$("driverMapShell").classList.remove("active");}
+  if(driver)initDriverMap();
   if("Notification" in window&&Notification.permission==="granted"&&driver){$("notificationStatus").textContent="⏳ Notificações autorizadas. Registrando este celular...";registerDriverPush().then(()=>{$("notificationStatus").textContent="✅ Notificações registradas na base. Este celular está pronto para receber Push.";}).catch(e=>{$("notificationStatus").textContent="❌ Push autorizado, mas não foi possível registrar: "+(e&&e.message?e.message:"erro desconhecido");console.error("22 DRIVE Push automático:",e);});}
   setInterval(()=>{if(driver){resetDailyBalanceAtMidnight();monitorNewRequests();pollRemoteReservations();loadEarnings();}},30000);
   setTimeout(resetDailyBalanceAtMidnight,1000);
