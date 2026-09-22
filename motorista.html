@@ -74,9 +74,9 @@
 </section>
 </section>
 <section id="login" class="card" style="max-width:440px;margin:25px auto">
-<h2>🚗 Entrar no painel</h2><p class="muted">Acesse a Área do Motorista com seu CPF e senha.</p>
+<h2>🚗 Entrar no painel</h2><p class="muted">Acesse a Área do Motorista com seu e-mail e senha.</p>
 <form id="loginForm" autocomplete="on">
-<label>CPF</label><input id="loginCpf" name="username" inputmode="numeric" autocomplete="username" maxlength="14" placeholder="000.000.000-00" required>
+<label>E-mail</label><input id="loginEmail" name="username" type="email" autocomplete="username" placeholder="seuemail@exemplo.com" required>
 <label>Senha</label>
 <div style="position:relative">
 <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required style="padding-right:72px">
@@ -276,13 +276,8 @@ function requests(){
 }
 function save(x){remoteReservations=x.slice();localStorage.setItem(REQUESTS_KEY,JSON.stringify(x))}
 function notice(t){$("notice").textContent=t;$("notice").className="notice";setTimeout(()=>$("notice").className="notice hidden",4000)}
-function normalizeCpf(v){return String(v||"").replace(/\D/g,"");}
-function formatCpf(v){const d=normalizeCpf(v).slice(0,11);return d.replace(/^(\d{3})(\d)/,"$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/,"$1.$2.$3").replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/,"$1.$2.$3-$4");}
-function cpfAuthEmail(cpf){return "cpf."+normalizeCpf(cpf)+"@login.22drive.com";}
 function getAuthClient(){if(!supabaseClient&&window.supabase)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return supabaseClient;}
-function openSignup(){const loginScreen=$("login"),signupScreen=$("signupScreen");if(loginScreen)loginScreen.classList.add("hidden");if(signupScreen){signupScreen.classList.remove("hidden");signupScreen.scrollIntoView({behavior:"smooth",block:"start"});}if($("signupError"))$("signupError").textContent="";}
-function closeSignup(){const loginScreen=$("login"),signupScreen=$("signupScreen");if(signupScreen)signupScreen.classList.add("hidden");if(loginScreen)loginScreen.classList.remove("hidden");if($("signupError"))$("signupError").textContent="";}
-function toggleSignupPassword(){const input=$("signupPassword"),btn=$("toggleSignupPassword");if(!input)return;const showing=input.type==="text";input.type=showing?"password":"text";if(btn){btn.textContent=showing?"Mostrar":"Ocultar";btn.setAttribute("aria-label",showing?"Mostrar senha":"Ocultar senha");}}
+function toggleLoginPassword(){const input=$("loginPassword"),btn=$("togglePassword");if(!input)return;const showing=input.type==="text";input.type=showing?"password":"text";if(btn){btn.textContent=showing?"Mostrar":"Ocultar";btn.setAttribute("aria-label",showing?"Mostrar senha":"Ocultar senha");}}
 async function signupDriver(){
   const name=$("signupName").value.trim(),cpf=normalizeCpf($("signupCpf").value),phone=$("signupPhone").value.trim(),password=$("signupPassword").value;
   $("signupError").textContent="";
@@ -320,27 +315,27 @@ async function loadAuthenticatedDriver(){
 }
 async function login(){
   unlockDriverSound();
-  const cpf=normalizeCpf($("loginCpf").value),password=$("loginPassword").value;
+  const email=$("loginEmail").value.trim(),password=$("loginPassword").value;
   $("loginError").textContent="";
-  if(cpf.length!==11){$("loginError").textContent="⚠️ Digite um CPF válido com 11 números.";$("loginCpf").focus();return;}
+  if(!email||!email.includes("@")){$("loginError").textContent="⚠️ Digite um e-mail válido.";$("loginEmail").focus();return;}
   if(!password||password.length<6){$("loginError").textContent="⚠️ Digite sua senha.";$("loginPassword").focus();return;}
   const client=getAuthClient();if(!client){$("loginError").textContent="❌ Serviço de autenticação indisponível.";return;}
   $("loginButton").disabled=true;$("loginButton").textContent="Entrando...";
   try{
-    const {data,error}=await client.auth.signInWithPassword({email:cpfAuthEmail(cpf),password});
+    const {data,error}=await client.auth.signInWithPassword({email,password});
     if(error)throw error;
     const user=data&&data.user;
     if(!user)throw new Error("Não foi possível iniciar a sessão.");
     const {data:profile,error:profileError}=await client.from("motoristas").select("id,cpf,nome,telefone,ativo,auth_user_id").eq("auth_user_id",user.id).maybeSingle();
     if(profileError)throw profileError;
-    if(!profile){await client.auth.signOut();throw new Error("CPF autenticado, mas ainda não está cadastrado como motorista no 22 DRIVE.");}
+    if(!profile){await client.auth.signOut();throw new Error("E-mail autenticado, mas ainda não está cadastrado como motorista no 22 DRIVE.");}
     if(profile.ativo===false){await client.auth.signOut();throw new Error("Este acesso de motorista está desativado.");}
     driver={id:profile.id,cpf:profile.cpf,name:profile.nome,phone:profile.telefone||"",status:"available",authUserId:user.id};
     localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));
     openApp();
   }catch(e){
     console.error("22 DRIVE login:",e);
-    $("loginError").textContent="❌ "+(e&&e.message?e.message:"CPF ou senha incorretos.");
+    $("loginError").textContent="❌ "+(e&&e.message?e.message:"E-mail ou senha incorretos.");
   }finally{$("loginButton").disabled=false;$("loginButton").textContent="Entrar";}
 }
 function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"CPF cadastrado";$("status").value=driver.status||"available";if($("statusMobile"))$("statusMobile").value=driver.status||"available";initDriverMap();render();loadEarnings();connectSupabaseRealtime()}
@@ -595,8 +590,7 @@ async function finishRide(id){
 window.login=login;
 document.addEventListener("DOMContentLoaded",async()=>{
   getAuthClient();
-  const cpfInput=$("loginCpf");
-  if(cpfInput)cpfInput.addEventListener("input",()=>{cpfInput.value=formatCpf(cpfInput.value);});
+
   const form=$("loginForm");
   if(form)form.addEventListener("submit",event=>{event.preventDefault();login();});
   const signupLink=$("signupLink");
