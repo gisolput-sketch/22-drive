@@ -240,6 +240,64 @@
     opacity:1!important;
   }
 }
+</style><style id="final-topbar-layout">
+@media(max-width:800px){
+  .uberish-top{
+    display:grid!important;
+    grid-template-columns:1fr auto 1fr!important;
+    align-items:center!important;
+    gap:0!important;
+    padding:8px 10px!important;
+    min-height:66px!important;
+  }
+  .uberish-brand{
+    grid-column:1!important;
+    justify-self:start!important;
+    width:auto!important;
+    min-width:0!important;
+    flex:none!important;
+  }
+  .uberish-top .driver-logo{
+    width:74px!important;
+    height:38px!important;
+    object-fit:contain!important;
+    object-position:left center!important;
+  }
+  .uberish-status{
+    grid-column:2!important;
+    justify-self:center!important;
+    min-width:112px!important;
+    width:112px!important;
+    margin:0!important;
+  }
+  .uberish-menu{
+    grid-column:3!important;
+    justify-self:end!important;
+    margin:0!important;
+  }
+  .map-daily-balance{
+    display:grid!important;
+    top:10px!important;
+    left:50%!important;
+    right:auto!important;
+    transform:translateX(-50%)!important;
+    z-index:1100!important;
+    min-width:126px!important;
+    width:126px!important;
+    grid-template-columns:1fr 25px!important;
+    padding:7px 6px 7px 9px!important;
+    border-radius:18px!important;
+    background:#06111f!important;
+    opacity:1!important;
+  }
+  .map-daily-balance .daily-balance-label{font-size:9px!important}
+  .map-daily-balance strong{font-size:15px!important}
+  .map-daily-balance .balance-eye{width:25px!important;height:25px!important}
+}
+</style><style id="passenger-name-card-style">
+.ride-passenger{margin:8px 0 10px;padding:8px 10px;border-top:1px solid #29415e;border-bottom:1px solid #29415e;background:#071827!important;border-radius:10px;color:#fff!important}
+.ride-passenger .passenger-label{display:block;color:#f4c400!important;font-size:12px;font-weight:800;margin-bottom:2px}
+.ride-passenger strong{display:block;color:#fff!important;font-size:17px;line-height:1.2}
 </style></style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -260,11 +318,6 @@
   </div>
   <div class="uberish-top">
     <div class="uberish-brand"><img class="driver-logo" src="./logo-driver-horizontal.svg" alt="22 DRIVE — Sua viagem, nossa prioridade"></div>
-    <div class="daily-balance header-daily-balance" aria-label="Saldo do dia">
-      <span class="daily-balance-label">💰 Saldo do dia</span>
-      <strong id="headerDailyBalance">R$ 0,00</strong>
-      <button id="headerBalanceEye" class="balance-eye" type="button" aria-label="Ocultar saldo" onclick="toggleDailyBalance()">👁</button>
-    </div>
     <select id="statusMobile" class="uberish-status" onchange="changeStatusFromMobile()">
       <option value="available">🟢 Disponível</option>
       <option value="busy">🟠 Trabalhando</option>
@@ -661,15 +714,12 @@ function toggleDailyBalance(){
 }
 function updateMobileDailyBalance(value){
   resetDailyBalanceAtMidnight();
-  const mapBox=$("mobileDailyBalance");
-  const headerBox=$("headerDailyBalance");
-  const mapWrap=mapBox&&mapBox.parentElement;
-  const headerWrap=headerBox&&headerBox.parentElement;
-  const hidden=(mapWrap&&mapWrap.classList.contains("is-hidden"))||(headerWrap&&headerWrap.classList.contains("is-hidden"));
-  if(mapBox)mapBox.textContent=hidden?"••••••":moneyBR(value);
-  if(headerBox)headerBox.textContent=hidden?"••••••":moneyBR(value);
-  if(mapWrap)mapWrap.dataset.hidden=hidden?"1":"0";
-  if(headerWrap)headerWrap.dataset.hidden=hidden?"1":"0";
+  const box=$("mobileDailyBalance");
+  if(!box)return;
+  const wrap=box.parentElement;
+  const hidden=wrap&&wrap.classList.contains("is-hidden");
+  box.textContent=hidden?"••••••":moneyBR(value);
+  if(wrap)wrap.dataset.hidden=hidden?"1":"0";
 }
 async function loadEarnings(){
   if(!driver||!driver.name||!SUPABASE_URL||!SUPABASE_KEY)return;
@@ -859,6 +909,7 @@ function renderMobileRequests(){
     const origin=r.origin||r.origem||"Origem não informada", dest=r.destination||r.destino||"Destino não informado";
     const pay=r.paymentMethod||r.payment_method||r.forma_pagamento||"Pagamento não informado";
     const people=r.passengers||r.people||1, distance=r.distanceKm||r.distance_km;
+    const passenger=r.passengerName||r.passenger_name||r.nome||r.p_nome||"Passageiro";
     const badge=s==="new"?"🔔 Nova solicitação":s==="accepted"?"✓ Viagem aceita":"✓ Viagem confirmada";
     let primary="",secondary="";
     if(s==="new"){
@@ -871,7 +922,7 @@ function renderMobileRequests(){
       primary='<button class="btn green" data-action="whatsapp" data-id="'+esc(r.id)+'">💬 WhatsApp</button><button class="btn red" data-action="finish" data-id="'+esc(r.id)+'">✓ Finalizar</button>';
       secondary='';
     }
-    return '<article class="mobile-ride-card"><div class="ride-top"><span class="ride-badge">'+badge+'</span><span style="color:#cbd5e1">👥 '+esc(people)+' passageiro'+(Number(people)===1?"":"s")+'</span></div><div class="ride-price">'+moneyBR(value)+'</div><div class="ride-meta"><span>💳 '+esc(pay)+'</span><span>'+(distance?("📏 "+Number(distance).toFixed(1)+" km"):"🕐 "+esc(r.time||r.horario||""))+'</span></div><div class="ride-route"><div class="route-line"><span class="route-dot"></span><div><span class="route-label">Origem</span><div class="route-address">'+esc(origin)+'</div></div></div><div class="route-line"><span class="route-pin">📍</span><div><span class="route-label route-dest">Destino</span><div class="route-address">'+esc(dest)+'</div></div></div></div><div class="ride-actions">'+primary+'</div><div class="ride-secondary">'+secondary+'</div></article>';
+    return '<article class="mobile-ride-card"><div class="ride-top"><span class="ride-badge">'+badge+'</span><span style="color:#cbd5e1">👥 '+esc(people)+' passageiro'+(Number(people)===1?"":"s")+'</span></div><div class="ride-price">'+moneyBR(value)+'</div><div class="ride-passenger"><span class="passenger-label">👤 Passageiro</span><strong>'+esc(passenger)+'</strong></div><div class="ride-meta"><span>💳 '+esc(pay)+'</span><span>'+(distance?("📏 "+Number(distance).toFixed(1)+" km"):"🕐 "+esc(r.time||r.horario||""))+'</span></div><div class="ride-route"><div class="route-line"><span class="route-dot"></span><div><span class="route-label">Origem</span><div class="route-address">'+esc(origin)+'</div></div></div><div class="route-line"><span class="route-pin">📍</span><div><span class="route-label route-dest">Destino</span><div class="route-address">'+esc(dest)+'</div></div></div></div><div class="ride-actions">'+primary+'</div><div class="ride-secondary">'+secondary+'</div></article>';
   }).join("");
   el.querySelectorAll("[data-action]").forEach(btn=>{
     btn.addEventListener("click",()=>{
