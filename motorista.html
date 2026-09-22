@@ -42,6 +42,7 @@
 </select></div>
 </div>
 <div class="card"><h2>Resumo</h2><div class="stats"><div class="stat"><b id="newCount">0</b><span>Novas</span></div><div class="stat"><b id="acceptedCount">0</b><span>Aceitas</span></div><div class="stat"><b id="confirmedCount">0</b><span>Confirmadas</span></div></div></div>
+<div class="card"><h2>💰 Ganhos</h2><p class="muted">Somente viagens finalizadas pelo motorista.</p><div class="stats"><div class="stat"><b id="dailyEarnings">R$ 0,00</b><span>Hoje</span></div><div class="stat"><b id="weeklyEarnings">R$ 0,00</b><span>Semana</span></div><div class="stat"><b id="monthlyEarnings">R$ 0,00</b><span>Mês</span></div></div><div id="earningsStatus" class="muted" style="margin-top:8px"></div></div>
 <div class="card"><button class="btn gray btnblock" onclick="render()">🔄 Atualizar</button><a class="btn gray btnblock" style="display:block;text-align:center;text-decoration:none;color:#111827" href="./">👤 Área do passageiro</a></div>
 </aside>
 
@@ -180,7 +181,7 @@ function monitorNewRequests(){const rs=requests();const active=rs.filter(r=>(r.s
 
 const $=id=>document.getElementById(id);
 function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
-async function pollRemoteReservations(){try{const response=await fetch(SUPABASE_URL+"/rest/v1/reservas?select=*&order=created_at.desc&limit=100",{cache:"no-store",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});if(!response.ok)throw new Error("HTTP "+response.status+" — "+await response.text());const data=await response.json();const normalized=(data||[]).map(normalizeReservation);const old=remoteReservations.slice();const oldIds=new Set(old.map(x=>String(x.id)));remoteReservations=normalized;realtimeReady=true;normalized.filter(r=>(r.status||"new")==="new"&&!oldIds.has(String(r.id))).forEach(showNewRideNotification);render();if(old.length!==normalized.length){notice("🟢 Painel atualizado: "+normalized.length+" solicitação(ões) na base online.");}}catch(e){console.error("22 DRIVE polling:",e);realtimeReady=false;notice("⚠️ Não consegui ler as viagens online. "+(e&&e.message?e.message:"Erro desconhecido"));}}
+async function pollRemoteReservations(){try{const response=await fetch(SUPABASE_URL+"/rest/v1/reservas?select=*&order=created_at.desc&limit=100",{cache:"no-store",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});if(!response.ok)throw new Error("HTTP "+response.status+" — "+await response.text());const data=await response.json();const normalized=(data||[]).map(normalizeReservation);const old=remoteReservations.slice();const oldIds=new Set(old.map(x=>String(x.id)));remoteReservations=normalized;realtimeReady=true;normalized.filter(r=>(r.status||"new")==="new"&&!oldIds.has(String(r.id))).forEach(showNewRideNotification);render();loadEarnings();if(old.length!==normalized.length){notice("🟢 Painel atualizado: "+normalized.length+" solicitação(ões) na base online.");}}catch(e){console.error("22 DRIVE polling:",e);realtimeReady=false;notice("⚠️ Não consegui ler as viagens online. "+(e&&e.message?e.message:"Erro desconhecido"));}}
 
 function requests(){
   if(realtimeReady)return remoteReservations.slice();
@@ -189,9 +190,41 @@ function requests(){
 function save(x){remoteReservations=x.slice();localStorage.setItem(REQUESTS_KEY,JSON.stringify(x))}
 function notice(t){$("notice").textContent=t;$("notice").className="notice";setTimeout(()=>$("notice").className="notice hidden",4000)}
 function login(){try{unlockDriverSound();const name=$("loginName").value.trim();const phone=$("loginPhone").value.trim();if(!name){alert("Digite o nome do motorista.");$("loginName").focus();return}if(!phone){alert("Digite o telefone do motorista.");$("loginPhone").focus();return}const cleanPhone=phone.replace(/\D/g,"");if(cleanPhone.length<10){alert("Digite um telefone válido com DDD.");$("loginPhone").focus();return}driver={name,phone,status:"available"};localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));openApp();}catch(e){console.error("22 DRIVE login:",e);alert("Não foi possível entrar no painel. Recarregue a página e tente novamente.");}}
-function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"Telefone não informado";$("status").value=driver.status||"available";render();connectSupabaseRealtime()}
+function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"Telefone não informado";$("status").value=driver.status||"available";render();loadEarnings();connectSupabaseRealtime()}
 function logout(){localStorage.removeItem(DRIVER_KEY);location.reload()}
-function changeStatus(){driver.status=$("status").value;localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));notice("Status atualizado.")}
+function changeStatus(){driver.status=$("status").value;localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));notice("Status atualizado.")}function moneyBR(v){return (Number(v)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
+function localDateStart(y,m,d){return new Date(y,m,d,0,0,0,0)}
+async function loadEarnings(){
+  if(!driver||!driver.name||!SUPABASE_URL||!SUPABASE_KEY)return;
+  try{
+    const now=new Date();
+    const monthStart=localDateStart(now.getFullYear(),now.getMonth(),1);
+    const dayStart=localDateStart(now.getFullYear(),now.getMonth(),now.getDate());
+    const mondayOffset=(now.getDay()+6)%7;
+    const weekStart=new Date(dayStart);
+    weekStart.setDate(weekStart.getDate()-mondayOffset);
+    const url=SUPABASE_URL+"/rest/v1/reservas?select=total_value,trip_value,valor,finished_at,status,driver_name&status=eq.finished&driver_name=eq."+encodeURIComponent(driver.name)+"&finished_at=gte."+encodeURIComponent(monthStart.toISOString())+"&order=finished_at.desc&limit=1000";
+    const response=await fetch(url,{cache:"no-store",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});
+    if(!response.ok)throw new Error("HTTP "+response.status);
+    const rows=await response.json();
+    let daily=0,weekly=0,monthly=0;
+    rows.forEach(r=>{
+      const finished=new Date(r.finished_at);
+      const value=Number(r.total_value??r.trip_value??r.valor??0)||0;
+      if(finished>=monthStart)monthly+=value;
+      if(finished>=weekStart)weekly+=value;
+      if(finished>=dayStart)daily+=value;
+    });
+    $("dailyEarnings").textContent=moneyBR(daily);
+    $("weeklyEarnings").textContent=moneyBR(weekly);
+    $("monthlyEarnings").textContent=moneyBR(monthly);
+    $("earningsStatus").textContent="Atualizado agora • "+rows.length+" viagem(ns) finalizada(s) no período.";
+  }catch(e){
+    console.error("22 DRIVE ganhos:",e);
+    $("earningsStatus").textContent="⚠️ Não foi possível atualizar os ganhos agora.";
+  }
+}
+
 function dateBR(v){if(!v)return"";let p=String(v).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:v}
 function render(){
  let rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
@@ -220,7 +253,7 @@ function openModal(id){selected=id;let r=requests().find(x=>String(x.id)===Strin
 function closeModal(){selected=null;$("modal").classList.remove("on")}
 async function confirmRide(){if(!selected)return;stopRideAlert(selected);let date=$("cdate").value,time=$("ctime").value;if(!date||!time){alert("Informe data e horário.");return}let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(selected));if(i<0)return;const patch={status:"confirmed",confirmed_date:date,confirmed_time:time,confirm_note:$("cnote").value.trim(),confirmed_at:new Date().toISOString(),driver_name:driver.name,driver_phone:driver.phone};if(realtimeReady){if(!(await updateRemoteReservation(selected,patch)))return;}else{rs[i]={...rs[i],status:"confirmed",confirmedDate:date,confirmedTime:time,confirmNote:patch.confirm_note,confirmedAt:patch.confirmed_at,driverName:driver.name,driverPhone:driver.phone};save(rs);}closeModal();render();notice("Viagem confirmada para "+dateBR(date)+" às "+time+".")}
 function messagePassenger(id){let r=requests().find(x=>String(x.id)===String(id));if(!r)return;let p=r.passengerPhone||r.telefone||"",name=r.passengerName||r.nome||"passageiro",msg="🚗 22 DRIVE\nViagem aceita, "+name+"! ✅\n📅 "+dateBR(r.confirmedDate)+" • 🕐 "+(r.confirmedTime||"")+"\n📍 "+(r.origin||"")+" → "+(r.destination||"")+"\n🎵 Som: "+(r.sound||"Não informado")+(r.musicStyle?" • "+r.musicStyle:"")+"\nObrigado pela preferência! 🙏",n=p.replace(/\D/g,"");if(n.length>=10&&!n.startsWith("55"))n="55"+n;if(n)window.open("https://wa.me/"+n+"?text="+encodeURIComponent(msg),"_blank");else alert(msg+"\n\nTelefone do passageiro não informado.")}
-async function finishRide(id){if(!confirm("Marcar viagem como finalizada?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"finished",finished_at:new Date().toISOString()};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"finished",finishedAt:patch.finished_at};save(rs);}render();notice("Viagem finalizada.")}
+async function finishRide(id){if(!confirm("Marcar viagem como finalizada?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"finished",finished_at:new Date().toISOString()};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"finished",finishedAt:patch.finished_at};save(rs);}render();loadEarnings();notice("Viagem finalizada.")}
 window.login=login;
 document.addEventListener("DOMContentLoaded",()=>{
   const form=$("loginForm");
@@ -230,7 +263,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       login();
     });
   }
-  let d=localStorage.getItem(DRIVER_KEY);if(d)openApp();if("Notification" in window&&Notification.permission==="granted"){$("notificationStatus").textContent="⏳ Notificações autorizadas. Registrando este celular...";registerDriverPush().then(()=>{$("notificationStatus").textContent="✅ Notificações registradas na base. Este celular está pronto para receber Push.";}).catch(e=>{$("notificationStatus").textContent="❌ Push autorizado, mas não foi possível registrar: "+(e&&e.message?e.message:"erro desconhecido");console.error("22 DRIVE Push automático:",e);});}setInterval(()=>{monitorNewRequests();pollRemoteReservations();},5000);});</script>
+  let d=localStorage.getItem(DRIVER_KEY);if(d)openApp();if("Notification" in window&&Notification.permission==="granted"){$("notificationStatus").textContent="⏳ Notificações autorizadas. Registrando este celular...";registerDriverPush().then(()=>{$("notificationStatus").textContent="✅ Notificações registradas na base. Este celular está pronto para receber Push.";}).catch(e=>{$("notificationStatus").textContent="❌ Push autorizado, mas não foi possível registrar: "+(e&&e.message?e.message:"erro desconhecido");console.error("22 DRIVE Push automático:",e);});}setInterval(()=>{monitorNewRequests();pollRemoteReservations();loadEarnings();},30000);});</script>
 <div id="pwaInstall" style="display:none;position:sticky;bottom:12px;margin:12px auto;max-width:520px;z-index:9998"><button type="button" style="width:100%;border:0;border-radius:14px;padding:14px;background:#111827;color:#fff;font-weight:900;font-size:15px;box-shadow:0 8px 24px #0003" onclick="install22Drive()">📲 Instalar 22 DRIVE como aplicativo</button></div><script>
 let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;const b=document.getElementById("pwaInstall");if(b)b.style.display="block";});
