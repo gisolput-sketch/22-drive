@@ -62,7 +62,7 @@ const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 function normalizeCpf(v){return String(v||"").replace(/\D/g,"");}
 function formatCpf(v){const d=normalizeCpf(v).slice(0,11);return d.replace(/^(\d{3})(\d)/,"$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/,"$1.$2.$3").replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/,"$1.$2.$3-$4");}
-function cpfAuthEmail(cpf){return "cpf."+normalizeCpf(cpf)+"@login.22drive.local";}
+function cpfAuthEmail(cpf){return "cpf."+normalizeCpf(cpf)+"@login.22drive.com";}
 function showError(msg){$("signupError").textContent=msg;}
 $("signupCpf").addEventListener("input",()=>{$("signupCpf").value=formatCpf($("signupCpf").value);});
 $("toggleSignupPassword").addEventListener("click",()=>{
