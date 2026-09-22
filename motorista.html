@@ -368,6 +368,9 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 .muted{color:var(--muted);font-size:13px}
 .hidden{display:none!important}
 
+/* Status do motorista: controle exclusivamente no topo */
+#status{display:none!important}
+.status{display:none!important}
 /* Ajuste final de legibilidade: interface 20% mais compacta */
 .driver-topbar{padding:8px 14px;min-height:78px}
 .driver-logo{width:min(100%,220px);height:48px}
@@ -401,7 +404,6 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 
     <select id="statusMobile" class="driver-status" aria-label="Status do motorista" onchange="changeStatusFromMobile()">
       <option value="available">🟢 Disponível</option>
-      <option value="busy">🟠 Trabalhando</option>
       <option value="offline">⚫ Indisponível</option>
     </select>
 
@@ -484,7 +486,6 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 <label>Status do motorista</label>
 <select id="status" onchange="changeStatus()">
 <option value="available">🟢 Disponível</option>
-<option value="busy">🟠 Trabalhando</option>
 <option value="offline">⚫ Indisponível</option>
 </select></div>
 </div>
@@ -747,9 +748,9 @@ async function login(){
     $("loginError").textContent="❌ "+(e&&e.message?e.message:"E-mail ou senha incorretos.");
   }finally{$("loginButton").disabled=false;$("loginButton").textContent="Entrar";}
 }
-function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"CPF cadastrado";$("status").value=driver.status||"available";if($("statusMobile"))$("statusMobile").value=driver.status||"available";initDriverMap();render();loadEarnings();connectSupabaseRealtime()}
+function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"CPF cadastrado";const normalizedStatus=driver.status==="available"?"available":"offline";driver.status=normalizedStatus;$("status").value=normalizedStatus;if($("statusMobile"))$("statusMobile").value=normalizedStatus;initDriverMap();render();loadEarnings();connectSupabaseRealtime()}
 async function logout(){try{const client=getAuthClient();if(client)await client.auth.signOut();}catch(e){console.error("22 DRIVE logout:",e)}localStorage.removeItem(DRIVER_KEY);location.reload()}
-function changeStatus(){driver.status=$("status").value;localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));notice("Status atualizado.");}
+function changeStatus(){const v=$("status").value==="available"?"available":"offline";driver.status=v;localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));if($("statusMobile"))$("statusMobile").value=v;notice(v==="available"?"🟢 Motorista disponível.":"⚫ Motorista indisponível.");updateMapStatus();}
 function focusRequests(){document.querySelector(".grid>section.card")?.scrollIntoView({behavior:"smooth",block:"start"});}
 function focusStatus(){alert("Status atual: "+($("status")?.selectedOptions?.[0]?.textContent||"Não informado"));}
 function moneyBR(v){return (Number(v)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
@@ -949,7 +950,7 @@ function centerDriverLocation(){
 function toggleDriverSheet(){const s=$("driverSheet");s.classList.toggle("expanded");}
 function toggleTopMenu(){const m=$("topMenuPanel");if(m)m.classList.toggle("open");}
 function closeTopMenu(){const m=$("topMenuPanel");if(m)m.classList.remove("open");}
-function changeStatusFromMobile(){ $("status").value=$("statusMobile").value; changeStatus(); updateMapStatus(); }
+function changeStatusFromMobile(){ const v=$("statusMobile").value==="available"?"available":"offline"; $("status").value=v; changeStatus(); updateMapStatus(); }
 function updateMapStatus(){
   if(!driver)return;
   const s=driver.status||"available";
