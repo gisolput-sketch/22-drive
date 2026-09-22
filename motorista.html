@@ -310,6 +310,13 @@
   .today-routes-head{padding:12px 10px!important}
   .today-route-item{padding:11px 10px!important}
 }
+</style><style id="scheduled-menu-modal-style">
+.scheduled-menu-modal{display:none;position:fixed;inset:0;z-index:5000;background:#000b;align-items:center;justify-content:center;padding:18px}
+.scheduled-menu-modal.open{display:flex!important}
+.scheduled-menu-box{width:min(520px,94vw);max-height:80vh;overflow:auto;background:#06111f;color:#fff;border:2px solid #f4c400;border-radius:22px;box-shadow:0 20px 60px #000e;padding:16px}
+.scheduled-menu-title{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:18px;margin-bottom:12px}
+.scheduled-menu-title button{width:36px;height:36px;border-radius:50%;border:1px solid #f4c400;background:#17263b;color:#fff;font-size:17px}
+.scheduled-menu-list .scheduled-item{background:#071827!important;border:1px solid #29415e;border-radius:14px;padding:12px;margin-bottom:8px}
 </style></style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -331,6 +338,12 @@
       <option value="offline">⚫ Indisponível</option>
     </select>
     <button class="uberish-menu" type="button" aria-label="Abrir menu" onclick="toggleTopMenu()">☰</button><div id="topMenuPanel" class="top-menu-panel"><button type="button" onclick="openScheduledFromMenu();closeTopMenu()">📅 Viagens agendadas</button><button type="button" onclick="openGains();closeTopMenu()">💰 Ganhos</button><button type="button" onclick="logout()">🚪 Sair</button></div>
+  <div id="scheduledMenuModal" class="scheduled-menu-modal" aria-hidden="true">
+    <div class="scheduled-menu-box">
+      <div class="scheduled-menu-title"><b>📅 Viagens agendadas</b><button type="button" onclick="closeScheduledFromMenu()">✕</button></div>
+      <div id="scheduledMenuPanel" class="scheduled-menu-list"></div>
+    </div>
+  </div>
   </div>
   <div class="uberish-map-status">
     <span class="map-status-dot"></span>
@@ -918,11 +931,36 @@ function renderTodayAcceptedRoutes(){
   }).join("");
 }
 function openScheduledFromMenu(){
-  renderScheduledRides();
-  const p=$("scheduledPanel");
-  if(p)p.classList.add("open");
-  const card=$("scheduledCard");
-  if(card)card.scrollIntoView({behavior:"smooth",block:"center"});
+  const modal=$("scheduledMenuModal"), panel=$("scheduledMenuPanel");
+  if(!modal||!panel)return;
+  const rows=requests().filter(r=>{
+    const status=r.status||"new";
+    return ["accepted","confirmed"].includes(status) && isScheduledFromTwoDays(r);
+  }).sort((a,b)=>{
+    const da=reservationDateOnly(a)||new Date(8640000000000000);
+    const db=reservationDateOnly(b)||new Date(8640000000000000);
+    const ta=String(a.confirmedTime||a.confirmed_time||a.time||a.horario||"23:59");
+    const tb=String(b.confirmedTime||b.confirmed_time||b.time||b.horario||"23:59");
+    return da-db || ta.localeCompare(tb);
+  });
+  if(!rows.length){
+    panel.innerHTML='<div class="scheduled-empty">📅 Nenhuma viagem futura agendada.</div>';
+  }else{
+    panel.innerHTML=rows.map(r=>{
+      const d=r.confirmedDate||r.confirmed_date||r.date||r.data||"";
+      const t=r.confirmedTime||r.confirmed_time||r.time||r.horario||"";
+      const passenger=r.passengerName||r.passenger_name||r.nome||"Passageiro";
+      const origin=r.origin||r.origem||"Origem não informada";
+      const dest=r.destination||r.destino||"Destino não informado";
+      return '<div class="scheduled-item"><b>📅 '+esc(dateBR(d))+' • 🕐 '+esc(t)+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small></div>';
+    }).join("");
+  }
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden","false");
+}
+function closeScheduledFromMenu(){
+  const modal=$("scheduledMenuModal");
+  if(modal){modal.classList.remove("open");modal.setAttribute("aria-hidden","true");}
 }
 function renderMobileRequests(){
   const el=$("mobileRequests"); if(!el)return;
