@@ -482,21 +482,41 @@ function updateMapStatus(){
 function renderMobileRequests(){
   const el=$("mobileRequests"); if(!el)return;
   const rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
-  const active=rs.filter(r=>["new","accepted","confirmed"].includes(r.status||"new"));  if($("sheetCount"))$("sheetCount").textContent=active.length?active.length+" solicitação"+(active.length===1?"":"ões"):"";
+  const active=rs.filter(r=>["new","accepted","confirmed"].includes(r.status||"new"));
+  if($("sheetCount"))$("sheetCount").textContent=active.length?active.length+" solicitação"+(active.length===1?"":"ões"):"";
   if(!active.length){el.innerHTML='<div class="mobile-empty">📭<br><b>Nenhuma viagem no momento</b><br><span>Fique disponível para receber novas solicitações.</span></div>';return;}
   el.innerHTML=active.map(r=>{
-    const s=r.status||"new", value=rideValue(r), passenger=r.passengerName||"Passageiro";
-    const origin=r.origin||"Origem não informada", dest=r.destination||"Destino não informado";
-    const pay=r.paymentMethod||r.payment_method||"Pagamento não informado";
-    const people=r.passengers||r.people||1;
-    const distance=r.distanceKm||r.distance_km;
+    const s=r.status||"new", value=rideValue(r);
+    const origin=r.origin||r.origem||"Origem não informada", dest=r.destination||r.destino||"Destino não informado";
+    const pay=r.paymentMethod||r.payment_method||r.forma_pagamento||"Pagamento não informado";
+    const people=r.passengers||r.people||1, distance=r.distanceKm||r.distance_km;
     const badge=s==="new"?"🔔 Nova solicitação":s==="accepted"?"✓ Viagem aceita":"✓ Viagem confirmada";
     let primary="",secondary="";
-    if(s==="new"){primary='<button class="btn green" onclick="acceptRide(\\''+esc(r.id)+'\\')">✓ Aceitar</button><button class="btn red" onclick="cancelRide(\\''+esc(r.id)+'\\')">✕ Recusar</button>';secondary='<button class="btn" onclick="openModal(\\''+esc(r.id)+'\\')">📅 Confirmar horário</button><button class="btn" onclick="messagePassenger(\\''+esc(r.id)+'\\')">💬 WhatsApp</button><button class="btn" onclick="showRideRoute(\\''+esc(r.id)+'\\')">🗺️ Ver rota</button>';}
-    else if(s==="accepted"){primary='<button class="btn green" onclick="openModal(\\''+esc(r.id)+'\\')">📅 Confirmar horário</button><button class="btn red" onclick="cancelRide(\\''+esc(r.id)+'\\')">✕ Cancelar</button>';secondary='<button class="btn" onclick="messagePassenger(\\''+esc(r.id)+'\\')">💬 WhatsApp</button><button class="btn" onclick="showRideRoute(\\''+esc(r.id)+'\\')">🗺️ Ver rota</button><button class="btn" onclick="toggleDriverSheet()">⌃ Fechar</button>';}
-    else{primary='<button class="btn green" onclick="messagePassenger(\\''+esc(r.id)+'\\')">💬 WhatsApp</button><button class="btn red" onclick="finishRide(\\''+esc(r.id)+'\\')">✓ Finalizar</button>';secondary='<button class="btn" onclick="showRideRoute(\\''+esc(r.id)+'\\')">🗺️ Ver rota</button><button class="btn" onclick="toggleDriverSheet()">⌃ Fechar</button><button class="btn" onclick="openGains()">💰 Ganhos</button>';}
-    return '<article class="mobile-ride-card"><div class="ride-top"><span class="ride-badge">'+badge+'</span><span style="color:#cbd5e1">👥 '+esc(people)+' passageiro'+(Number(people)===1?"":"s")+'</span></div><div class="ride-price">'+moneyBR(value)+'</div><div class="ride-meta"><span>💳 '+esc(pay)+'</span><span>'+(distance?("📏 "+Number(distance).toFixed(1)+" km"):"🕐 "+esc(r.time||""))+'</span></div><div class="ride-route"><div class="route-line"><span class="route-dot"></span><div><span class="route-label">Origem</span><div class="route-address">'+esc(origin)+'</div></div></div><div class="route-line"><span class="route-pin">📍</span><div><span class="route-label route-dest">Destino</span><div class="route-address">'+esc(dest)+'</div></div></div></div><div class="ride-actions">'+primary+'</div><div class="ride-secondary">'+secondary+'</div></article>';
+    if(s==="new"){
+      primary='<button class="btn green" data-action="accept" data-id="'+esc(r.id)+'">✓ Aceitar</button><button class="btn red" data-action="cancel" data-id="'+esc(r.id)+'">✕ Recusar</button>';
+      secondary='<button class="btn" data-action="confirm" data-id="'+esc(r.id)+'">📅 Confirmar horário</button><button class="btn" data-action="whatsapp" data-id="'+esc(r.id)+'">💬 WhatsApp</button><button class="btn" data-action="route" data-id="'+esc(r.id)+'">🗺️ Ver rota</button>';
+    }else if(s==="accepted"){
+      primary='<button class="btn green" data-action="confirm" data-id="'+esc(r.id)+'">📅 Confirmar horário</button><button class="btn red" data-action="cancel" data-id="'+esc(r.id)+'">✕ Cancelar</button>';
+      secondary='<button class="btn" data-action="whatsapp" data-id="'+esc(r.id)+'">💬 WhatsApp</button><button class="btn" data-action="route" data-id="'+esc(r.id)+'">🗺️ Ver rota</button><button class="btn" data-action="close">⌃ Fechar</button>';
+    }else{
+      primary='<button class="btn green" data-action="whatsapp" data-id="'+esc(r.id)+'">💬 WhatsApp</button><button class="btn red" data-action="finish" data-id="'+esc(r.id)+'">✓ Finalizar</button>';
+      secondary='<button class="btn" data-action="route" data-id="'+esc(r.id)+'">🗺️ Ver rota</button><button class="btn" data-action="close">⌃ Fechar</button><button class="btn" data-action="gains">💰 Ganhos</button>';
+    }
+    return '<article class="mobile-ride-card"><div class="ride-top"><span class="ride-badge">'+badge+'</span><span style="color:#cbd5e1">👥 '+esc(people)+' passageiro'+(Number(people)===1?"":"s")+'</span></div><div class="ride-price">'+moneyBR(value)+'</div><div class="ride-meta"><span>💳 '+esc(pay)+'</span><span>'+(distance?("📏 "+Number(distance).toFixed(1)+" km"):"🕐 "+esc(r.time||r.horario||""))+'</span></div><div class="ride-route"><div class="route-line"><span class="route-dot"></span><div><span class="route-label">Origem</span><div class="route-address">'+esc(origin)+'</div></div></div><div class="route-line"><span class="route-pin">📍</span><div><span class="route-label route-dest">Destino</span><div class="route-address">'+esc(dest)+'</div></div></div></div><div class="ride-actions">'+primary+'</div><div class="ride-secondary">'+secondary+'</div></article>';
   }).join("");
+  el.querySelectorAll("[data-action]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const action=btn.dataset.action,id=btn.dataset.id;
+      if(action==="accept")acceptRide(id);
+      else if(action==="cancel")cancelRide(id);
+      else if(action==="confirm")openModal(id);
+      else if(action==="whatsapp")messagePassenger(id);
+      else if(action==="route")showRideRoute(id);
+      else if(action==="finish")finishRide(id);
+      else if(action==="close")toggleDriverSheet();
+      else if(action==="gains")openGains();
+    });
+  });
 }
 function render(){
  let rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
@@ -520,11 +540,11 @@ function card(r){
  if(s==="confirmed")buttons='<button class="btn primary" onclick="messagePassenger(\''+esc(r.id)+'\')">💬 WhatsApp</button><button class="btn gray" onclick="finishRide(\''+esc(r.id)+'\')">✓ Finalizar corrida</button>';
  return '<article class="request"><div class="head"><div><b>🚕 '+esc(passenger)+'</b>'+(phone?'<div class="muted">📱 '+esc(phone)+'</div>':"")+'</div><span class="badge '+b[0]+'">'+b[1]+'</span></div><div style="line-height:1.7;margin:12px 0;font-size:14px">📍 <b>Origem:</b> '+esc(origin)+mapLinks+'<br>🏁 <b>Destino:</b> '+esc(dest)+(date||time?'<br>🕐 <b>Pedido:</b> '+dateBR(date)+' '+esc(time):"")+(r.payment||r.pagamento?'<br>💳 <b>Pagamento:</b> '+esc(r.payment||r.pagamento):"")+(r.note||r.observacao?'<br>📝 <b>Obs.:</b> '+esc(r.note||r.observacao):"")+schedule+'</div><div class="actions">'+buttons+'</div></article>'
 }
-async function acceptRide(id){stopRideAlert(id);let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"accepted",accepted_at:new Date().toISOString(),driver_name:driver.name,driver_phone:driver.phone};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"accepted",acceptedAt:patch.accepted_at,driverName:driver.name,driverPhone:driver.phone};save(rs);}render();notice("Solicitação aceita. Agora confirme o horário.")}
+async async function acceptRide(id){stopRideAlert(id);let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"accepted",accepted_at:new Date().toISOString(),driver_name:driver.name,driver_phone:driver.phone};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"accepted",acceptedAt:patch.accepted_at,driverName:driver.name,driverPhone:driver.phone};save(rs);}render();notice("Solicitação aceita. Agora confirme o horário.")}
 async function cancelRide(id){stopRideAlert(id);if(!confirm("Deseja recusar/cancelar esta solicitação?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"cancelled",cancelled_at:new Date().toISOString(),cancelled_by:"driver"};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"cancelled",cancelledAt:patch.cancelled_at,cancelledBy:"driver"};save(rs);}render();notice("Solicitação cancelada.")}
 function openModal(id){selected=id;let r=requests().find(x=>String(x.id)===String(id));if(!r)return;let d=new Date(),today=d.toISOString().slice(0,10);$("cdate").value=r.date||r.data||today;$("ctime").value=r.time||r.horario||"";$("cnote").value="";$("modal").classList.add("on")}
 function closeModal(){selected=null;$("modal").classList.remove("on")}
-async function confirmRide(){if(!selected)return;stopRideAlert(selected);let date=$("cdate").value,time=$("ctime").value;if(!date||!time){alert("Informe data e horário.");return}let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(selected));if(i<0)return;const patch={status:"confirmed",confirmed_date:date,confirmed_time:time,confirm_note:$("cnote").value.trim(),confirmed_at:new Date().toISOString(),driver_name:driver.name,driver_phone:driver.phone};if(realtimeReady){if(!(await updateRemoteReservation(selected,patch)))return;}else{rs[i]={...rs[i],status:"confirmed",confirmedDate:date,confirmedTime:time,confirmNote:patch.confirm_note,confirmedAt:patch.confirmed_at,driverName:driver.name,driverPhone:driver.phone};save(rs);}const confirmed={...rs[i],...patch,confirmedDate:date,confirmedTime:time,confirmNote:patch.confirm_note,passengerPhone:rs[i].passengerPhone||rs[i].telefone,passengerName:rs[i].passengerName||rs[i].nome,origin:rs[i].origin||rs[i].origem,destination:rs[i].destination||rs[i].destino,sound:rs[i].sound||rs[i].som,musicStyle:rs[i].musicStyle||rs[i].estilo_musical};closeModal();render();notice("Viagem confirmada para "+dateBR(date)+" às "+time+". Enviando a programação ao passageiro...");sendConfirmationWhatsApp(confirmed);}
+async async function confirmRide(){if(!selected)return;stopRideAlert(selected);let date=$("cdate").value,time=$("ctime").value;if(!date||!time){alert("Informe data e horário.");return}let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(selected));if(i<0)return;const patch={status:"confirmed",confirmed_date:date,confirmed_time:time,confirm_note:$("cnote").value.trim(),confirmed_at:new Date().toISOString(),driver_name:driver.name,driver_phone:driver.phone};if(realtimeReady){if(!(await updateRemoteReservation(selected,patch)))return;}else{rs[i]={...rs[i],status:"confirmed",confirmedDate:date,confirmedTime:time,confirmNote:patch.confirm_note,confirmedAt:patch.confirmed_at,driverName:driver.name,driverPhone:driver.phone};save(rs);}const confirmed={...rs[i],...patch,confirmedDate:date,confirmedTime:time,confirmNote:patch.confirm_note,passengerPhone:rs[i].passengerPhone||rs[i].telefone,passengerName:rs[i].passengerName||rs[i].nome,origin:rs[i].origin||rs[i].origem,destination:rs[i].destination||rs[i].destino,sound:rs[i].sound||rs[i].som,musicStyle:rs[i].musicStyle||rs[i].estilo_musical};closeModal();render();notice("Viagem confirmada para "+dateBR(date)+" às "+time+". Enviando a programação ao passageiro...");sendConfirmationWhatsApp(confirmed);}
 function sendConfirmationWhatsApp(r){
   const p=String(r.passengerPhone||r.telefone||"");
   const name=String(r.passengerName||r.passenger_name||r.nome||"passageiro");
@@ -580,7 +600,7 @@ function buildFinishedRideWhatsAppUrl(r){
   return {url:"https://wa.me/"+n+"?text="+encodeURIComponent(msg),msg};
 }
 
-async function finishRide(id){
+async async function finishRide(id){
   if(!confirm("Marcar viagem como finalizada e enviar uma mensagem de agradecimento ao passageiro?"))return;
   let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));
   if(i<0)return;
