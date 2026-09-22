@@ -315,25 +315,7 @@ function sendConfirmationWhatsApp(r){
     alert("Viagem confirmada, mas o telefone do passageiro não foi informado."+NL+NL+msg);
   }
 }
-async function finishRide(id){
-  if(!confirm("Marcar viagem como finalizada e enviar uma mensagem de agradecimento ao passageiro?"))return;
-  let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));
-  if(i<0)return;
-  const ride=rs[i];
-  const patch={status:"finished",finished_at:new Date().toISOString()};
-  if(realtimeReady){
-    if(!(await updateRemoteReservation(id,patch)))return;
-  }else{
-    rs[i]={...rs[i],status:"finished",finishedAt:patch.finished_at};
-    save(rs);
-  }
-  render();
-  loadEarnings();
-  sendFinishedRideWhatsApp(ride);
-  notice("Viagem finalizada. Mensagem de agradecimento preparada para o passageiro.");
-}
-
-function sendFinishedRideWhatsApp(r){
+function buildFinishedRideWhatsAppUrl(r){
   const p=String(r.passengerPhone||r.passenger_phone||r.telefone||"");
   const name=String(r.passengerName||r.passenger_name||r.nome||"");
   const NL=String.fromCharCode(10);
@@ -352,15 +334,37 @@ function sendFinishedRideWhatsApp(r){
     "",
     "Até a próxima! 🤝🚗"
   ].join(NL);
-
   let n=p.replace(/\D/g,"");
   if(n.length>=10&&!n.startsWith("55"))n="55"+n;
+  if(!n)return {url:"",msg};
+  return {url:"https://wa.me/"+n+"?text="+encodeURIComponent(msg),msg};
+}
 
-  if(n){
-    const url="https://wa.me/"+n+"?text="+encodeURIComponent(msg);
-    window.open(url,"_blank");
+async function finishRide(id){
+  if(!confirm("Marcar viagem como finalizada e enviar uma mensagem de agradecimento ao passageiro?"))return;
+  let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));
+  if(i<0)return;
+  const ride=rs[i];
+  const wa=buildFinishedRideWhatsAppUrl(ride);
+  const waWindow=wa.url?window.open("about:blank","_blank"):null;
+  if(waWindow)waWindow.document.title="22 DRIVE — WhatsApp";
+  const patch={status:"finished",finished_at:new Date().toISOString()};
+  if(realtimeReady){
+    if(!(await updateRemoteReservation(id,patch))){
+      if(waWindow)waWindow.close();
+      return;
+    }
   }else{
-    alert("Corrida finalizada, mas o telefone do passageiro não foi informado."+NL+NL+msg);
+    rs[i]={...rs[i],status:"finished",finishedAt:patch.finished_at};
+    save(rs);
+  }
+  render();
+  loadEarnings();
+  if(waWindow){
+    waWindow.location.href=wa.url;
+    notice("Viagem finalizada. WhatsApp aberto com a mensagem de agradecimento.");
+  }else{
+    alert("Corrida finalizada, mas o telefone do passageiro não foi informado."+String.fromCharCode(10)+String.fromCharCode(10)+wa.msg);
   }
 }
 window.login=login;
