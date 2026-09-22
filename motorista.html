@@ -300,6 +300,16 @@
 .ride-passenger strong{display:block;color:#fff!important;font-size:17px;line-height:1.2}
 </style><style id="remove-daily-balance">
 .map-daily-balance,.header-daily-balance{display:none!important}
+</style><style id="today-routes-style">
+.today-routes-card{background:#050b14!important;border-top:1px solid #f4c400!important}
+.today-routes-head{cursor:default!important}
+.today-routes-head .scheduled-count{margin-left:auto;min-width:28px;text-align:center;color:#08d878;font-weight:900;font-size:18px}
+.today-route-item{border-color:#29415e!important;background:#071827!important}
+@media(max-width:800px){
+  .today-routes-card{margin-top:8px!important;background:#050b14!important}
+  .today-routes-head{padding:12px 10px!important}
+  .today-route-item{padding:11px 10px!important}
+}
 </style></style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -320,7 +330,7 @@
       <option value="busy">🟠 Trabalhando</option>
       <option value="offline">⚫ Indisponível</option>
     </select>
-    <button class="uberish-menu" type="button" aria-label="Abrir menu" onclick="toggleTopMenu()">☰</button><div id="topMenuPanel" class="top-menu-panel"><button type="button" onclick="openGains();closeTopMenu()">💰 Ganhos</button><button type="button" onclick="logout()">🚪 Sair</button></div>
+    <button class="uberish-menu" type="button" aria-label="Abrir menu" onclick="toggleTopMenu()">☰</button><div id="topMenuPanel" class="top-menu-panel"><button type="button" onclick="openScheduledFromMenu();closeTopMenu()">📅 Viagens agendadas</button><button type="button" onclick="openGains();closeTopMenu()">💰 Ganhos</button><button type="button" onclick="logout()">🚪 Sair</button></div>
   </div>
   <div class="uberish-map-status">
     <span class="map-status-dot"></span>
@@ -335,13 +345,13 @@
     </div>
     <div id="mobileNotice" class="sheet-notice hidden"></div>
     <div id="mobileRequests"></div>
-    <div class="scheduled-card" id="scheduledCard">
-      <button class="scheduled-main" type="button" onclick="toggleScheduledRides()">
-        <span class="scheduled-icon">📅</span>
-        <span><b>Viagens agendadas</b><small>Confira suas viagens futuras</small></span>
-        <span class="scheduled-arrow" id="scheduledArrow">›</span>
-      </button>
-      <div class="scheduled-panel" id="scheduledPanel"></div>
+    <div class="scheduled-card today-routes-card" id="todayRoutesCard">
+      <div class="scheduled-main today-routes-head">
+        <span class="scheduled-icon">🚗</span>
+        <span><b>Rotas aceitas de hoje</b><small>Viagens confirmadas para hoje</small></span>
+        <span class="scheduled-count" id="todayRoutesCount"></span>
+      </div>
+      <div class="scheduled-panel open" id="todayRoutesPanel"></div>
     </div>
   </div>
 </section>
@@ -881,6 +891,39 @@ function renderScheduledRides(){
     return '<div class="scheduled-item"><b>📅 '+esc(dateBR(d))+' • 🕐 '+esc(t)+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small></div>';
   }).join("");
 }
+function renderTodayAcceptedRoutes(){
+  const p=$("todayRoutesPanel"); if(!p)return;
+  const today=startOfToday();
+  const rows=requests().filter(r=>{
+    const status=r.status||"new";
+    const d=reservationDateOnly(r);
+    return ["accepted","confirmed"].includes(status) && d && d.getTime()===today.getTime();
+  }).sort((a,b)=>{
+    const ta=String(a.confirmedTime||a.confirmed_time||a.time||a.horario||"23:59");
+    const tb=String(b.confirmedTime||b.confirmed_time||b.time||b.horario||"23:59");
+    return ta.localeCompare(tb);
+  });
+  if($("todayRoutesCount"))$("todayRoutesCount").textContent=rows.length?String(rows.length):"";
+  if(!rows.length){
+    p.innerHTML='<div class="scheduled-empty">🚗 Nenhuma rota aceita para hoje.</div>';
+    return;
+  }
+  p.innerHTML=rows.map(r=>{
+    const t=r.confirmedTime||r.confirmed_time||r.time||r.horario||"";
+    const passenger=r.passengerName||r.passenger_name||r.nome||"Passageiro";
+    const origin=r.origin||r.origem||"Origem não informada";
+    const dest=r.destination||r.destino||"Destino não informado";
+    const status=(r.status||"").toLowerCase()==="confirmed"?"Confirmada":"Aceita";
+    return '<div class="scheduled-item today-route-item"><b>🕐 '+esc(t)+' • '+status+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small></div>';
+  }).join("");
+}
+function openScheduledFromMenu(){
+  renderScheduledRides();
+  const p=$("scheduledPanel");
+  if(p)p.classList.add("open");
+  const card=$("scheduledCard");
+  if(card)card.scrollIntoView({behavior:"smooth",block:"center"});
+}
 function renderMobileRequests(){
   const el=$("mobileRequests"); if(!el)return;
   const rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
@@ -927,7 +970,7 @@ function render(){
  $("acceptedCount").textContent=rs.filter(r=>r.status==="accepted").length;
  $("confirmedCount").textContent=rs.filter(r=>r.status==="confirmed").length;
  if(!rs.length){$("requests").innerHTML='<div class="empty">📭<br><b>Nenhuma solicitação disponível.</b><br><span class="muted">As solicitações aparecerão aqui quando forem conectadas à base online.</span></div>';}else{$("requests").innerHTML=rs.map(card).join("");}
- renderMobileRequests(); renderScheduledRides(); updateMapStatus(); updateRideMapFromRequests();
+ renderMobileRequests(); renderTodayAcceptedRoutes(); renderScheduledRides(); updateMapStatus(); updateRideMapFromRequests();
 }
 function card(r){
  let s=r.status||"new", map={new:["new","Nova"],accepted:["accepted","Aceita"],confirmed:["confirmed","Confirmada"],cancelled:["cancelled","Cancelada"],finished:["confirmed","Finalizada"]}, b=map[s]||map.new;
