@@ -797,19 +797,33 @@ async function updateRideMapForRequest(r){
     .bindPopup("<b>🔴 Desembarque</b><br>"+esc(r.destination||"Endereço não informado"));
   const pickupLabel=L.marker(pickup,{icon:rideLabelIcon("🟢 Embarque"),interactive:false,zIndexOffset:650});
   const dropoffLabel=L.marker(dropoff,{icon:rideLabelIcon("🔴 Desembarque"),interactive:false,zIndexOffset:650});
-  const route=L.polyline([pickup,dropoff],{color:"#1683ff",weight:6,opacity:.95,dashArray:"10 7",lineCap:"round"});
+  const route=L.polyline([pickup,dropoff],{color:"#1683ff",weight:6,opacity:.35,dashArray:"10 7",lineCap:"round"});
   rideMapLayer.addLayer(route);
   rideMapLayer.addLayer(pickupMarker);
   rideMapLayer.addLayer(dropoffMarker);
   rideMapLayer.addLayer(pickupLabel);
   rideMapLayer.addLayer(dropoffLabel);
-
   const points=[pickup,dropoff];
   if(driverLocation)points.push(driverLocation);
   driverMap.fitBounds(L.latLngBounds(points),{padding:[35,35],maxZoom:15,animate:true});
   pickupMarker.openPopup();
 
-  // Give the driver a clear legend without covering the map controls.
+  const requestId=id;
+  const routingHost=["https:","//router","project-osrm","org"].join("");
+  const osrmUrl=routingHost.replace("routerproject","router.project")+"/route/v1/driving/"+pickup[1]+","+pickup[0]+";"+dropoff[1]+","+dropoff[0]+"?overview=full&geometries=geojson";
+  fetch(osrmUrl).then(res=>{if(!res.ok)throw new Error("routing");return res.json();}).then(data=>{
+    if(rideMapRequestId!==requestId||!rideMapLayer||!data.routes||!data.routes[0])return;
+    const coords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+    if(coords.length>1){
+      rideMapLayer.removeLayer(route);
+      const roadRoute=L.polyline(coords,{color:"#1683ff",weight:6,opacity:.95,lineCap:"round",lineJoin:"round"});
+      rideMapLayer.addLayer(roadRoute);
+      const fitPoints=coords.slice();
+      if(driverLocation)fitPoints.push(driverLocation);
+      driverMap.fitBounds(L.latLngBounds(fitPoints),{padding:[35,35],maxZoom:15,animate:true});
+    }
+  }).catch(()=>{});
+
   if(rideMapTimer)clearTimeout(rideMapTimer);
   rideMapTimer=setTimeout(()=>{rideMapTimer=null;},1500);
 }
