@@ -19,7 +19,7 @@ input:focus,select:focus,textarea:focus{border-color:#6b7280}.choices{display:gr
 .price{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:17px;padding:16px}.price small{color:#166534}.price strong{display:block;font-size:29px;margin-top:3px}.notice{background:#fffbeb;border:1px solid #fde68a;padding:12px;border-radius:13px;font-size:12px;line-height:1.5;color:#854d0e}
 .btn{width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:900;cursor:pointer}.primary{background:var(--green);color:#fff}.dark{background:var(--p);color:#fff;margin-top:9px}.muted{font-size:11px;color:var(--muted);line-height:1.5}.availability{font-size:12px;margin-top:6px;line-height:1.4}.availability.ok{color:#15803d}.availability.busy{color:#dc2626;font-weight:800}
 .admin{display:none}.admin.on{display:block}.admin table{width:100%;border-collapse:collapse;font-size:12px}.admin th,.admin td{border-bottom:1px solid var(--line);padding:8px;text-align:left}.admin input{padding:8px}.tag{display:inline-block;padding:5px 8px;border-radius:999px;background:#f3f4f6;font-size:11px}.map{height:280px;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-top:10px}.route-status{font-size:12px;color:var(--muted);margin-top:8px}.place-wrap{margin-bottom:11px}.place-wrap label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}.place-wrap gmp-place-autocomplete{width:100%;--gmpx-color-surface:#fff;--gmpx-color-on-surface:#111827;--gmpx-color-on-surface-variant:#6b7280;--gmpx-color-primary:#16a34a}
-hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none;text-align:center}.success h2{margin-top:5px}.check{font-size:44px}
+hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none;text-align:center}\n.review-star{border:0;background:#f8fafc;color:#f4c400;font-size:42px;line-height:1;padding:4px;cursor:pointer}.review-star.on{color:#f4c400}.review-star:active{transform:scale(.95)}.success h2{margin-top:5px}.check{font-size:44px}
 @media(max-width:400px){.grid{grid-template-columns:1fr}.choices{grid-template-columns:1fr}}
 
 .autocomplete-wrap{position:relative}
@@ -83,6 +83,15 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <section class="card" id="tripStatusCard" style="display:none">
 <h2>📲 Status da sua viagem</h2>
 <div id="tripStatusBox" class="notice"></div>
+</section><section class="card" id="reviewCard" style="display:none">
+<h2>⭐ Avalie sua viagem</h2>
+<p class="muted">Sua opinião ajuda a 22 DRIVE a melhorar o atendimento.</p>
+<div id="reviewStars" style="display:flex;gap:7px;justify-content:center;margin:14px 0">
+<button type="button" class="review-star" data-star="1">☆</button><button type="button" class="review-star" data-star="2">☆</button><button type="button" class="review-star" data-star="3">☆</button><button type="button" class="review-star" data-star="4">☆</button><button type="button" class="review-star" data-star="5">☆</button>
+</div>
+<div class="field"><label>💬 Comentário <span class="muted">(opcional)</span></label><textarea id="reviewComment" rows="4" placeholder="Conte como foi sua experiência..."></textarea></div>
+<button class="btn primary" type="button" id="sendReviewBtn">⭐ Enviar avaliação</button>
+<div id="reviewMessage" class="muted" style="margin-top:8px;text-align:center"></div>
 </section>
 
 <form id="form">
@@ -232,6 +241,56 @@ function statusLabel(status){
   }[status]||"⏳ Solicitação em processamento.";
 }
 
+let selectedReviewRating=0;
+function updateReviewStars(){
+  document.querySelectorAll(".review-star").forEach(b=>{
+    const n=Number(b.dataset.star);
+    b.textContent=n<=selectedReviewRating?"★":"☆";
+    b.classList.toggle("on",n<=selectedReviewRating);
+  });
+}
+async function loadExistingReview(id){
+  if(!passengerSupabase||!id)return null;
+  const {data,error}=await passengerSupabase.from("avaliacoes").select("*").eq("reserva_id",id).maybeSingle();
+  if(error)return null;
+  return data||null;
+}
+async function preparePassengerReview(r){
+  if(!r||String(r.status).toLowerCase()!=="finished")return;
+  const card=$("reviewCard"),btn=$("sendReviewBtn"),msg=$("reviewMessage");
+  if(!card||!btn)return;
+  const existing=await loadExistingReview(r.id);
+  card.style.display="block";
+  if(existing){
+    selectedReviewRating=Number(existing.nota)||0;
+    $("reviewComment").value=existing.comentario||"";
+    updateReviewStars();
+    btn.disabled=true;
+    btn.textContent="✅ Avaliação enviada";
+    if(msg)msg.textContent="Obrigado! Sua avaliação já foi registrada.";
+    return;
+  }
+  selectedReviewRating=0; $("reviewComment").value=""; updateReviewStars();
+  btn.disabled=false; btn.textContent="⭐ Enviar avaliação"; if(msg)msg.textContent="";
+}
+async function submitPassengerReview(){
+  if(!lastReservationId||selectedReviewRating<1||selectedReviewRating>5){
+    alert("Escolha uma nota de 1 a 5 estrelas."); return;
+  }
+  const btn=$("sendReviewBtn"); btn.disabled=true; btn.textContent="⏳ Enviando...";
+  const name=$("name")?.value || loadPassengerProfile()?.name || "";
+  const comment=$("reviewComment").value.trim();
+  const {error}=await passengerSupabase.from("avaliacoes").insert({
+    reserva_id:lastReservationId, passageiro_nome:name, nota:selectedReviewRating, comentario:comment||null
+  });
+  if(error){
+    if(String(error.code)==="23505"){await preparePassengerReview({id:lastReservationId,status:"finished"});return;}
+    alert("❌ Não foi possível enviar a avaliação. Tente novamente.");
+    btn.disabled=false; btn.textContent="⭐ Enviar avaliação"; return;
+  }
+  btn.textContent="✅ Avaliação enviada";
+  $("reviewMessage").textContent="Obrigado pela sua avaliação! ⭐";
+}
 function showTripStatus(r){
   if(!r)return;
   const box=$("tripStatusBox"),card=$("tripStatusCard");
