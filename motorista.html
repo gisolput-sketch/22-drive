@@ -1031,19 +1031,6 @@ function stopDestinationArrivalWatch(){
   destinationArrivalWatchId=null;
   destinationArrivalWatchRideId=null;
 }
-function showChargeModal(r){
-  if(!$("chargeModal"))return;
-  $("chargePassenger").textContent="👤 "+String(r.passengerName||r.passenger_name||r.nome||"Passageiro");
-  const method=String(r.payment||r.payment_method||r.forma_pagamento||r.pagamento||"Não informado").trim();
-  $("chargePayment").textContent=method||"Não informado";
-  $("chargeValue").textContent=moneyBR(rideValue(r));
-  $("chargeModal").classList.add("on");
-  $("chargeModal").setAttribute("aria-hidden","false");
-}
-function closeChargeModal(){
-  const m=$("chargeModal");
-  if(m){m.classList.remove("on");m.setAttribute("aria-hidden","true");}
-}
 async function autoFinishAtDestination(r){
   if(!r||destinationAutoFinishing)return;
   destinationAutoFinishing=true;
@@ -1061,7 +1048,6 @@ async function autoFinishAtDestination(r){
     clearRouteState(id);
     render();
     loadEarnings();
-    showChargeModal({...r,...patch,status:"finished"});
     notice("🏁 Você chegou ao destino. Viagem finalizada e cobrança exibida.");
   }
   destinationAutoFinishing=false;
@@ -1495,13 +1481,5 @@ let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;const b=document.getElementById("pwaInstall");if(b)b.style.display="block";});
 async function install22Drive(){if(!deferredInstallPrompt){alert("No Android, abra o menu do navegador e escolha 'Instalar aplicativo' ou 'Adicionar à tela inicial'.");return;}deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;const b=document.getElementById("pwaInstall");if(b)b.style.display="none";}
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));}
-</script><div id="chargeModal" class="modal" aria-hidden="true">
-  <div class="charge-box">
-    <div class="charge-title">💳 Cobrança da viagem</div>
-    <div id="chargePassenger" class="charge-sub"></div>
-    <div class="charge-method"><b>FORMA DE PAGAMENTO</b><span id="chargePayment">—</span></div>
-    <div class="charge-method"><b>VALOR DA VIAGEM</b><div id="chargeValue" class="charge-value">R$ 0,00</div></div>
-    <button class="charge-close" type="button" onclick="closeChargeModal()">✓ Cobrança concluída</button>
-  </div>
-</div></body>
+</script></body>
 </html>
