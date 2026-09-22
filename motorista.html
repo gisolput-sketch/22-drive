@@ -80,12 +80,12 @@
 <label>Senha</label>
 <div style="position:relative">
 <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required style="padding-right:72px">
-<button type="button" id="togglePassword" class="password-toggle" aria-label="Mostrar senha">Mostrar</button>
+<button type="button" id="togglePassword" class="password-toggle" aria-label="Mostrar senha" onclick="toggleLoginPassword();return false;">Mostrar</button>
 </div>
 <button class="btn primary btnblock" id="loginButton" type="submit">Entrar</button>
 </form>
 <div id="loginError" class="muted" style="margin-top:10px"></div>
-<div class="signup-refined">Ainda não tem acesso? <button type="button" id="signupLink" class="signup-link">Criar login</button></div>
+<div class="signup-refined">Ainda não tem acesso? <a href="#signupScreen" id="signupLink" class="signup-link" onclick="openSignup();return false;">Criar login</a></div>
 </section>
 <section id="signupScreen" class="card hidden" style="max-width:440px;margin:25px auto">
 <h2>🆕 Criar login</h2>
@@ -97,7 +97,7 @@
 <label>Senha</label>
 <div style="position:relative">
 <input id="signupPassword" type="password" minlength="6" autocomplete="new-password" required placeholder="Mínimo de 6 caracteres" style="padding-right:85px">
-<button type="button" id="toggleSignupPassword" class="password-toggle" aria-label="Mostrar senha">Mostrar</button>
+<button type="button" id="toggleSignupPassword" class="password-toggle" aria-label="Mostrar senha" onclick="toggleSignupPassword();return false;">Mostrar</button>
 </div>
 <div class="row" style="margin-top:15px"><button class="btn gray" type="button" id="closeSignupButton">← Voltar</button><button class="btn primary" type="submit" id="signupButton">Criar login</button></div>
 </form>
