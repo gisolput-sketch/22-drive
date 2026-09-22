@@ -302,7 +302,7 @@ async function signupDriver(){
   }finally{$("signupButton").disabled=false;$("signupButton").textContent="Criar login";}
 }
 function toggleLoginPassword(){const input=$("loginPassword"),btn=$("togglePassword");if(!input)return;const showing=input.type==="text";input.type=showing?"password":"text";if(btn){btn.textContent=showing?"Mostrar":"Ocultar";btn.setAttribute("aria-label",showing?"Mostrar senha":"Ocultar senha");}}
-async function loadAuthenticatedDriver(){
+async async function loadAuthenticatedDriver(){
   const client=getAuthClient();if(!client)return false;
   const {data:{session}}=await client.auth.getSession();
   if(!session?.user)return false;
