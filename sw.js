@@ -1,4 +1,4 @@
-const CACHE = '22-drive-push-v10';
+const CACHE = '22-drive-push-v11';
 
 self.addEventListener('install', event => {
   event.waitUntil(self.skipWaiting());
