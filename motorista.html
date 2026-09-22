@@ -908,12 +908,12 @@ function renderTodayAcceptedRoutes(){
   const p=$("todayRoutesPanel"); if(!p)return;
   const today=startOfToday();
   const rows=requests().filter(r=>{
-    const status=r.status||"new";
+    const status=String(r.status||"new").toLowerCase();
     const d=reservationDateOnly(r);
     return ["accepted","confirmed"].includes(status) && d && d.getTime()===today.getTime();
   }).sort((a,b)=>{
-    const ta=String(a.confirmedTime||a.confirmed_time||a.time||a.horario||"23:59");
-    const tb=String(b.confirmedTime||b.confirmed_time||b.time||b.horario||"23:59");
+    const ta=String(a.confirmedTime||a.confirmed_time||a.time||a.horario||"23:59").slice(0,5);
+    const tb=String(b.confirmedTime||b.confirmed_time||b.time||b.horario||"23:59").slice(0,5);
     return ta.localeCompare(tb);
   });
   if($("todayRoutesCount"))$("todayRoutesCount").textContent=rows.length?String(rows.length):"";
