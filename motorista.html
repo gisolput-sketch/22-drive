@@ -6,337 +6,433 @@
 <meta name="theme-color" content="#111827">
 <title>22 DRIVE — Área do Motorista</title>
 <style>
-.login-logo{display:block;width:min(78%,310px);max-height:220px;object-fit:contain;margin:4px auto 18px}.login-brand{text-align:center}.login-brand .muted{margin-bottom:18px}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f3f4f6;color:#111827;font-family:Arial,sans-serif}.wrap{max-width:1000px;margin:auto;padding:18px}.top{position:relative;z-index:30;background:#111827;color:white;padding:12px 16px;border-radius:0 0 18px 18px}.topin{max-width:1000px;margin:auto;display:flex;justify-content:space-between;align-items:center}.brand{font-weight:800;font-size:20px}.brand small{display:block;font-size:12px;font-weight:400;opacity:.75}.card{background:white;border:1px solid #e5e7eb;border-radius:18px;padding:17px;margin:0 0 15px;box-shadow:0 6px 20px #11182712}h2{font-size:19px;margin:0 0 12px}.muted{color:#6b7280;font-size:13px}.grid{display:grid;grid-template-columns:320px 1fr;gap:15px}@media(max-width:800px){.grid{grid-template-columns:1fr}}input,select{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;font-size:15px}label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}.btn{border:0;border-radius:10px;padding:12px 15px;font-weight:800;cursor:pointer}.primary{background:#111827;color:#fff}.green{background:#16a34a;color:#fff}.red{background:#dc2626;color:#fff}.gray{background:#e5e7eb}.btnblock{width:100%;margin-top:10px}.hidden{display:none!important}.notice{padding:12px;border-radius:10px;margin-bottom:12px;background:#dbeafe;color:#1e40af}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{padding:12px;text-align:center;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px}.stat b{display:block;font-size:22px}.request{border:1px solid #e5e7eb;border-radius:15px;padding:15px;margin-bottom:12px}.head{display:flex;justify-content:space-between;gap:8px}.badge{padding:5px 9px;border-radius:99px;font-size:11px;font-weight:800}.new{background:#dbeafe;color:#1e40af}.accepted{background:#fef3c7;color:#92400e}.confirmed{background:#dcfce7;color:#166534}.cancelled{background:#fee2e2;color:#991b1b}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions .btn{flex:1;min-width:120px}.empty{text-align:center;padding:30px;color:#6b7280;border:1px dashed #d1d5db;border-radius:13px}.status{padding:13px;border:1px solid #e5e7eb;border-radius:12px;background:#fafafa}.modal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:15px;z-index:10}.modal.on{display:flex}.box{background:white;border-radius:17px;padding:18px;width:100%;max-width:450px}.row{display:flex;gap:8px}.row>*{flex:1}.chart-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.chart-tabs .btn{flex:1;min-width:90px}.chart-tabs .active{background:#111827;color:#fff}.chart-wrap{overflow-x:auto;padding:10px 4px 4px}.chart{display:flex;align-items:flex-end;gap:8px;min-height:260px;border-bottom:1px solid #d1d5db;padding:20px 8px 0}.bar-col{min-width:42px;flex:1;height:230px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}.bar-value{font-size:10px;font-weight:800;white-space:nowrap}.bar{width:min(34px,75%);min-height:3px;border-radius:7px 7px 2px 2px;background:#111827}.bar-label{font-size:10px;color:#6b7280;white-space:nowrap}.gain-modal .box{max-width:900px;max-height:90vh;overflow:auto}.gain-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.gain-summary .stat{padding:10px}.gain-summary .stat b{font-size:18px}@media(max-width:600px){.gain-summary{grid-template-columns:repeat(2,1fr)}.chart{min-width:650px}}
-.driver-mobile-map{display:none}.mobile-sheet{display:none}
-@media(max-width:800px){
- body{background:#e5e7eb}.top{position:fixed;top:0;left:0;right:0;z-index:20;border-radius:0;padding:10px 14px;background:#111827dd;backdrop-filter:blur(10px)}.topin{max-width:none}.brand{font-size:17px}.brand small{display:none}.top .gray{padding:8px 11px}
- #app{min-height:100vh}.driver-mobile-map{display:block;position:fixed;inset:0;z-index:0;background:linear-gradient(#dbeafe,#f8fafc)}#driverMap{position:absolute;inset:0}
- .wrap{max-width:none;padding:0}.grid{display:block;position:relative;z-index:2;padding-top:calc(100vh - 310px)}
- #notificationCard{display:none}.grid>aside{display:none}.grid>section.card{margin:0;border:0;border-radius:26px 26px 0 0;padding:18px 14px 100px;min-height:310px;box-shadow:0 -8px 30px #0002;background:#fff}
- #requests{max-height:55vh;overflow-y:auto}.grid>section.card>h2{font-size:18px}.grid>section.card>p{margin-top:-5px}
- .mobile-sheet{display:none!important}
- .mobile-sheet .sheet-bar{width:42px;height:5px;background:#9ca3af;border-radius:99px;margin:8px auto}
- .mobile-actions{display:flex;gap:8px;padding:0 12px 12px;pointer-events:auto}.mobile-actions .btn{flex:1;border-radius:14px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 4px 15px #0001}
- .mobile-actions .active{background:#111827;color:#fff}
- .request{border-radius:18px;box-shadow:0 3px 12px #0000000d}.actions .btn{min-width:0}
+*{box-sizing:border-box}
+:root{
+  --bg:#000;
+  --panel:#050b14;
+  --panel-2:#07111f;
+  --gold:#ffc700;
+  --gold-soft:#f5b000;
+  --green:#00c853;
+  --red:#ff3b30;
+  --white:#fff;
+  --muted:#8e8e93;
+  --line:#2a3444;
 }
-.driver-map-shell{display:none}.driver-map{position:absolute;inset:0;background:#e5e7eb}.map-top-card{position:absolute;top:72px;left:14px;right:14px;z-index:20;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 5px 20px #0002;display:flex;align-items:center;gap:10px}.map-top-card small{display:block;color:#6b7280;margin-top:3px}.map-status-dot{width:12px;height:12px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 5px #dcfce7}.map-location-btn{position:absolute;right:14px;bottom:31%;z-index:21;width:46px;height:46px;border:0;border-radius:50%;background:#fff;box-shadow:0 5px 18px #0003;font-size:25px}.driver-sheet{position:absolute;z-index:25;left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;box-shadow:0 -8px 28px #0002;padding:8px 14px max(18px,env(safe-area-inset-bottom));max-height:58vh;overflow:auto;transition:max-height .25s ease}.driver-sheet.expanded{max-height:88vh}.sheet-handle{width:44px;height:5px;background:#d1d5db;border-radius:99px;margin:2px auto 10px}.sheet-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}.sheet-header b{font-size:17px}.sheet-header small{display:block;color:#6b7280;margin-top:3px}.sheet-header select{width:auto;padding:8px;border-radius:12px}.sheet-notice{background:#eff6ff;color:#1e40af;border-radius:12px;padding:10px;margin:8px 0;font-size:13px}.mobile-ride-card{border:0;border-top:1px solid #e5e7eb;padding:14px 0}.mobile-ride-card .ride-price{font-size:24px;font-weight:900}.mobile-ride-card .ride-route{line-height:1.5;margin:9px 0;color:#374151}.mobile-ride-card .ride-actions{display:flex;gap:8px}.mobile-ride-card .ride-actions .btn{flex:1;min-height:48px;font-size:15px}.leaflet-control-attribution{font-size:8px}@media(max-width:800px){body{background:#000}.top{position:fixed;top:0;left:0;right:0;border-radius:0;background:#111827;padding:10px 14px}.topin{height:42px}.top .btn{padding:8px 12px}.wrap{padding:0;max-width:none}.driver-map-shell{display:none;position:fixed;inset:0;z-index:1}.driver-map-shell~#login{position:fixed;z-index:100;left:14px;right:14px;top:80px;margin:0;max-width:none}.driver-map-shell~#login.hidden{display:none!important}.driver-map-shell .leaflet-container{height:100%;width:100%}body:has(#app:not(.hidden)) .driver-map-shell{display:block}body:has(#app:not(.hidden)) #login{display:none!important}body:has(#app.hidden) .top .btn{display:none!important}.card{border-radius:16px}.request{background:#f9fafb}.gain-modal{z-index:100}.modal{z-index:100}.top .brand{font-size:17px}.top .brand small{display:none}}.driver-map-shell{display:none}
-.uberish-top{position:absolute;top:10px;left:10px;right:10px;z-index:40;display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid #f4c400;border-radius:28px;background:linear-gradient(110deg,#050505 0%,#111 52%,#050505 100%);box-shadow:0 8px 30px #0008,0 0 18px #f4c40033;color:#fff}.uberish-top:after{content:"";position:absolute;left:8%;right:8%;bottom:-1px;height:2px;background:linear-gradient(90deg,transparent,#ffc400,transparent);border-radius:99px}.uberish-top .driver-logo{width:min(42vw,250px);height:54px;object-fit:contain;object-position:left center;flex:1 1 auto;position:relative;z-index:1}
-.uberish-brand{font-size:20px;letter-spacing:-.4px;flex:1;display:flex;align-items:center;min-width:0}.daily-balance{min-width:142px;display:grid;grid-template-columns:1fr 34px;grid-template-rows:auto auto;align-items:center;gap:1px 6px;padding:7px 8px 7px 12px;border:1px solid #b58a00;border-radius:22px;background:#071c1a;position:relative;z-index:2}.daily-balance-label{font-size:11px;color:#cbd5e1;line-height:1.1}.daily-balance strong{font-size:18px;color:#18d978;line-height:1.1}.balance-eye{grid-row:1 / span 2;grid-column:2;width:32px;height:32px;border:0;border-radius:50%;background:#0b1625;color:#fff;font-size:17px;cursor:pointer}.daily-balance.is-hidden strong{color:#fff;letter-spacing:3px;font-size:17px}.daily-balance.is-hidden .daily-balance-label{opacity:.9}.uberish-status{width:auto;min-width:145px;padding:10px 13px!important;border-radius:24px!important;background:#071c1a;color:#fff;border:1px solid #b58a00!important;font-weight:800;position:relative;z-index:2}.uberish-menu{width:45px;height:45px;border:1px solid #f4c400;border-radius:50%;background:#0a0a0a;color:#fff;font-size:24px;position:relative;z-index:2}.top-menu-panel{position:absolute;top:58px;right:8px;display:none;flex-direction:column;gap:6px;min-width:170px;padding:8px;background:#07111f;border:1px solid #f4c400;border-radius:16px;box-shadow:0 12px 30px #0009;z-index:100}.top-menu-panel.open{display:flex}.top-menu-panel button{border:1px solid #29415e;background:#0d1b2c;color:#fff;border-radius:12px;padding:11px 13px;text-align:left;font-weight:800;font-size:14px}.uberish-map-status{position:absolute;top:86px;left:16px;z-index:35;display:none}.uberish-map-status small{display:block;color:#cbd5e1;margin-top:2px}.uberish-location{position:absolute;right:16px;bottom:44%;z-index:35;width:50px;height:50px;border:1px solid #334155;border-radius:50%;background:#07111f;color:#fff;font-size:28px;box-shadow:0 5px 20px #0005}.driver-map{position:absolute;inset:0;background:#dbeafe}.driver-map .leaflet-tile-pane{filter:brightness(.62) contrast(1.15) saturate(.9)}.driver-sheet{position:absolute;z-index:45;left:0;right:0;bottom:0;background:#07111f;color:#fff;border:1px solid #26364c;border-bottom:0;border-radius:28px 28px 0 0;box-shadow:0 -10px 35px #0007;padding:8px 16px max(16px,env(safe-area-inset-bottom));max-height:48vh;overflow:auto;transition:max-height .25s ease}.driver-sheet.expanded{max-height:88vh}.sheet-handle{width:44px;height:5px;background:#94a3b8;border-radius:99px;margin:2px auto 12px}.uberish-sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}.uberish-sheet-head b{font-size:18px}.uberish-sheet-head small{display:block;color:#94a3b8;margin-top:3px}.sheet-count{color:#94a3b8;font-size:12px}.sheet-notice{background:#10243d;color:#bfdbfe;border-radius:12px;padding:10px;margin:8px 0;font-size:13px}.mobile-ride-card{padding:12px 0 4px}.mobile-ride-card .ride-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.mobile-ride-card .ride-badge{display:inline-flex;align-items:center;gap:7px;background:#fbbf24;color:#111827;padding:8px 13px;border-radius:18px;font-weight:900}.mobile-ride-card .ride-price{font-size:34px;font-weight:900;letter-spacing:-1px;margin:8px 0 0}.mobile-ride-card .ride-meta{display:flex;justify-content:space-between;gap:10px;color:#cbd5e1;font-size:14px;margin:3px 0 13px}.mobile-ride-card .ride-route{border-top:1px solid #223247;padding-top:12px;line-height:1.42;color:#fff}.mobile-ride-card .route-line{display:grid;grid-template-columns:25px 1fr;gap:7px;margin-bottom:11px}.mobile-ride-card .route-dot{width:15px;height:15px;border:4px solid #10b981;border-radius:50%;margin:3px 0 0 2px}.mobile-ride-card .route-pin{font-size:20px;color:#fb7185}.mobile-ride-card .route-label{display:block;color:#34d399;font-size:13px;font-weight:800}.mobile-ride-card .route-dest{color:#fb7185}.mobile-ride-card .route-address{font-weight:800}.mobile-ride-card .ride-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.mobile-ride-card .ride-actions .btn{min-height:54px;border-radius:18px!important;font-size:17px;border:1px solid #334155}.mobile-ride-card .ride-actions .green{background:#10d981;color:#04120d}.mobile-ride-card .ride-actions .red{background:#17263b;color:#fff}.mobile-ride-card .ride-secondary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.mobile-ride-card .ride-secondary .btn{min-height:48px;border-radius:16px!important;background:#07111f;color:#fff;border:1px solid #334155;font-size:12px;padding:8px}.mobile-empty{padding:24px 5px;text-align:center;color:#94a3b8}
-@media(max-width:800px){
- body{background:#000}.top{position:fixed;top:0;left:0;right:0;z-index:50;border-radius:0;background:#111827;padding:10px 14px}.topin{height:42px}.top .brand{font-size:17px}.top .brand small{display:none}.top .btn{padding:8px 12px}.wrap{padding:0;max-width:none}
- .driver-map-shell{display:none;position:fixed;inset:0;z-index:1;background:#06111f}.driver-map-shell .driver-map{position:absolute!important;top:72px!important;left:10px!important;right:10px!important;bottom:auto!important;height:calc(50vh - 8px)!important;max-height:none!important;border-radius:24px!important;overflow:hidden;border:1px solid #263b55;box-shadow:0 8px 30px #0008}.driver-map-shell .leaflet-container{height:100%;width:100%}
- body:has(#app:not(.hidden)) .driver-map-shell{display:block}body:has(#app:not(.hidden)) #login{display:none!important}body:has(#app.hidden) .top .btn{display:none!important}
- .driver-sheet{max-height:57vh!important;min-height:43vh;border-radius:30px 30px 0 0;padding:10px 22px max(18px,env(safe-area-inset-bottom));background:linear-gradient(180deg,#06111f,#071827);border:1px solid #263b55;color:#fff}.uberish-top{top:10px;left:8px;right:8px;padding:10px 12px;border-radius:26px}.uberish-top .driver-logo{width:min(31vw,180px);height:52px}.uberish-brand{font-size:20px}.daily-balance{min-width:112px;padding:6px 6px 6px 9px}.daily-balance-label{font-size:10px}.daily-balance strong{font-size:16px}.balance-eye{width:30px;height:30px;font-size:16px}.uberish-status{min-width:108px;font-size:13px}.uberish-menu{width:44px;height:44px;flex:none}
- .map-top-card{display:none}.uberish-map-status{display:none!important}.map-status-dot{width:12px;height:12px;border-radius:50%;background:#10b981;box-shadow:0 0 0 5px #064e3b}
- .uberish-location{bottom:calc(50vh - 8px);right:18px}
+html,body{
+  width:100%;
+  min-height:100%;
+  margin:0;
+  background:var(--bg);
+  color:var(--white);
+  font-family:Inter,Roboto,Arial,sans-serif;
 }
-.driver-sheet .uberish-sheet-head{padding:2px 0 12px}.driver-sheet .sheet-handle{background:#9aaed0}.driver-sheet .mobile-ride-card{background:transparent;border-top:1px solid #23354d;padding:16px 0 8px}.driver-sheet .mobile-empty{color:#94a3b8}.driver-sheet .mobile-ride-card .ride-badge{background:#ffc62a;color:#111}.driver-sheet .mobile-ride-card .ride-price{font-size:40px;color:#fff}.driver-sheet .mobile-ride-card .ride-meta{color:#b9c8e5}.driver-sheet .mobile-ride-card .ride-route{border-top:1px solid #263a54;color:#fff}.driver-sheet .mobile-ride-card .route-label{color:#4fe0a5}.driver-sheet .mobile-ride-card .route-dest{color:#ff7890}.driver-sheet .mobile-ride-card .ride-actions .green{background:#08d878;color:#04120d}.driver-sheet .mobile-ride-card .ride-actions .red{background:#243750;color:#fff}.driver-sheet .mobile-ride-card .ride-secondary .btn{background:#071525;border-color:#29415e;color:#fff}.scheduled-card{margin-top:12px;border:1px solid #f4c400;border-radius:18px;background:linear-gradient(110deg,#050505,#0b1420);box-shadow:0 0 18px #f4c40022;overflow:hidden}.scheduled-main{width:100%;display:flex;align-items:center;gap:12px;border:0;background:transparent;color:#fff;padding:14px 15px;text-align:left;cursor:pointer}.scheduled-icon{width:46px;height:46px;display:grid;place-items:center;border:1px solid #f4c400;border-radius:14px;color:#ffc400;font-size:24px;flex:none}.scheduled-main b{display:block;font-size:16px}.scheduled-main small{display:block;color:#9fb0c8;margin-top:3px}.scheduled-arrow{margin-left:auto;font-size:24px;color:#ffc400}.scheduled-panel{display:none;padding:0 14px 14px;border-top:1px solid #223247}.scheduled-panel.open{display:block}.scheduled-item{padding:12px 0;border-bottom:1px solid #223247}.scheduled-item:last-child{border-bottom:0}.scheduled-item b{font-size:14px}.scheduled-item small{display:block;color:#b9c8e5;margin-top:4px;line-height:1.45}.scheduled-empty{padding:14px 0;color:#94a3b8;font-size:13px}.ride-map-pin{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;border:3px solid #fff;box-shadow:0 4px 14px #0008}.ride-map-pin span{transform:rotate(45deg);font-size:16px}.ride-map-pin.pickup{background:#10d981}.ride-map-pin.dropoff{background:#ff3b4f}.ride-map-label{background:#07111f;color:#fff;border:1px solid #f4c400;border-radius:10px;padding:5px 8px;font-size:11px;font-weight:900;box-shadow:0 4px 14px #0008;white-space:nowrap}.ride-map-legend{position:absolute;left:12px;bottom:12px;z-index:500;display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid #29415e;border-radius:14px;background:#07111fe8;color:#fff;font-size:11px;font-weight:800}.ride-map-legend span{display:inline-flex;align-items:center;gap:4px}.ride-map-legend i{width:10px;height:10px;border-radius:50%;display:inline-block}.ride-map-legend .pickup-dot{background:#10d981}.ride-map-legend .dropoff-dot{background:#ff3b4f}.driver-map .leaflet-container{touch-action:pan-x pan-y!important}@media(max-width:800px){body:has(#app:not(.hidden)) #pwaInstall{display:none!important}#notificationCard,.grid{display:none!important}.mobile-sheet{display:none!important}.driver-sheet{max-height:45vh!important;min-height:0!important;padding:10px 16px max(18px,env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain}.driver-map-shell .driver-map{top:72px!important;height:calc(55vh - 72px)!important}.uberish-location{bottom:148px!important;right:18px!important}.top-menu-panel{top:58px!important}.driver-sheet .uberish-sheet-head{padding-bottom:8px}.mobile-ride-card .ride-secondary{display:none!important}.mobile-ride-card .ride-actions{margin-top:12px}.mobile-empty{display:none!important}}@media(max-width:800px){.uberish-top{z-index:1000!important;left:8px!important;right:8px!important;top:8px!important;gap:6px!important;padding:8px!important;min-height:66px!important}.uberish-top .driver-logo{width:74px!important;height:38px!important;flex:0 0 74px!important;object-fit:contain!important;object-position:left center!important}.uberish-brand{flex:0 0 74px!important;min-width:74px!important}.daily-balance{min-width:82px!important;width:82px!important;grid-template-columns:1fr 23px!important;padding:4px 4px 4px 6px!important;border-radius:16px!important}.daily-balance-label{font-size:8px!important}.daily-balance strong{font-size:13px!important}.balance-eye{width:23px!important;height:23px!important;font-size:13px!important}.uberish-status{min-width:91px!important;width:91px!important;padding:7px 5px!important;font-size:11px!important;border-radius:17px!important}.uberish-menu{width:38px!important;height:38px!important;font-size:20px!important;flex:0 0 38px!important}.top-menu-panel{z-index:1200!important;top:55px!important}.driver-map-shell .driver-map{top:88px!important;bottom:132px!important;height:auto!important;z-index:1!important}.driver-map-shell .leaflet-container{z-index:1!important}.driver-sheet{z-index:900!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;max-height:45vh!important;min-height:0!important;padding:0 10px max(10px,env(safe-area-inset-bottom))!important;overflow:visible!important}.driver-sheet .sheet-handle,.driver-sheet .uberish-sheet-head{display:none!important}.scheduled-card{margin:0!important}.mobile-ride-card{background:#06111f;border:1px solid #f4c400!important;border-radius:22px!important;padding:14px!important;margin-bottom:10px!important}/* Correção final do cartão de nova corrida no celular */
-@media(max-width:800px){
-  .driver-sheet{
-    z-index:900!important;
-    background:#06111f!important;
-    background-color:#06111f!important;
-    border:1px solid #f4c400!important;
-    border-bottom:0!important;
-    border-radius:26px 26px 0 0!important;
-    box-shadow:0 -12px 35px #000c!important;
-    max-height:58vh!important;
-    min-height:0!important;
-    padding:10px 10px max(14px,env(safe-area-inset-bottom))!important;
-    overflow-y:auto!important;
-    overflow-x:hidden!important;
-  }
-  .driver-sheet .mobile-ride-card{
-    display:block!important;
-    width:100%!important;
-    box-sizing:border-box!important;
-    background:#06111f!important;
-    background-color:#06111f!important;
-    color:#fff!important;
-    opacity:1!important;
-    border:2px solid #f4c400!important;
-    border-radius:22px!important;
-    box-shadow:0 8px 28px #000b!important;
-    padding:13px!important;
-    margin:0 0 10px!important;
-  }
-  .driver-sheet .mobile-ride-card .ride-top{min-height:38px}
-  .driver-sheet .mobile-ride-card .ride-badge{
-    padding:7px 11px!important;
-    font-size:14px!important;
-  }
-  .driver-sheet .mobile-ride-card .ride-price{
-    font-size:34px!important;
-    line-height:1.05!important;
-    margin:7px 0 4px!important;
-    color:#fff!important;
-  }
-  .driver-sheet .mobile-ride-card .ride-meta{
-    font-size:12px!important;
-    margin:3px 0 9px!important;
-  }
-  .driver-sheet .mobile-ride-card .ride-route{
-    padding-top:9px!important;
-    line-height:1.3!important;
-  }
-  .driver-sheet .mobile-ride-card .route-line{
-    grid-template-columns:22px 1fr!important;
-    gap:6px!important;
-    margin-bottom:8px!important;
-  }
-  .driver-sheet .mobile-ride-card .route-label{font-size:12px!important}
-  .driver-sheet .mobile-ride-card .route-address{
-    font-size:14px!important;
-    line-height:1.28!important;
-    display:-webkit-box!important;
-    -webkit-box-orient:vertical!important;
-    -webkit-line-clamp:3!important;
-    overflow:hidden!important;
-  }
-  .driver-sheet .mobile-ride-card .ride-actions{
-    display:grid!important;
-    grid-template-columns:1fr 1fr!important;
-    gap:8px!important;
-    margin-top:10px!important;
-    padding-top:10px!important;
-    border-top:1px solid #29415e!important;
-    position:sticky!important;
-    bottom:0!important;
-    z-index:10!important;
-    background:#06111f!important;
-  }
-  .driver-sheet .mobile-ride-card .ride-actions .btn{
-    display:flex!important;
-    align-items:center!important;
-    justify-content:center!important;
-    visibility:visible!important;
-    opacity:1!important;
-    min-height:50px!important;
-    height:50px!important;
-    border-radius:15px!important;
-    font-size:16px!important;
-    font-weight:900!important;
-    cursor:pointer!important;
-  }
-  .driver-sheet .mobile-ride-card .ride-actions .green{
-    background:#08d878!important;
-    color:#04120d!important;
-    border:1px solid #52f0ad!important;
-  }
-  .driver-sheet .mobile-ride-card .ride-actions .red{
-    background:#243750!important;
-    color:#fff!important;
-    border:1px solid #f4c400!important;
-  }
-  .driver-sheet .scheduled-card{margin-top:8px!important}
-  .driver-sheet .sheet-handle,
-  .driver-sheet .uberish-sheet-head{display:none!important}
+body{overflow-x:hidden}
+.wrap{width:100%;max-width:none;margin:0;padding:0;background:var(--bg)}
+#driverMapShell{
+  width:100%;
+  min-height:100vh;
+  background:var(--bg);
+  padding-top:92px;
+  padding-bottom:190px;
 }
-.map-daily-balance{position:absolute!important;top:98px;right:18px;z-index:1100!important;display:grid;grid-template-columns:1fr 28px;align-items:center;gap:5px;min-width:112px;width:112px;padding:7px 6px 7px 9px;background:linear-gradient(135deg,#06111f,#0b1b2b)!important;border:1px solid #f4c400!important;border-radius:18px!important;box-shadow:0 5px 18px #000b!important;color:#fff!important}.map-daily-balance .daily-balance-label{grid-column:1/2;font-size:9px!important;line-height:1.05;color:#d7e2ef}.map-daily-balance strong{grid-column:1/2;font-size:15px!important;line-height:1.1;color:#08d878!important}.map-daily-balance .balance-eye{grid-column:2;grid-row:1/3;width:28px!important;height:28px!important;font-size:15px!important}.map-daily-balance.is-hidden strong{color:#fff!important;letter-spacing:3px}.map-daily-balance.is-hidden{background:#071525!important}
-@media(max-width:800px){.map-daily-balance{top:98px!important;right:18px!important;min-width:104px!important;width:104px!important;grid-template-columns:1fr 25px!important;padding:6px 5px 6px 8px!important;border-radius:17px!important}.map-daily-balance .daily-balance-label{font-size:8px!important}.map-daily-balance strong{font-size:13px!important}.map-daily-balance .balance-eye{width:25px!important;height:25px!important;font-size:13px!important}}
-.top-menu-panel.open{display:flex!important}<style id="scheduled-menu-modal-style">
-.scheduled-menu-modal{display:none;position:fixed;inset:0;z-index:5000;background:#000b;align-items:center;justify-content:center;padding:18px}
-.scheduled-menu-modal.open{display:flex!important}
-.scheduled-menu-box{width:min(520px,94vw);max-height:80vh;overflow:auto;background:#06111f;color:#fff;border:2px solid #f4c400;border-radius:22px;box-shadow:0 20px 60px #000e;padding:16px}
-.scheduled-menu-title{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:18px;margin-bottom:12px}
-.scheduled-menu-title button{width:36px;height:36px;border-radius:50%;border:1px solid #f4c400;background:#17263b;color:#fff;font-size:17px}
-.scheduled-menu-list .scheduled-item{background:#071827!important;border:1px solid #29415e;border-radius:14px;padding:12px;margin-bottom:8px}
+.driver-topbar{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  width:100%;
+  min-height:78px;
+  padding:10px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  background:#050505;
+  border-bottom:1px solid var(--gold);
+  box-shadow:0 2px 18px #ffc70030;
+  z-index:100;
+}
+.driver-brand{
+  flex:1 1 0;
+  min-width:0;
+  display:flex;
+  align-items:center;
+}
+.driver-logo{
+  display:block;
+  width:min(100%,260px);
+  height:56px;
+  object-fit:contain;
+  object-position:left center;
+}
+.driver-status{
+  flex:0 0 auto;
+  width:180px;
+  min-height:50px;
+  padding:8px 14px;
+  border:1px solid var(--gold);
+  border-radius:28px;
+  background:#061b19;
+  color:#fff;
+  font-size:17px;
+  font-weight:800;
+  text-align:center;
+  outline:none;
+}
+.driver-menu-button{
+  flex:0 0 54px;
+  width:54px;
+  height:54px;
+  border:1px solid var(--gold);
+  border-radius:50%;
+  background:#050505;
+  color:#fff;
+  font-size:30px;
+  line-height:1;
+  cursor:pointer;
+}
+.top-menu-panel{
+  display:none;
+  position:fixed;
+  top:84px;
+  right:16px;
+  width:min(260px,calc(100vw - 32px));
+  padding:8px;
+  background:#050b14;
+  border:1px solid var(--gold);
+  border-radius:16px;
+  box-shadow:0 10px 30px #000b;
+}
+.top-menu-panel.open{display:grid;gap:6px}
+.top-menu-panel button{
+  width:100%;
+  padding:12px 14px;
+  border:1px solid #26364a;
+  border-radius:11px;
+  background:#07111f;
+  color:#fff;
+  text-align:left;
+  font-size:14px;
+}
+.driver-map{
+  position:relative;
+  width:100%;
+  height:calc(100vh - 92px - 190px);
+  min-height:360px;
+  background:#07111f;
+  border-bottom:1px solid var(--gold);
+  overflow:hidden;
+}
+.driver-map .leaflet-container{
+  width:100%;
+  height:100%;
+  background:#07111f;
+}
+.driver-map .leaflet-tile{filter:brightness(.78) saturate(.9)}
+.driver-map .leaflet-control-zoom{
+  margin:0 14px 76px 0;
+}
+.driver-map .leaflet-control-zoom a{
+  width:42px;
+  height:42px;
+  line-height:42px;
+  background:#050b14;
+  color:#fff;
+  border:1px solid var(--gold);
+  font-size:24px;
+}
+.driver-map .leaflet-control-zoom a:first-child{border-radius:16px 16px 0 0}
+.driver-map .leaflet-control-zoom a:last-child{border-top:0;border-radius:0 0 16px 16px}
+.driver-map .leaflet-control-attribution{
+  font-size:8px;
+  background:#050b14cc;
+  color:#9fb0c8;
+}
+.driver-location-button{
+  position:absolute;
+  right:14px;
+  bottom:16px;
+  width:54px;
+  height:54px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--gold);
+  border-radius:50%;
+  background:#050b14;
+  color:#fff;
+  font-size:30px;
+  cursor:pointer;
+}
+.driver-car-marker{background:transparent!important;border:0!important}
+.driver-car-marker span{
+  width:48px;
+  height:48px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#1696ff;
+  color:#fff;
+  font-size:24px;
+  border:3px solid #fff;
+  box-shadow:0 0 0 11px #72c8ff45,0 0 28px #1696ff99;
+}
+.driver-bottom-area{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  width:100%;
+  padding:12px 14px 14px;
+  background:var(--bg);
+}
+.driver-sheet{
+  width:100%;
+  max-width:900px;
+  margin:0 auto;
+}
+#mobileNotice,#mobileRequests{display:none}
+.today-routes-card{
+  width:100%;
+  padding:14px 16px;
+  background:var(--panel);
+  border:1px solid var(--gold);
+  border-radius:16px;
+  box-shadow:0 0 18px #ffc70020;
+}
+.today-routes-header{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+.today-routes-icon{
+  flex:0 0 48px;
+  width:48px;
+  height:48px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--gold);
+  border-radius:14px;
+  font-size:25px;
+}
+.today-routes-heading{
+  flex:1 1 auto;
+  min-width:0;
+}
+.today-routes-heading h2{
+  margin:0;
+  color:#fff;
+  font-size:20px;
+  line-height:1.15;
+}
+.today-routes-heading p{
+  margin:4px 0 0;
+  color:#9fb0c8;
+  font-size:13px;
+  line-height:1.25;
+}
+.today-routes-count{color:var(--gold);font-weight:800;font-size:13px}
+.today-routes-divider{
+  height:1px;
+  margin:13px 0 11px;
+  background:var(--line);
+}
+.today-routes-content{width:100%}
+.today-routes-empty{
+  width:100%;
+  min-height:28px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#aeb8c8;
+  font-size:14px;
+  line-height:1.3;
+}
+.today-routes-empty:empty:before{content:"🚗 Nenhuma rota aceita para hoje."}
+.scheduled-item{padding:9px 0;border-bottom:1px solid var(--line)}
+.scheduled-item:last-child{border-bottom:0}
+.scheduled-item b{display:block;color:#fff;font-size:13px}
+.scheduled-item small{display:block;margin-top:3px;color:#9fb0c8;font-size:12px;line-height:1.4}
+.scheduled-menu-modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  padding:90px 16px 20px;
+  background:#000a;
+}
+.scheduled-menu-modal.open{
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+}
+.scheduled-menu-box{
+  width:min(520px,100%);
+  max-height:80vh;
+  overflow:auto;
+  padding:16px;
+  background:#050b14;
+  border:1px solid var(--gold);
+  border-radius:16px;
+  box-shadow:0 15px 40px #000b;
+}
+.scheduled-menu-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+  color:#fff;
+}
+.scheduled-menu-title button{
+  width:36px;
+  height:36px;
+  border:1px solid var(--gold);
+  border-radius:50%;
+  background:#050505;
+  color:#fff;
+}
+.scheduled-empty{padding:12px 0;color:#9fb0c8;font-size:13px}
+#chargeModal .charge-box{
+  max-width:430px;background:#07111f;color:#fff;border:1px solid var(--gold);
+  border-radius:16px;padding:22px;box-shadow:0 15px 50px #0009;
+}
+#chargeModal .charge-title{font-size:22px;font-weight:900;margin-bottom:6px}
+#chargeModal .charge-sub{color:#b9c8e5;font-size:13px;margin-bottom:18px}
+#chargeModal .charge-method{border:1px solid #29415e;border-radius:14px;padding:14px;margin:10px 0;background:#0b1a2b}
+#chargeModal .charge-method b{display:block;color:var(--gold);font-size:14px}
+#chargeModal .charge-value{font-size:34px;font-weight:900;margin:8px 0 16px}
+#chargeModal .charge-close{width:100%;min-height:50px;border:0;border-radius:14px;background:var(--green);color:#04120d;font-weight:900;font-size:16px}
+@media(max-width:700px){
+  #driverMapShell{padding-top:86px;padding-bottom:174px}
+  .driver-topbar{min-height:74px;padding:8px 10px;gap:8px}
+  .driver-logo{width:min(100%,190px);height:48px}
+  .driver-status{width:142px;min-height:46px;padding:7px 8px;font-size:15px}
+  .driver-menu-button{flex-basis:50px;width:50px;height:50px;font-size:28px}
+  .driver-map{height:calc(100vh - 86px - 174px);min-height:320px}
+  .driver-map .leaflet-control-zoom{margin-right:10px;margin-bottom:72px}
+  .driver-map .leaflet-control-zoom a{width:40px;height:40px;line-height:40px}
+  .driver-location-button{right:10px;bottom:10px;width:50px;height:50px;font-size:28px}
+  .driver-bottom-area{padding:10px 10px 12px}
+  .today-routes-card{padding:12px 13px}
+  .today-routes-icon{width:42px;height:42px;flex-basis:42px;font-size:22px}
+  .today-routes-heading h2{font-size:17px}
+  .today-routes-heading p{font-size:12px}
+  .today-routes-empty{font-size:13px}
+}
+@media(max-width:430px){
+  .driver-topbar{gap:6px}
+  .driver-logo{width:min(100%,155px)}
+  .driver-status{width:126px;font-size:14px}
+  .driver-menu-button{flex-basis:48px;width:48px;height:48px}
+  .today-routes-heading h2{font-size:16px}
+}
+ 
+.login-card{max-width:440px;margin:25px auto;padding:20px;background:#050b14;border:1px solid var(--gold);border-radius:16px}
+.password-field{position:relative}
+.password-field .password-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%)}
+.login-error{margin-top:10px}
+.login-logo{display:block;width:min(78%,310px);max-height:220px;object-fit:contain;margin:4px auto 18px}
+.login-brand{text-align:center}
+.login-brand .muted{margin-bottom:18px}
+input,select{width:100%;padding:12px;border:1px solid #334155;border-radius:10px;font-size:15px}
+label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
+.card{background:#050b14;border:1px solid var(--gold);border-radius:16px;padding:17px;margin:0 0 15px}
+.btn{border:0;border-radius:12px;padding:12px 15px;font-weight:800;cursor:pointer}
+.btnblock{width:100%;margin-top:12px}
+.btn.primary{background:var(--green);color:#fff}
+.btn.gray{background:#1b2533;color:#fff}
+.signup-refined{text-align:center;margin-top:14px;color:#9fb0c8;font-size:13px}
+.signup-link{color:var(--gold)}
+.muted{color:var(--muted);font-size:13px}
+.hidden{display:none!important}
 </style></style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="apple-touch-icon" href="icon-192.svg">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style id="22drive-uiux-reference-layout">
-/* 22 DRIVE — mobile UI reconstruída conforme referência */
-@media (max-width:800px){
-  :root{
-    --bg:#000000;--panel:#050b14;--panel2:#07111f;--gold:#ffc700;--green:#00c853;
-    --red:#ff3b30;--muted:#8e8e93;--line:#243247;
-  }
-  html,body{background:var(--bg)!important;color:#fff!important;font-family:Inter,Roboto,Arial,sans-serif!important;margin:0!important;padding:0!important;overflow-x:hidden!important}
-  .wrap{width:100%!important;max-width:none!important;margin:0!important;padding:0 14px 28px!important;box-sizing:border-box!important;background:#000!important}
-  #driverMapShell{display:block!important;position:relative!important;width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:104px 0 0!important;box-sizing:border-box!important;background:#000!important;overflow:visible!important}
-  body:has(#app.hidden) #driverMapShell{display:none!important}
-  .uberish-top{
-    position:absolute!important;top:10px!important;left:0!important;right:0!important;width:100%!important;height:84px!important;
-    display:grid!important;grid-template-columns:minmax(0,1fr) 148px 58px!important;align-items:center!important;gap:8px!important;
-    padding:7px 10px!important;box-sizing:border-box!important;border:1px solid var(--gold)!important;border-radius:25px!important;
-    background:#050505!important;box-shadow:0 0 18px #ffc70035,0 7px 24px #000!important;z-index:1000!important;
-  }
-  .uberish-top:after{display:none!important}
-  .uberish-brand{min-width:0!important;display:flex!important;align-items:center!important}
-  .uberish-top .driver-logo{display:block!important;width:100%!important;max-width:205px!important;height:57px!important;object-fit:contain!important;object-position:left center!important}
-  .uberish-status{
-    width:148px!important;min-width:148px!important;height:50px!important;padding:7px 9px!important;margin:0!important;
-    border:1px solid #b58a00!important;border-radius:28px!important;background:#071c1a!important;color:#fff!important;
-    font-size:16px!important;font-weight:800!important;box-sizing:border-box!important;
-  }
-  .uberish-menu{width:54px!important;height:54px!important;border:1px solid var(--gold)!important;border-radius:50%!important;background:#050505!important;color:#fff!important;font-size:29px!important;line-height:1!important}
-  .top-menu-panel{z-index:6000!important}
-  .driver-map{
-    position:relative!important;inset:auto!important;width:100%!important;height:52vh!important;min-height:390px!important;max-height:560px!important;
-    margin:0!important;border:1px solid var(--gold)!important;border-radius:25px!important;overflow:hidden!important;
-    box-shadow:0 0 18px #ffc70025!important;background:#07111f!important;
-  }
-  .driver-map .leaflet-container{width:100%!important;height:100%!important;background:#07111f!important}
-  .driver-map .leaflet-tile{filter:saturate(.9) brightness(.82)!important}
-  .driver-map .leaflet-control-zoom{margin-right:12px!important;margin-bottom:12px!important}
-  .driver-map .leaflet-control-zoom a{
-    width:42px!important;height:42px!important;line-height:42px!important;font-size:25px!important;
-    background:#050b14!important;color:#fff!important;border:1px solid var(--gold)!important;
-  }
-  .driver-map .leaflet-control-zoom a:first-child{border-radius:18px 18px 0 0!important}
-  .driver-map .leaflet-control-zoom a:last-child{border-radius:0 0 18px 18px!important;border-top:0!important}
-  .driver-map .leaflet-control-attribution{font-size:7px!important;background:#050b14cc!important;color:#b9c8e5!important}
-  .driver-car-marker{background:transparent!important;border:0!important}
-  .driver-car-marker span{
-    width:48px;height:48px;display:grid;place-items:center;border-radius:50%;
-    background:#1696ff;color:#fff;font-size:25px;border:3px solid #fff;
-    box-shadow:0 0 0 11px #72c8ff45,0 0 30px #1696ff99;
-  }
-  .uberish-location{
-    width:52px!important;height:52px!important;right:12px!important;bottom:18px!important;
-    border:1px solid var(--gold)!important;border-radius:50%!important;background:#050b14!important;color:#fff!important;
-    box-shadow:0 0 15px #000!important;font-size:29px!important;z-index:700!important;
-  }
-  .uberish-map-status{display:none!important}
-  #driverContent{display:block!important;width:100%!important;margin:16px 0 0!important;padding:0!important}
-  #driverContent .driver-sheet{
-    position:relative!important;inset:auto!important;display:flex!important;flex-direction:column!important;
-    width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;
-    overflow:visible!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;
-  }
-  #driverContent .sheet-handle,#driverContent .uberish-sheet-head{display:none!important}
-  #mobileNotice{order:1!important;width:100%!important;margin:0 0 12px!important;padding:12px 14px!important;box-sizing:border-box!important;border:1px solid #b9c8e5!important;border-radius:16px!important;background:#dbeafe!important;color:#234a91!important;font-size:13px!important}
-  #mobileRequests{order:2!important;width:100%!important}
-  .mobile-ride-card{
-    width:100%!important;margin:0 0 14px!important;padding:16px 16px 15px!important;box-sizing:border-box!important;
-    border:1px solid var(--gold)!important;border-radius:16px!important;background:#050b14!important;color:#fff!important;
-    box-shadow:0 0 18px #ffc70022!important;
-  }
-  .mobile-ride-card .ride-top{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important}
-  .mobile-ride-card .ride-badge{
-    display:inline-flex!important;align-items:center!important;padding:7px 11px!important;border-radius:999px!important;
-    background:var(--gold)!important;color:#111!important;font-size:12px!important;font-weight:900!important;
-  }
-  .mobile-ride-card .ride-top>span:last-child{font-size:12px!important;color:#d4d8df!important}
-  .mobile-ride-card .ride-price{margin:10px 0 2px!important;font-size:34px!important;line-height:1!important;font-weight:900!important;color:var(--gold)!important}
-  .mobile-ride-card .ride-passenger{display:flex!important;gap:7px!important;align-items:center!important;margin:7px 0!important}
-  .mobile-ride-card .passenger-label{font-size:12px!important;color:var(--muted)!important}
-  .mobile-ride-card .ride-passenger strong{font-size:14px!important;color:#fff!important}
-  .mobile-ride-card .ride-meta{display:flex!important;justify-content:space-between!important;gap:8px!important;padding:9px 0!important;border-bottom:1px solid var(--line)!important;color:#d9dee7!important;font-size:13px!important}
-  .mobile-ride-card .ride-route{margin:13px 0!important;color:#fff!important}
-  .mobile-ride-card .route-line{position:relative!important;display:flex!important;gap:11px!important;min-height:57px!important}
-  .mobile-ride-card .route-line:first-child:after{
-    content:"";position:absolute;left:8px;top:20px;bottom:0;width:2px;background:#596273!important;
-  }
-  .mobile-ride-card .route-dot,.mobile-ride-card .route-pin{
-    position:relative!important;z-index:2;flex:none!important;width:18px!important;height:18px!important;display:grid!important;place-items:center!important;
-    border-radius:50%!important;background:var(--green)!important;border:3px solid #06130c!important;box-shadow:0 0 0 2px var(--green)!important;font-size:0!important;margin-top:2px!important;
-  }
-  .mobile-ride-card .route-pin{background:var(--red)!important;box-shadow:0 0 0 2px var(--red)!important;border-radius:50% 50% 50% 0!important;transform:rotate(-45deg)!important}
-  .mobile-ride-card .route-pin:after{content:"";width:6px;height:6px;border-radius:50%;background:#fff;transform:rotate(45deg)!important}
-  .mobile-ride-card .route-label{display:block!important;color:var(--green)!important;font-size:13px!important;font-weight:800!important}
-  .mobile-ride-card .route-label.route-dest{color:var(--red)!important}
-  .mobile-ride-card .route-address{margin-top:2px!important;font-size:15px!important;font-weight:800!important;color:#fff!important;line-height:1.25!important}
-  .mobile-ride-card .ride-actions{display:flex!important;gap:9px!important;margin-top:10px!important}
-  .mobile-ride-card .ride-actions .btn{flex:1!important;min-height:50px!important;border-radius:16px!important;font-size:15px!important;font-weight:900!important}
-  .mobile-ride-card .ride-actions .btn.green{background:var(--green)!important;border:1px solid var(--gold)!important;color:#fff!important}
-  .mobile-ride-card .ride-actions .btn.red{background:#050b14!important;border:1px solid var(--gold)!important;color:#fff!important}
-  #todayRoutesCard{
-    order:3!important;position:relative!important;inset:auto!important;width:100%!important;height:auto!important;margin:4px 0 14px!important;padding:0!important;
-    box-sizing:border-box!important;border:1px solid var(--gold)!important;border-radius:16px!important;background:#050b14!important;
-    box-shadow:0 0 18px #ffc70022!important;overflow:hidden!important;
-  }
-  #todayRoutesCard .today-routes-head{display:flex!important;align-items:center!important;gap:11px!important;padding:13px 14px!important}
-  #todayRoutesCard .scheduled-icon{width:43px!important;height:43px!important;display:grid!important;place-items:center!important;border:1px solid var(--gold)!important;border-radius:13px!important;font-size:22px!important}
-  #todayRoutesCard .today-routes-head b{font-size:16px!important;color:#fff!important}
-  #todayRoutesCard .today-routes-head small{display:block!important;margin-top:2px!important;color:#9fb0c8!important;font-size:12px!important}
-  #todayRoutesPanel{width:100%!important;padding:0 13px 12px!important;box-sizing:border-box!important}
-  #todayRoutesCard .scheduled-item{padding:10px 0!important;font-size:12px!important}
-  #todayRoutesCard .scheduled-item b{font-size:13px!important}
-  #todayRoutesCard .scheduled-item small{font-size:11px!important}
-  .scheduled-footer-card{
-    order:4!important;display:flex!important;align-items:center!important;gap:12px!important;width:100%!important;min-height:74px!important;
-    margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1px solid var(--gold)!important;border-radius:16px!important;
-    background:#050b14!important;box-shadow:0 0 18px #ffc70022!important;cursor:pointer!important;
-  }
-  .scheduled-footer-icon{width:44px;height:44px;display:grid;place-items:center;flex:none;border:1px solid var(--gold);border-radius:13px;color:var(--gold);font-size:29px;font-weight:700}
-  .scheduled-footer-copy{min-width:0;flex:1}
-  .scheduled-footer-copy b{display:block;font-size:16px;color:#fff}
-  .scheduled-footer-copy small{display:block;margin-top:3px;font-size:12px;color:#9fb0c8}
-  .scheduled-footer-arrow{width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--gold);border-radius:50%;color:var(--gold);font-size:29px;line-height:1}
-  #notificationCard,.grid{display:none!important}
-}
-</style></head>
+</head>
 <body>
 
 <div class="driver-mobile-map" aria-hidden="true"></div>
 <main class="wrap">
-<section id="driverMapShell" class="driver-map-shell">
-  <div id="driverMap" class="driver-map"></div>
-  <div class="uberish-top">
-    <div class="uberish-brand"><img class="driver-logo" src="./logo-driver-horizontal.svg" alt="22 DRIVE — Sua viagem, nossa prioridade"></div>
-    <select id="statusMobile" class="uberish-status" onchange="changeStatusFromMobile()">
+<section id="driverMapShell" class="driver-map-shell" aria-label="Área do Motorista">
+  <header class="driver-topbar">
+    <div class="driver-brand">
+      <img class="driver-logo" src="./logo-driver-horizontal.svg" alt="22 DRIVE — Sua viagem, nossa prioridade">
+    </div>
+
+    <select id="statusMobile" class="driver-status" aria-label="Status do motorista" onchange="changeStatusFromMobile()">
       <option value="available">🟢 Disponível</option>
       <option value="busy">🟠 Trabalhando</option>
       <option value="offline">⚫ Indisponível</option>
     </select>
-    <button class="uberish-menu" type="button" aria-label="Abrir menu" onclick="toggleTopMenu()">☰</button><div id="topMenuPanel" class="top-menu-panel"><button type="button" onclick="openScheduledFromMenu();closeTopMenu()">📅 Viagens agendadas</button><button type="button" onclick="openReviewsFromMenu();closeTopMenu()">⭐ Avaliações</button><button type="button" onclick="openGains();closeTopMenu()">💰 Ganhos</button><button type="button" onclick="logout()">🚪 Sair</button></div>
+
+    <button class="driver-menu-button" type="button" aria-label="Abrir menu" onclick="toggleTopMenu()">☰</button>
+
+    <div id="topMenuPanel" class="top-menu-panel">
+      <button type="button" onclick="openScheduledFromMenu();closeTopMenu()">📅 Viagens agendadas</button>
+      <button type="button" onclick="openReviewsFromMenu();closeTopMenu()">⭐ Avaliações</button>
+      <button type="button" onclick="openGains();closeTopMenu()">💰 Ganhos</button>
+      <button type="button" onclick="logout()">🚪 Sair</button>
+    </div>
+  </header>
+
+  <div id="driverMap" class="driver-map" aria-label="Mapa da área do motorista">
+    <button class="driver-location-button" type="button" onclick="centerDriverLocation()" aria-label="Centralizar localização">⌖</button>
+  </div>
+
+  <div id="driverContent" class="driver-bottom-area">
+    <div class="driver-sheet" id="driverSheet">
+      <div id="mobileNotice" class="sheet-notice hidden"></div>
+      <div id="mobileRequests"></div>
+
+      <section class="today-routes-card" id="todayRoutesCard" aria-labelledby="todayRoutesTitle">
+        <div class="today-routes-header">
+          <div class="today-routes-icon" aria-hidden="true">🚗</div>
+          <div class="today-routes-heading">
+            <h2 id="todayRoutesTitle">Rotas aceitas de hoje</h2>
+            <p>Viagens confirmadas para hoje</p>
+          </div>
+          <span class="today-routes-count" id="todayRoutesCount"></span>
+        </div>
+
+        <div class="today-routes-divider"></div>
+
+        <div class="today-routes-content">
+          <div class="today-routes-content-inner" id="todayRoutesPanel"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
   <div id="scheduledMenuModal" class="scheduled-menu-modal" aria-hidden="true">
     <div class="scheduled-menu-box">
       <div class="scheduled-menu-title"><b>📅 Viagens agendadas</b><button type="button" onclick="closeScheduledFromMenu()">✕</button></div>
       <div id="scheduledMenuPanel" class="scheduled-menu-list"></div>
     </div>
   </div>
+
   <div id="reviewsMenuModal" class="scheduled-menu-modal" aria-hidden="true">
     <div class="scheduled-menu-box">
       <div class="scheduled-menu-title"><b>⭐ Avaliações dos passageiros</b><button type="button" onclick="closeReviewsFromMenu()">✕</button></div>
       <div id="reviewsMenuPanel" class="scheduled-menu-list"></div>
     </div>
   </div>
-  <div class="uberish-map-status">
-    <span class="map-status-dot"></span>
-    <div><b id="mapStatusTitle">Você está disponível</b><small id="mapStatusText">Aguardando novas viagens</small></div>
-  </div>
-  <button class="uberish-location" type="button" onclick="centerDriverLocation()">⌖</button>
-
-<div id="driverContent">  <div class="driver-sheet" id="driverSheet">
-    <div class="sheet-handle" onclick="toggleDriverSheet()"></div>
-    <div class="uberish-sheet-head">
-      <div><b id="sheetTitle">22 DRIVE</b><small id="sheetDriverName"></small></div>
-      <span id="sheetCount" class="sheet-count"></span>
-    </div>
-    <div id="mobileNotice" class="sheet-notice hidden"></div>
-    <div id="mobileRequests"></div>
-    <div class="scheduled-card today-routes-card" id="todayRoutesCard">
-      <div class="scheduled-main today-routes-head">
-        <span class="scheduled-icon">🚗</span>
-        <span><b>Rotas aceitas de hoje</b><small>Viagens confirmadas para hoje</small></span>
-        <span class="scheduled-count" id="todayRoutesCount"></span>
-      </div>
-      <div class="scheduled-panel open" id="todayRoutesPanel"></div>
-    </div>
-    <div id="scheduledFooterCard" class="scheduled-footer-card" role="button" tabindex="0" onclick="openScheduledFromMenu()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openScheduledFromMenu();}">
-  <div class="scheduled-footer-icon">▦</div>
-  <div class="scheduled-footer-copy"><b>Viagens agendadas</b><small>Confira suas viagens futuras</small></div>
-  <span class="scheduled-footer-arrow">›</span>
-</div>
-  </div></div>
-<section id="login" class="card" style="max-width:440px;margin:25px auto">
+</section>
+<section id="login" class="card login-card">
 <div class="login-brand"><img class="login-logo" src="./logo-login.svg" alt="22 DRIVE — Sua viagem, nossa prioridade"><p class="muted">Área do Motorista</p></div>
 <form id="loginForm" autocomplete="on" onsubmit="return false;">
 <label>E-mail</label><input id="loginEmail" name="username" type="email" autocomplete="username" placeholder="seuemail@exemplo.com" required>
 <label>Senha</label>
-<div style="position:relative">
-<input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required style="padding-right:72px">
+<div class="password-field">
+<input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required>
 <button type="button" id="togglePassword" class="password-toggle" aria-label="Mostrar senha" onclick="toggleLoginPassword();return false;">Mostrar</button>
 </div>
 <button class="btn primary btnblock" id="loginButton" type="button" onclick="login();return false;">Entrar</button>
 </form>
-<div id="loginError" class="muted" style="margin-top:10px"></div>
+<div id="loginError" class="muted login-error"></div>
 <button class="btn gray btnblock" type="button" onclick="forgotPassword()">🔑 Esqueci minha senha</button>
 <div class="signup-refined">Ainda não tem acesso? <a href="./cadastro.html" id="signupLink" class="signup-link">Criar login</a></div>
 </section>
@@ -1078,7 +1174,7 @@ function renderTodayAcceptedRoutes(){
   if($("todayRoutesCount"))$("todayRoutesCount").textContent=rows.length?String(rows.length):"";
   if(!rows.length){
     stopPickupArrivalWatch();
-    p.innerHTML='<div class="scheduled-empty">🚗 Nenhuma rota aceita para hoje.</div>';
+    p.innerHTML="<div class=\"today-routes-empty\">🚗 Nenhuma rota aceita para hoje.</div>";
     return;
   }
   p.innerHTML=rows.map(r=>{
@@ -1352,15 +1448,7 @@ let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;const b=document.getElementById("pwaInstall");if(b)b.style.display="block";});
 async function install22Drive(){if(!deferredInstallPrompt){alert("No Android, abra o menu do navegador e escolha 'Instalar aplicativo' ou 'Adicionar à tela inicial'.");return;}deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;const b=document.getElementById("pwaInstall");if(b)b.style.display="none";}
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));}
-</script><style>
-#chargeModal .charge-box{max-width:430px;background:#07111f;color:#fff;border:1px solid #f4c400;border-radius:24px;padding:22px;box-shadow:0 15px 50px #0009}
-#chargeModal .charge-title{font-size:22px;font-weight:900;margin-bottom:6px}
-#chargeModal .charge-sub{color:#b9c8e5;font-size:13px;margin-bottom:18px}
-#chargeModal .charge-method{border:1px solid #29415e;border-radius:16px;padding:14px;margin:10px 0;background:#0b1a2b}
-#chargeModal .charge-method b{display:block;color:#ffc400;font-size:14px}
-#chargeModal .charge-value{font-size:38px;font-weight:900;margin:8px 0 16px}
-#chargeModal .charge-close{width:100%;min-height:50px;border:0;border-radius:16px;background:#08d878;color:#04120d;font-weight:900;font-size:16px}
-</style><div id="chargeModal" class="modal" aria-hidden="true">
+</script><div id="chargeModal" class="modal" aria-hidden="true">
   <div class="charge-box">
     <div class="charge-title">💳 Cobrança da viagem</div>
     <div id="chargePassenger" class="charge-sub"></div>
