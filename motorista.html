@@ -31,7 +31,7 @@
  .map-top-card{display:none}.uberish-map-status{display:none!important}.map-status-dot{width:12px;height:12px;border-radius:50%;background:#10b981;box-shadow:0 0 0 5px #064e3b}
  .uberish-location{bottom:calc(50vh - 8px);right:18px}
 }
-.driver-sheet .uberish-sheet-head{padding:2px 0 12px}.driver-sheet .sheet-handle{background:#9aaed0}.driver-sheet .mobile-ride-card{background:transparent;border-top:1px solid #23354d;padding:16px 0 8px}.driver-sheet .mobile-empty{color:#94a3b8}.driver-sheet .mobile-ride-card .ride-badge{background:#ffc62a;color:#111}.driver-sheet .mobile-ride-card .ride-price{font-size:40px;color:#fff}.driver-sheet .mobile-ride-card .ride-meta{color:#b9c8e5}.driver-sheet .mobile-ride-card .ride-route{border-top:1px solid #263a54;color:#fff}.driver-sheet .mobile-ride-card .route-label{color:#4fe0a5}.driver-sheet .mobile-ride-card .route-dest{color:#ff7890}.driver-sheet .mobile-ride-card .ride-actions .green{background:#08d878;color:#04120d}.driver-sheet .mobile-ride-card .ride-actions .red{background:#243750;color:#fff}.driver-sheet .mobile-ride-card .ride-secondary .btn{background:#071525;border-color:#29415e;color:#fff}</style>
+.driver-sheet .uberish-sheet-head{padding:2px 0 12px}.driver-sheet .sheet-handle{background:#9aaed0}.driver-sheet .mobile-ride-card{background:transparent;border-top:1px solid #23354d;padding:16px 0 8px}.driver-sheet .mobile-empty{color:#94a3b8}.driver-sheet .mobile-ride-card .ride-badge{background:#ffc62a;color:#111}.driver-sheet .mobile-ride-card .ride-price{font-size:40px;color:#fff}.driver-sheet .mobile-ride-card .ride-meta{color:#b9c8e5}.driver-sheet .mobile-ride-card .ride-route{border-top:1px solid #263a54;color:#fff}.driver-sheet .mobile-ride-card .route-label{color:#4fe0a5}.driver-sheet .mobile-ride-card .route-dest{color:#ff7890}.driver-sheet .mobile-ride-card .ride-actions .green{background:#08d878;color:#04120d}.driver-sheet .mobile-ride-card .ride-actions .red{background:#243750;color:#fff}.driver-sheet .mobile-ride-card .ride-secondary .btn{background:#071525;border-color:#29415e;color:#fff}.scheduled-card{margin-top:12px;border:1px solid #f4c400;border-radius:18px;background:linear-gradient(110deg,#050505,#0b1420);box-shadow:0 0 18px #f4c40022;overflow:hidden}.scheduled-main{width:100%;display:flex;align-items:center;gap:12px;border:0;background:transparent;color:#fff;padding:14px 15px;text-align:left;cursor:pointer}.scheduled-icon{width:46px;height:46px;display:grid;place-items:center;border:1px solid #f4c400;border-radius:14px;color:#ffc400;font-size:24px;flex:none}.scheduled-main b{display:block;font-size:16px}.scheduled-main small{display:block;color:#9fb0c8;margin-top:3px}.scheduled-arrow{margin-left:auto;font-size:24px;color:#ffc400}.scheduled-panel{display:none;padding:0 14px 14px;border-top:1px solid #223247}.scheduled-panel.open{display:block}.scheduled-item{padding:12px 0;border-bottom:1px solid #223247}.scheduled-item:last-child{border-bottom:0}.scheduled-item b{font-size:14px}.scheduled-item small{display:block;color:#b9c8e5;margin-top:4px;line-height:1.45}.scheduled-empty{padding:14px 0;color:#94a3b8;font-size:13px}.driver-map .leaflet-container{touch-action:pan-x pan-y!important}@media(max-width:800px){#notificationCard,.grid{display:none!important}.mobile-sheet{display:none!important}.driver-sheet{max-height:45vh!important;min-height:0!important;padding:10px 16px max(18px,env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain}.driver-map-shell .driver-map{top:72px!important;height:calc(55vh - 12px)!important}.uberish-location{bottom:calc(45vh + 2px)!important}.top-menu-panel{top:58px!important}.driver-sheet .uberish-sheet-head{padding-bottom:8px}.mobile-ride-card .ride-secondary{display:none!important}.mobile-ride-card .ride-actions{margin-top:12px}.mobile-empty{display:none!important}}</style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="apple-touch-icon" href="icon-192.svg">
@@ -66,6 +66,14 @@
     </div>
     <div id="mobileNotice" class="sheet-notice hidden"></div>
     <div id="mobileRequests"></div>
+    <div class="scheduled-card" id="scheduledCard">
+      <button class="scheduled-main" type="button" onclick="toggleScheduledRides()">
+        <span class="scheduled-icon">📅</span>
+        <span><b>Viagens agendadas</b><small>Confira suas viagens futuras</small></span>
+        <span class="scheduled-arrow" id="scheduledArrow">›</span>
+      </button>
+      <div class="scheduled-panel" id="scheduledPanel"></div>
+    </div>
   </div>
 </section>
 <section id="login" class="card" style="max-width:440px;margin:25px auto">
@@ -85,7 +93,7 @@
 </section>
 
 <section id="app" class="hidden">
-<div id="notice" class="notice hidden"></div><div class="mobile-sheet"><div class="sheet-bar"></div><div class="mobile-actions"><button class="btn active" onclick="focusRequests()">🚗 Corridas</button><button class="btn" onclick="openGains()">💰 Ganhos</button><button class="btn" onclick="focusStatus()">🟢 Status</button></div></div>
+<div id="notice" class="notice hidden"></div>
 <div class="card" id="notificationCard"><h2>🔔 Notificações</h2><p class="muted">Ative as notificações para receber aviso de nova solicitação. O som também será ativado depois do primeiro toque.</p><button class="btn primary btnblock" type="button" onclick="enableDriverNotifications()">🔔 Ativar notificações e som</button><div id="notificationStatus" class="muted" style="margin-top:8px"></div></div>
 <div class="grid">
 <aside>
@@ -439,6 +447,10 @@ function initDriverMap(){
   driverMap=L.map("driverMap",{zoomControl:false,attributionControl:true}).setView([-22.7333,-42.625],13);
   setTimeout(()=>driverMap&&driverMap.invalidateSize(),250);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(driverMap);
+  driverMap.dragging.enable();
+  driverMap.touchZoom.enable();
+  driverMap.scrollWheelZoom.enable();
+  driverMap.doubleClickZoom.enable();
   L.control.zoom({position:"bottomright"}).addTo(driverMap);
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(pos=>{
@@ -464,12 +476,45 @@ function updateMapStatus(){
   if($("mapStatusTitle"))$("mapStatusTitle").textContent=title;
   if($("mapStatusText"))$("mapStatusText").textContent=text;
 }
+function toggleScheduledRides(){
+  const p=$("scheduledPanel"), a=$("scheduledArrow");
+  if(!p)return;
+  const opening=!p.classList.contains("open");
+  if(opening){renderScheduledRides();p.classList.add("open");if(a)a.textContent="⌄";}
+  else{p.classList.remove("open");if(a)a.textContent="›";}
+}
+function renderScheduledRides(){
+  const p=$("scheduledPanel"); if(!p)return;
+  const now=new Date();
+  const rows=requests().filter(r=>{
+    const status=r.status||"new";
+    if(!["accepted","confirmed"].includes(status))return false;
+    const d=r.confirmedDate||r.confirmed_date||r.date||r.data;
+    const t=r.confirmedTime||r.confirmed_time||r.time||r.horario||"23:59";
+    if(!d)return false;
+    const dt=new Date(String(d)+"T"+String(t));
+    return !Number.isNaN(dt.getTime()) && dt>now;
+  }).sort((a,b)=>{
+    const da=new Date(String(a.confirmedDate||a.confirmed_date||a.date||a.data)+"T"+String(a.confirmedTime||a.confirmed_time||a.time||a.horario||"23:59"));
+    const db=new Date(String(b.confirmedDate||b.confirmed_date||b.date||b.data)+"T"+String(b.confirmedTime||b.confirmed_time||b.time||b.horario||"23:59"));
+    return da-db;
+  });
+  if(!rows.length){p.innerHTML='<div class="scheduled-empty">📅 Nenhuma viagem futura agendada.</div>';return;}
+  p.innerHTML=rows.map(r=>{
+    const d=r.confirmedDate||r.confirmed_date||r.date||r.data||"";
+    const t=r.confirmedTime||r.confirmed_time||r.time||r.horario||"";
+    const passenger=r.passengerName||r.passenger_name||r.nome||"Passageiro";
+    const origin=r.origin||r.origem||"Origem não informada";
+    const dest=r.destination||r.destino||"Destino não informado";
+    return '<div class="scheduled-item"><b>📅 '+esc(dateBR(d))+' • 🕐 '+esc(t)+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small></div>';
+  }).join("");
+}
 function renderMobileRequests(){
   const el=$("mobileRequests"); if(!el)return;
   const rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
   const active=rs.filter(r=>["new","accepted","confirmed"].includes(r.status||"new"));
   if($("sheetCount"))$("sheetCount").textContent=active.length?active.length+" solicitação"+(active.length===1?"":"ões"):"";
-  if(!active.length){el.innerHTML='<div class="mobile-empty">📭<br><b>Nenhuma viagem no momento</b><br><span>Fique disponível para receber novas solicitações.</span></div>';return;}
+  if(!active.length){el.innerHTML="";return;}
   el.innerHTML=active.map(r=>{
     const s=r.status||"new", value=rideValue(r);
     const origin=r.origin||r.origem||"Origem não informada", dest=r.destination||r.destino||"Destino não informado";
@@ -479,13 +524,13 @@ function renderMobileRequests(){
     let primary="",secondary="";
     if(s==="new"){
       primary='<button class="btn green" data-action="accept" data-id="'+esc(r.id)+'">✓ Aceitar</button><button class="btn red" data-action="cancel" data-id="'+esc(r.id)+'">✕ Recusar</button>';
-      secondary='<button class="btn" data-action="confirm" data-id="'+esc(r.id)+'">📅 Confirmar horário</button><button class="btn" data-action="whatsapp" data-id="'+esc(r.id)+'">💬 WhatsApp</button><button class="btn" data-action="route" data-id="'+esc(r.id)+'">🗺️ Ver rota</button>';
+      secondary='';
     }else if(s==="accepted"){
       primary='<button class="btn green" data-action="confirm" data-id="'+esc(r.id)+'">📅 Confirmar horário</button><button class="btn red" data-action="cancel" data-id="'+esc(r.id)+'">✕ Cancelar</button>';
-      secondary='<button class="btn" data-action="whatsapp" data-id="'+esc(r.id)+'">💬 WhatsApp</button><button class="btn" data-action="route" data-id="'+esc(r.id)+'">🗺️ Ver rota</button><button class="btn" data-action="close">⌃ Fechar</button>';
+      secondary='';
     }else{
       primary='<button class="btn green" data-action="whatsapp" data-id="'+esc(r.id)+'">💬 WhatsApp</button><button class="btn red" data-action="finish" data-id="'+esc(r.id)+'">✓ Finalizar</button>';
-      secondary='<button class="btn" data-action="route" data-id="'+esc(r.id)+'">🗺️ Ver rota</button><button class="btn" data-action="close">⌃ Fechar</button><button class="btn" data-action="gains">💰 Ganhos</button>';
+      secondary='';
     }
     return '<article class="mobile-ride-card"><div class="ride-top"><span class="ride-badge">'+badge+'</span><span style="color:#cbd5e1">👥 '+esc(people)+' passageiro'+(Number(people)===1?"":"s")+'</span></div><div class="ride-price">'+moneyBR(value)+'</div><div class="ride-meta"><span>💳 '+esc(pay)+'</span><span>'+(distance?("📏 "+Number(distance).toFixed(1)+" km"):"🕐 "+esc(r.time||r.horario||""))+'</span></div><div class="ride-route"><div class="route-line"><span class="route-dot"></span><div><span class="route-label">Origem</span><div class="route-address">'+esc(origin)+'</div></div></div><div class="route-line"><span class="route-pin">📍</span><div><span class="route-label route-dest">Destino</span><div class="route-address">'+esc(dest)+'</div></div></div></div><div class="ride-actions">'+primary+'</div><div class="ride-secondary">'+secondary+'</div></article>';
   }).join("");
@@ -508,9 +553,8 @@ function render(){
  $("newCount").textContent=rs.filter(r=>r.status==="new"||!r.status).length;
  $("acceptedCount").textContent=rs.filter(r=>r.status==="accepted").length;
  $("confirmedCount").textContent=rs.filter(r=>r.status==="confirmed").length;
- if(!rs.length){$("requests").innerHTML='<div class="empty">📭<br><b>Nenhuma solicitação disponível.</b><br><span class="muted">As solicitações aparecerão aqui quando forem conectadas à base online.</span></div>';return}
- $("requests").innerHTML=rs.map(card).join("")
- renderMobileRequests(); updateMapStatus();
+ if(!rs.length){$("requests").innerHTML='<div class="empty">📭<br><b>Nenhuma solicitação disponível.</b><br><span class="muted">As solicitações aparecerão aqui quando forem conectadas à base online.</span></div>';}else{$("requests").innerHTML=rs.map(card).join("");}
+ renderMobileRequests(); renderScheduledRides(); updateMapStatus();
 }
 function card(r){
  let s=r.status||"new", map={new:["new","Nova"],accepted:["accepted","Aceita"],confirmed:["confirmed","Confirmada"],cancelled:["cancelled","Cancelada"],finished:["confirmed","Finalizada"]}, b=map[s]||map.new;
