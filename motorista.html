@@ -1083,6 +1083,29 @@ function startRideRoute(id){
   renderTodayAcceptedRoutes();
   notice("🚗 Rota para o embarque iniciada. Ao chegar, o botão mudará para “🏁 Iniciar percurso”.");
 }
+function messageArrivalWhatsApp(id){
+  const r=requests().find(x=>String(x.id)===String(id));
+  if(!r)return;
+  const phone=String(r.passengerPhone||r.passenger_phone||r.telefone||r.whatsapp||r.p_whatsapp||"");
+  const name=String(r.passengerName||r.passenger_name||r.nome||"passageiro");
+  const NL=String.fromCharCode(10);
+  const msg=[
+    "🚗 22 DRIVE",
+    "",
+    "Olá, "+name+"! 😊",
+    "Já cheguei ao endereço informado para o embarque.",
+    "Estou aguardando você. 👍"
+  ].join(NL);
+  let n=phone.replace(/\D/g,"");
+  if(n.length>=10&&!n.startsWith("55"))n="55"+n;
+  if(!n){
+    alert("O telefone do passageiro não foi informado.");
+    return;
+  }
+  const url="https://wa.me/"+n+"?text="+encodeURIComponent(msg);
+  window.open(url,"_blank");
+}
+
 function renderTodayAcceptedRoutes(){
   const p=$("todayRoutesPanel"); if(!p)return;
   const today=startOfToday();
@@ -1107,7 +1130,17 @@ function renderTodayAcceptedRoutes(){
     const origin=r.origin||r.origem||"Origem não informada";
     const dest=r.destination||r.destino||"Destino não informado";
     const status=(r.status||"").toLowerCase()==="confirmed"?"Confirmada":"Aceita";
-    return '<div class="scheduled-item today-route-item"><b>🕐 '+esc(t)+' • '+status+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small><button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">"+((getRouteState(r.id)?.phase==="dropoff_ready")?"🏁 Iniciar percurso":(getRouteState(r.id)?.phase==="pickup")?"📍 Rota para embarque":"🚗 Iniciar rota")+"</button></div>';
+    const phase=getRouteState(r.id)?.phase;
+    let routeButton="";
+    let arrivalButton="";
+    if(phase==="dropoff_ready"){
+      routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">🏁 Iniciar percurso</button>';
+      arrivalButton='<button class="btn primary btnblock" style="margin-top:8px" type="button" onclick="messageArrivalWhatsApp('+JSON.stringify(String(r.id))+')">📲 Avisar passageiro que cheguei</button>';
+    }else{
+      const label=phase==="pickup"?"📍 Rota para embarque":"🚗 Iniciar rota";
+      routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">'+label+'</button>';
+    }
+    return '<div class="scheduled-item today-route-item"><b>🕐 '+esc(t)+' • '+status+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small>'+routeButton+arrivalButton+'</div>';
   }).join("");
   rows.forEach(r=>{
     const state=getRouteState(r.id);
