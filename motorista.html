@@ -148,40 +148,126 @@
 <link rel="apple-touch-icon" href="icon-192.svg">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style id="22drive-layout-from-zero">
-/* Estrutura mobile reconstruída do zero */
+<style id="22drive-uiux-reference-layout">
+/* 22 DRIVE — mobile UI reconstruída conforme referência */
 @media (max-width:800px){
-  html,body{margin:0!important;padding:0!important;background:#000!important;overflow-x:hidden!important}
-  .wrap{width:100%!important;max-width:none!important;margin:0!important;padding:0 16px 30px!important;box-sizing:border-box!important}
-  #driverMapShell{position:relative!important;display:block!important;width:100%!important;margin:0!important;padding:106px 0 0!important;box-sizing:border-box!important;background:#000!important;overflow:visible!important}
-  .uberish-top{position:absolute!important;top:8px!important;left:0!important;right:0!important;width:100%!important;height:88px!important;min-height:88px!important;display:grid!important;grid-template-columns:minmax(0,1fr) 150px 58px!important;align-items:center!important;gap:8px!important;padding:8px 10px!important;box-sizing:border-box!important;background:#050505!important;border:1.5px solid #f4c400!important;border-radius:26px!important;z-index:1000!important}
+  :root{
+    --bg:#000000;--panel:#050b14;--panel2:#07111f;--gold:#ffc700;--green:#00c853;
+    --red:#ff3b30;--muted:#8e8e93;--line:#243247;
+  }
+  html,body{background:var(--bg)!important;color:#fff!important;font-family:Inter,Roboto,Arial,sans-serif!important;margin:0!important;padding:0!important;overflow-x:hidden!important}
+  .wrap{width:100%!important;max-width:none!important;margin:0!important;padding:0 14px 28px!important;box-sizing:border-box!important;background:#000!important}
+  #driverMapShell{display:block!important;position:relative!important;width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:104px 0 0!important;box-sizing:border-box!important;background:#000!important;overflow:visible!important}
+  body:has(#app.hidden) #driverMapShell{display:none!important}
+  .uberish-top{
+    position:absolute!important;top:10px!important;left:0!important;right:0!important;width:100%!important;height:84px!important;
+    display:grid!important;grid-template-columns:minmax(0,1fr) 148px 58px!important;align-items:center!important;gap:8px!important;
+    padding:7px 10px!important;box-sizing:border-box!important;border:1px solid var(--gold)!important;border-radius:25px!important;
+    background:#050505!important;box-shadow:0 0 18px #ffc70035,0 7px 24px #000!important;z-index:1000!important;
+  }
+  .uberish-top:after{display:none!important}
   .uberish-brand{min-width:0!important;display:flex!important;align-items:center!important}
-  .uberish-top .driver-logo{display:block!important;width:100%!important;max-width:205px!important;height:56px!important;object-fit:contain!important;object-position:left center!important}
-  .uberish-status{width:150px!important;height:50px!important;margin:0!important;padding:6px 8px!important;box-sizing:border-box!important;font-size:16px!important;border-radius:26px!important}
-  .uberish-menu{width:54px!important;height:54px!important;font-size:28px!important;justify-self:end!important}
-  .top-menu-panel{z-index:5000!important}
-  .driver-map{position:relative!important;width:100%!important;height:52vh!important;min-height:380px!important;max-height:560px!important;margin:0!important;inset:auto!important;box-sizing:border-box!important;border-radius:26px!important;overflow:hidden!important}
-  .driver-map .leaflet-container{width:100%!important;height:100%!important}
+  .uberish-top .driver-logo{display:block!important;width:100%!important;max-width:205px!important;height:57px!important;object-fit:contain!important;object-position:left center!important}
+  .uberish-status{
+    width:148px!important;min-width:148px!important;height:50px!important;padding:7px 9px!important;margin:0!important;
+    border:1px solid #b58a00!important;border-radius:28px!important;background:#071c1a!important;color:#fff!important;
+    font-size:16px!important;font-weight:800!important;box-sizing:border-box!important;
+  }
+  .uberish-menu{width:54px!important;height:54px!important;border:1px solid var(--gold)!important;border-radius:50%!important;background:#050505!important;color:#fff!important;font-size:29px!important;line-height:1!important}
+  .top-menu-panel{z-index:6000!important}
+  .driver-map{
+    position:relative!important;inset:auto!important;width:100%!important;height:52vh!important;min-height:390px!important;max-height:560px!important;
+    margin:0!important;border:1px solid var(--gold)!important;border-radius:25px!important;overflow:hidden!important;
+    box-shadow:0 0 18px #ffc70025!important;background:#07111f!important;
+  }
+  .driver-map .leaflet-container{width:100%!important;height:100%!important;background:#07111f!important}
+  .driver-map .leaflet-tile{filter:saturate(.9) brightness(.82)!important}
+  .driver-map .leaflet-control-zoom{margin-right:12px!important;margin-bottom:12px!important}
+  .driver-map .leaflet-control-zoom a{
+    width:42px!important;height:42px!important;line-height:42px!important;font-size:25px!important;
+    background:#050b14!important;color:#fff!important;border:1px solid var(--gold)!important;
+  }
+  .driver-map .leaflet-control-zoom a:first-child{border-radius:18px 18px 0 0!important}
+  .driver-map .leaflet-control-zoom a:last-child{border-radius:0 0 18px 18px!important;border-top:0!important}
+  .driver-map .leaflet-control-attribution{font-size:7px!important;background:#050b14cc!important;color:#b9c8e5!important}
+  .driver-car-marker{background:transparent!important;border:0!important}
+  .driver-car-marker span{
+    width:48px;height:48px;display:grid;place-items:center;border-radius:50%;
+    background:#1696ff;color:#fff;font-size:25px;border:3px solid #fff;
+    box-shadow:0 0 0 11px #72c8ff45,0 0 30px #1696ff99;
+  }
+  .uberish-location{
+    width:52px!important;height:52px!important;right:12px!important;bottom:18px!important;
+    border:1px solid var(--gold)!important;border-radius:50%!important;background:#050b14!important;color:#fff!important;
+    box-shadow:0 0 15px #000!important;font-size:29px!important;z-index:700!important;
+  }
   .uberish-map-status{display:none!important}
-  .uberish-location{z-index:100!important}
-  #driverContent{display:block!important;width:100%!important;margin:18px 0 0!important;padding:0!important;box-sizing:border-box!important}
-  #driverContent .driver-sheet{position:relative!important;display:flex!important;flex-direction:column!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;inset:auto!important;box-sizing:border-box!important;background:transparent!important;border:0!important;overflow:visible!important;z-index:20!important}
+  #driverContent{display:block!important;width:100%!important;margin:16px 0 0!important;padding:0!important}
+  #driverContent .driver-sheet{
+    position:relative!important;inset:auto!important;display:flex!important;flex-direction:column!important;
+    width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;
+    overflow:visible!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;
+  }
   #driverContent .sheet-handle,#driverContent .uberish-sheet-head{display:none!important}
-  #mobileNotice{order:1!important;width:100%!important;margin:0 0 12px!important;box-sizing:border-box!important}
+  #mobileNotice{order:1!important;width:100%!important;margin:0 0 12px!important;padding:12px 14px!important;box-sizing:border-box!important;border:1px solid #b9c8e5!important;border-radius:16px!important;background:#dbeafe!important;color:#234a91!important;font-size:13px!important}
   #mobileRequests{order:2!important;width:100%!important}
-  .mobile-ride-card{width:100%!important;box-sizing:border-box!important;margin:0 0 12px!important;padding:14px 18px 16px!important;border-radius:24px!important}
-  .mobile-ride-card .ride-price{font-size:34px!important}
-  .mobile-ride-card .ride-payment,.mobile-ride-card .ride-meta{font-size:14px!important}
-  .mobile-ride-card .ride-actions .btn{min-height:52px!important;font-size:14px!important}
-  #todayRoutesCard{order:3!important;position:relative!important;display:block!important;width:100%!important;height:auto!important;margin:16px 0 0!important;padding:0!important;inset:auto!important;float:none!important;clear:both!important;transform:none!important;box-sizing:border-box!important;border:1.5px solid #f4c400!important;border-radius:24px!important;background:#050b14!important;overflow:hidden!important;z-index:20!important}
-  #todayRoutesCard .today-routes-head{display:flex!important;align-items:center!important;gap:10px!important;padding:12px 14px!important}
-  #todayRoutesCard .scheduled-icon{font-size:25px!important}
-  #todayRoutesCard .today-routes-head b{font-size:16px!important}
-  #todayRoutesCard .today-routes-head small{font-size:12px!important}
-  #todayRoutesPanel{width:100%!important;padding:0 12px 12px!important;box-sizing:border-box!important}
-  #todayRoutesCard .scheduled-item{font-size:12px!important}
+  .mobile-ride-card{
+    width:100%!important;margin:0 0 14px!important;padding:16px 16px 15px!important;box-sizing:border-box!important;
+    border:1px solid var(--gold)!important;border-radius:16px!important;background:#050b14!important;color:#fff!important;
+    box-shadow:0 0 18px #ffc70022!important;
+  }
+  .mobile-ride-card .ride-top{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important}
+  .mobile-ride-card .ride-badge{
+    display:inline-flex!important;align-items:center!important;padding:7px 11px!important;border-radius:999px!important;
+    background:var(--gold)!important;color:#111!important;font-size:12px!important;font-weight:900!important;
+  }
+  .mobile-ride-card .ride-top>span:last-child{font-size:12px!important;color:#d4d8df!important}
+  .mobile-ride-card .ride-price{margin:10px 0 2px!important;font-size:34px!important;line-height:1!important;font-weight:900!important;color:var(--gold)!important}
+  .mobile-ride-card .ride-passenger{display:flex!important;gap:7px!important;align-items:center!important;margin:7px 0!important}
+  .mobile-ride-card .passenger-label{font-size:12px!important;color:var(--muted)!important}
+  .mobile-ride-card .ride-passenger strong{font-size:14px!important;color:#fff!important}
+  .mobile-ride-card .ride-meta{display:flex!important;justify-content:space-between!important;gap:8px!important;padding:9px 0!important;border-bottom:1px solid var(--line)!important;color:#d9dee7!important;font-size:13px!important}
+  .mobile-ride-card .ride-route{margin:13px 0!important;color:#fff!important}
+  .mobile-ride-card .route-line{position:relative!important;display:flex!important;gap:11px!important;min-height:57px!important}
+  .mobile-ride-card .route-line:first-child:after{
+    content:"";position:absolute;left:8px;top:20px;bottom:0;width:2px;background:#596273!important;
+  }
+  .mobile-ride-card .route-dot,.mobile-ride-card .route-pin{
+    position:relative!important;z-index:2;flex:none!important;width:18px!important;height:18px!important;display:grid!important;place-items:center!important;
+    border-radius:50%!important;background:var(--green)!important;border:3px solid #06130c!important;box-shadow:0 0 0 2px var(--green)!important;font-size:0!important;margin-top:2px!important;
+  }
+  .mobile-ride-card .route-pin{background:var(--red)!important;box-shadow:0 0 0 2px var(--red)!important;border-radius:50% 50% 50% 0!important;transform:rotate(-45deg)!important}
+  .mobile-ride-card .route-pin:after{content:"";width:6px;height:6px;border-radius:50%;background:#fff;transform:rotate(45deg)!important}
+  .mobile-ride-card .route-label{display:block!important;color:var(--green)!important;font-size:13px!important;font-weight:800!important}
+  .mobile-ride-card .route-label.route-dest{color:var(--red)!important}
+  .mobile-ride-card .route-address{margin-top:2px!important;font-size:15px!important;font-weight:800!important;color:#fff!important;line-height:1.25!important}
+  .mobile-ride-card .ride-actions{display:flex!important;gap:9px!important;margin-top:10px!important}
+  .mobile-ride-card .ride-actions .btn{flex:1!important;min-height:50px!important;border-radius:16px!important;font-size:15px!important;font-weight:900!important}
+  .mobile-ride-card .ride-actions .btn.green{background:var(--green)!important;border:1px solid var(--gold)!important;color:#fff!important}
+  .mobile-ride-card .ride-actions .btn.red{background:#050b14!important;border:1px solid var(--gold)!important;color:#fff!important}
+  #todayRoutesCard{
+    order:3!important;position:relative!important;inset:auto!important;width:100%!important;height:auto!important;margin:4px 0 14px!important;padding:0!important;
+    box-sizing:border-box!important;border:1px solid var(--gold)!important;border-radius:16px!important;background:#050b14!important;
+    box-shadow:0 0 18px #ffc70022!important;overflow:hidden!important;
+  }
+  #todayRoutesCard .today-routes-head{display:flex!important;align-items:center!important;gap:11px!important;padding:13px 14px!important}
+  #todayRoutesCard .scheduled-icon{width:43px!important;height:43px!important;display:grid!important;place-items:center!important;border:1px solid var(--gold)!important;border-radius:13px!important;font-size:22px!important}
+  #todayRoutesCard .today-routes-head b{font-size:16px!important;color:#fff!important}
+  #todayRoutesCard .today-routes-head small{display:block!important;margin-top:2px!important;color:#9fb0c8!important;font-size:12px!important}
+  #todayRoutesPanel{width:100%!important;padding:0 13px 12px!important;box-sizing:border-box!important}
+  #todayRoutesCard .scheduled-item{padding:10px 0!important;font-size:12px!important}
   #todayRoutesCard .scheduled-item b{font-size:13px!important}
   #todayRoutesCard .scheduled-item small{font-size:11px!important}
+  .scheduled-footer-card{
+    order:4!important;display:flex!important;align-items:center!important;gap:12px!important;width:100%!important;min-height:74px!important;
+    margin:0!important;padding:11px 14px!important;box-sizing:border-box!important;border:1px solid var(--gold)!important;border-radius:16px!important;
+    background:#050b14!important;box-shadow:0 0 18px #ffc70022!important;cursor:pointer!important;
+  }
+  .scheduled-footer-icon{width:44px;height:44px;display:grid;place-items:center;flex:none;border:1px solid var(--gold);border-radius:13px;color:var(--gold);font-size:29px;font-weight:700}
+  .scheduled-footer-copy{min-width:0;flex:1}
+  .scheduled-footer-copy b{display:block;font-size:16px;color:#fff}
+  .scheduled-footer-copy small{display:block;margin-top:3px;font-size:12px;color:#9fb0c8}
+  .scheduled-footer-arrow{width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--gold);border-radius:50%;color:var(--gold);font-size:29px;line-height:1}
   #notificationCard,.grid{display:none!important}
 }
 </style></head>
@@ -233,6 +319,11 @@
       </div>
       <div class="scheduled-panel open" id="todayRoutesPanel"></div>
     </div>
+    <div id="scheduledFooterCard" class="scheduled-footer-card" role="button" tabindex="0" onclick="openScheduledFromMenu()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openScheduledFromMenu();}">
+  <div class="scheduled-footer-icon">▦</div>
+  <div class="scheduled-footer-copy"><b>Viagens agendadas</b><small>Confira suas viagens futuras</small></div>
+  <span class="scheduled-footer-arrow">›</span>
+</div>
   </div></div>
 <section id="login" class="card" style="max-width:440px;margin:25px auto">
 <div class="login-brand"><img class="login-logo" src="./logo-login.svg" alt="22 DRIVE — Sua viagem, nossa prioridade"><p class="muted">Área do Motorista</p></div>
@@ -705,7 +796,7 @@ function initDriverMap(){
   if(!window.L||driverMap)return;
   driverMap=L.map("driverMap",{zoomControl:false,attributionControl:true}).setView([-22.7333,-42.625],13);
   setTimeout(()=>driverMap&&driverMap.invalidateSize(),250);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(driverMap);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:20,subdomains:"abcd",attribution:"© OpenStreetMap © CARTO"}).addTo(driverMap);
   driverMap.dragging.enable();
   driverMap.touchZoom.enable();
   driverMap.scrollWheelZoom.enable();
@@ -715,7 +806,7 @@ function initDriverMap(){
     navigator.geolocation.getCurrentPosition(pos=>{
       driverLocation=[pos.coords.latitude,pos.coords.longitude];
       driverMap.setView(driverLocation,15);
-      driverMarker=L.circleMarker(driverLocation,{radius:9,color:"#111827",fillColor:"#fff",fillOpacity:1,weight:4}).addTo(driverMap);
+      driverMarker=L.marker(driverLocation,{icon:L.divIcon({className:"driver-car-marker",html:"<span>🚗</span>",iconSize:[52,52],iconAnchor:[26,26]})}).addTo(driverMap);
     },()=>{});
   }
 }
