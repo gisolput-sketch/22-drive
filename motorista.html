@@ -539,6 +539,29 @@
   #todayRoutesCard .scheduled-item b{font-size:16px!important}
   #todayRoutesCard .scheduled-item small{font-size:14px!important}
 }
+</style><style id="routes-footer-hard-fix">
+@media(max-width:800px){
+  #driverMapShell .driver-sheet{
+    position:relative!important;
+    left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
+    inset:auto!important;transform:none!important;
+    display:flex!important;flex-direction:column!important;
+    width:100%!important;height:auto!important;max-height:none!important;min-height:0!important;
+    margin:18px 0 0!important;padding:0 0 20px!important;
+    overflow:visible!important;z-index:10!important;
+    background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;
+  }
+  #driverMapShell #mobileRequests{order:1!important;width:100%!important;position:relative!important}
+  #driverMapShell #todayRoutesCard{
+    order:9999!important;
+    position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
+    inset:auto!important;transform:none!important;
+    display:block!important;float:none!important;clear:both!important;
+    width:100%!important;max-width:none!important;height:auto!important;
+    margin:24px 0 0!important;
+    box-sizing:border-box!important;
+  }
+}
 </style></head>
 <body>
 
@@ -1632,5 +1655,23 @@ if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.se
     <div class="charge-method"><b>VALOR DA VIAGEM</b><div id="chargeValue" class="charge-value">R$ 0,00</div></div>
     <button class="charge-close" type="button" onclick="closeChargeModal()">✓ Cobrança concluída</button>
   </div>
-</div></body>
+</div><script id="routes-footer-hard-js">
+(function(){
+  function forceRoutesFooter(){
+    if(!window.matchMedia || !matchMedia("(max-width:800px)").matches)return;
+    const sheet=document.getElementById("driverSheet");
+    const routes=document.getElementById("todayRoutesCard");
+    const requests=document.getElementById("mobileRequests");
+    if(!sheet||!routes)return;
+    if(requests && routes.previousElementSibling!==requests) sheet.appendChild(routes);
+    Object.assign(sheet.style,{position:"relative",left:"auto",right:"auto",top:"auto",bottom:"auto",display:"flex",flexDirection:"column",width:"100%",height:"auto",maxHeight:"none",minHeight:"0",margin:"18px 0 0",padding:"0 0 20px",overflow:"visible",background:"transparent",border:"0",borderRadius:"0",boxShadow:"none"});
+    Object.assign(routes.style,{position:"relative",left:"auto",right:"auto",top:"auto",bottom:"auto",display:"block",width:"100%",maxWidth:"none",height:"auto",margin:"24px 0 0",order:"9999",float:"none",clear:"both",transform:"none",boxSizing:"border-box"});
+  }
+  document.addEventListener("DOMContentLoaded",forceRoutesFooter);
+  window.addEventListener("load",forceRoutesFooter);
+  window.addEventListener("resize",forceRoutesFooter);
+  setTimeout(forceRoutesFooter,500);
+  setTimeout(forceRoutesFooter,1500);
+})();
+</script></body>
 </html>
