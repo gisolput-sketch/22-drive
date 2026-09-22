@@ -919,6 +919,21 @@ function renderScheduledRides(){
     return '<div class="scheduled-item"><b>📅 '+esc(dateBR(d))+' • 🕐 '+esc(t)+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small></div>';
   }).join("");
 }
+function startRideRoute(id){
+  const r=requests().find(x=>String(x.id)===String(id));
+  if(!r)return;
+  const pickup=rideCoordinate(r,"pickup");
+  const origin=String(r.origin||r.origem||"").trim();
+  if(pickup){
+    const url="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(pickup[0]+","+pickup[1])+"&travelmode=driving";
+    window.open(url,"_blank");
+  }else if(origin){
+    const url="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(origin)+"&travelmode=driving";
+    window.open(url,"_blank");
+  }else{
+    alert("O endereço de embarque não foi informado.");
+  }
+}
 function renderTodayAcceptedRoutes(){
   const p=$("todayRoutesPanel"); if(!p)return;
   const today=startOfToday();
@@ -942,7 +957,7 @@ function renderTodayAcceptedRoutes(){
     const origin=r.origin||r.origem||"Origem não informada";
     const dest=r.destination||r.destino||"Destino não informado";
     const status=(r.status||"").toLowerCase()==="confirmed"?"Confirmada":"Aceita";
-    return '<div class="scheduled-item today-route-item"><b>🕐 '+esc(t)+' • '+status+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small></div>';
+    return '<div class="scheduled-item today-route-item"><b>🕐 '+esc(t)+' • '+status+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small><button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">🚗 Iniciar rota</button></div>';
   }).join("");
 }
 function openScheduledFromMenu(){
