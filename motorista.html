@@ -151,7 +151,7 @@ let audioCtx=null;
 const NOTIFY_KEY="22drive_notifications_enabled";
 const VAPID_PUBLIC_KEY="BPv-5ZgA0eonKTtctG8P2Zj1sQKZaqKDvgmzPb3oC9ilScCllIpERnY_SPsmieYZgWEV2nhzqqAo8Og_YEnva8M";
 function unlockDriverSound(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume();}catch(e){}}
-function playNewRideSound(){try{unlockDriverSound();if(!audioCtx)return;const now=audioCtx.currentTime;[0,0.22,0.44].forEach((delay,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type="sine";o.frequency.value=i===1?1047:880;g.gain.setValueAtTime(0.0001,now+delay);g.gain.exponentialRampToValueAtTime(0.22,now+delay+0.02);g.gain.exponentialRampToValueAtTime(0.0001,now+delay+0.18);o.connect(g);g.connect(audioCtx.destination);o.start(now+delay);o.stop(now+delay+0.2);});if(navigator.vibrate)navigator.vibrate([250,120,250]);}catch(e){console.log(e)}}
+function playNewRideSound(){try{unlockDriverSound();if(!audioCtx)return;const now=audioCtx.currentTime;const tones=[{d:0,f:1250},{d:.16,f:1650},{d:.32,f:1250},{d:.48,f:1850},{d:.64,f:1250}];tones.forEach((t,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=i%2?"square":"sawtooth";o.frequency.setValueAtTime(t.f,now+t.d);g.gain.setValueAtTime(0.0001,now+t.d);g.gain.exponentialRampToValueAtTime(0.65,now+t.d+0.012);g.gain.setValueAtTime(0.65,now+t.d+0.09);g.gain.exponentialRampToValueAtTime(0.0001,now+t.d+0.14);o.connect(g);g.connect(audioCtx.destination);o.start(now+t.d);o.stop(now+t.d+0.16);});if(navigator.vibrate)navigator.vibrate([500,100,500,100,700]);}catch(e){console.log(e)}}
 let activeRideAlertId=null;
 let rideAlertTimer=null;
 function startRideAlert(r){
