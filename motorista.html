@@ -323,7 +323,97 @@
 <link rel="apple-touch-icon" href="icon-192.svg">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
+<style id="reference-layout-fix">
+@media(max-width:800px){
+  body{background:#000!important;overflow:hidden!important}
+  .wrap{max-width:none!important;padding:0!important}
+  #driverMapShell{
+    display:none;
+    position:fixed!important;
+    inset:0!important;
+    z-index:1!important;
+    background:#06111f!important;
+  }
+  body:has(#app:not(.hidden)) #driverMapShell{display:block!important}
+  body:has(#app:not(.hidden)) #login{display:none!important}
+
+  .driver-map-shell .driver-map{
+    position:absolute!important;
+    top:88px!important;
+    left:10px!important;
+    right:10px!important;
+    bottom:132px!important;
+    width:auto!important;
+    height:auto!important;
+    border-radius:24px!important;
+    overflow:hidden!important;
+    border:1px solid #263b55!important;
+    box-shadow:0 8px 30px #0008!important;
+  }
+  .driver-map-shell .leaflet-container{width:100%!important;height:100%!important}
+
+  .uberish-top{
+    position:absolute!important;
+    top:8px!important;
+    left:8px!important;
+    right:8px!important;
+    height:66px!important;
+    min-height:66px!important;
+    box-sizing:border-box!important;
+    z-index:3000!important;
+    display:grid!important;
+    grid-template-columns:1fr auto 1fr!important;
+    align-items:center!important;
+    gap:0!important;
+    padding:8px 10px!important;
+    border:1px solid #f4c400!important;
+    border-radius:28px!important;
+    background:#050505!important;
+    box-shadow:0 8px 30px #0008,0 0 18px #f4c40033!important;
+  }
+  .uberish-brand{grid-column:1!important;justify-self:start!important;display:flex!important;align-items:center!important;flex:none!important;width:auto!important}
+  .uberish-top .driver-logo{width:74px!important;height:38px!important;flex:0 0 74px!important;object-fit:contain!important;object-position:left center!important}
+  .uberish-status{grid-column:2!important;justify-self:center!important;width:112px!important;min-width:112px!important;height:42px!important;margin:0!important;padding:7px 5px!important;border-radius:22px!important;font-size:13px!important;background:#071c1a!important;color:#fff!important;border:1px solid #b58a00!important}
+  .uberish-menu{grid-column:3!important;justify-self:end!important;width:45px!important;height:45px!important;flex:0 0 45px!important;border-radius:50%!important}
+
+  .uberish-location{
+    position:absolute!important;
+    right:18px!important;
+    bottom:148px!important;
+    z-index:2500!important;
+    width:50px!important;
+    height:50px!important;
+  }
+
+  .driver-sheet{
+    position:absolute!important;
+    left:0!important;
+    right:0!important;
+    bottom:0!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:45vh!important;
+    box-sizing:border-box!important;
+    z-index:2000!important;
+    margin:0!important;
+    padding:10px 16px max(18px,env(safe-area-inset-bottom))!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    background:linear-gradient(180deg,#06111f,#071827)!important;
+    color:#fff!important;
+    border:1px solid #f4c400!important;
+    border-bottom:0!important;
+    border-radius:28px 28px 0 0!important;
+    box-shadow:0 -10px 35px #0007!important;
+  }
+  .driver-sheet .sheet-handle{display:block!important}
+  .driver-sheet .uberish-sheet-head{display:flex!important}
+  .driver-sheet .mobile-ride-card{background:transparent!important;border-top:1px solid #23354d!important;border-left:0!important;border-right:0!important;border-bottom:0!important;border-radius:0!important;box-shadow:none!important}
+  .driver-sheet .scheduled-card{margin-top:12px!important}
+  .driver-sheet .mobile-empty{color:#94a3b8!important}
+}
+</style></head>
 <body>
 
 <div class="driver-mobile-map" aria-hidden="true"></div>
