@@ -186,13 +186,13 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <div class="notice">⚠️ <b>AVISO – RESERVAS DE VIAGEM 🚗</b><br><br>A reserva deve ser confirmada com o pagamento de <b>50% do valor da viagem na data do agendamento</b>.<br><br>❗ <b>Cancelamento, desistência ou não comparecimento:</b> o valor do sinal <b>não será devolvido</b>, pois é destinado à cobertura dos custos da reserva, planejamento e deslocamento.<br><br>Ao efetuar o pagamento, o passageiro declara estar <b>ciente e de acordo com essas condições</b>.<br><br>🤝🚗 <b>Agradeço a compreensão!</b></div>
 </section>
 
-<button class="btn primary" type="submit">📲 Solicitar reserva pelo WhatsApp</button>
+<button class="btn primary" type="submit">📲 Enviar solicitação de reserva</button>
 <button class="btn dark" type="button" id="reset">Limpar</button>
 </form>
 
 <section class="card success" id="success">
 <div class="check">✅</div><h2>Reserva preparada!</h2>
-<p>A solicitação será enviada para o WhatsApp da 22 DRIVE.</p>
+<p>Sua solicitação foi enviada para o painel da 22 DRIVE e está aguardando a confirmação do motorista.</p>
 </section>
 
 <section class="card admin" id="admin">
@@ -1091,15 +1091,9 @@ document.addEventListener("DOMContentLoaded",()=>{
       lastReservationId=result.reserva_id||result.id||"";
       if(lastReservationId){localStorage.setItem("22drive_last_reservation_id",String(lastReservationId));connectPassengerRealtime();}
 
-      const text=encodeURIComponent(window.__pendingWhatsAppMessage||"");
-      const url=`https://wa.me/${WA}?text=${text}`;
       $("confirmOverlay").style.display="none";
       $("success").style.display="block";
-
-      const opened=window.open(url,"_blank");
-      if(!opened) window.location.href=url;
-
-      console.log("22 DRIVE — solicitação enviada:",result.reserva_id);
+      console.log("22 DRIVE — solicitação enviada somente ao painel:",result.reserva_id);
     }catch(err){
       console.error(err);
       if(err.code==="HORARIO_OCUPADO"){
