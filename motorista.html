@@ -278,7 +278,7 @@ function save(x){remoteReservations=x.slice();localStorage.setItem(REQUESTS_KEY,
 function notice(t){$("notice").textContent=t;$("notice").className="notice";setTimeout(()=>$("notice").className="notice hidden",4000)}
 function normalizeCpf(v){return String(v||"").replace(/\D/g,"");}
 function formatCpf(v){const d=normalizeCpf(v).slice(0,11);return d.replace(/^(\d{3})(\d)/,"$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/,"$1.$2.$3").replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/,"$1.$2.$3-$4");}
-function cpfAuthEmail(cpf){return "cpf."+normalizeCpf(cpf)+"@login.22drive.local";}
+function cpfAuthEmail(cpf){return "cpf."+normalizeCpf(cpf)+"@login.22drive.com";}
 function getAuthClient(){if(!supabaseClient&&window.supabase)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return supabaseClient;}
 function openSignup(){const loginScreen=$("login"),signupScreen=$("signupScreen");if(loginScreen)loginScreen.classList.add("hidden");if(signupScreen){signupScreen.classList.remove("hidden");signupScreen.scrollIntoView({behavior:"smooth",block:"start"});}if($("signupError"))$("signupError").textContent="";}
 function closeSignup(){const loginScreen=$("login"),signupScreen=$("signupScreen");if(signupScreen)signupScreen.classList.add("hidden");if(loginScreen)loginScreen.classList.remove("hidden");if($("signupError"))$("signupError").textContent="";}
