@@ -153,6 +153,7 @@ body{overflow:hidden}
   background:#050b14cc;
   color:#9fb0c8;
 }
+.driver-current-location-button{width:100%;min-height:40px;margin:0 0 8px;border:1px solid var(--gold);border-radius:12px;background:#0b1a2b;color:#fff;font-size:13px;font-weight:800;cursor:pointer}.driver-current-location-button:disabled{opacity:.65;cursor:wait}
 .driver-location-button{
   position:absolute;
   right:12px;
@@ -334,7 +335,7 @@ body{overflow:hidden}
   .driver-logo{width:min(100%,190px);height:48px}
   .driver-status{width:142px;min-height:46px;padding:7px 8px;font-size:15px}
   .driver-menu-button{flex-basis:50px;width:50px;height:50px;font-size:28px}
-  .driver-map{height:calc(100dvh - 74px - 150px);min-height:0}
+  .driver-map{height:calc(100dvh - 74px - 190px);min-height:0}
   .driver-map .leaflet-control-zoom{margin-right:10px;margin-bottom:72px}
   .driver-map .leaflet-control-zoom a{width:40px;height:40px;line-height:40px}
   .driver-location-button{right:10px;bottom:10px;width:50px;height:50px;font-size:28px}
@@ -376,8 +377,8 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 #app{display:none!important}
 #driverMapShell .driver-bottom-area{height:150px;overflow:auto}
 @media(max-width:700px){
-  #driverMapShell{height:100dvh;min-height:100dvh;padding-top:74px;padding-bottom:150px}
-  #driverMapShell .driver-bottom-area{height:150px;padding:8px 10px 10px}
+  #driverMapShell{height:100dvh;min-height:100dvh;padding-top:74px;padding-bottom:190px}
+  #driverMapShell .driver-bottom-area{height:190px;padding:8px 10px 10px}
   #driverMapShell .today-routes-card{min-height:124px}
 }
 /* Status do motorista: controle exclusivamente no topo */
@@ -435,6 +436,7 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 
   <div id="driverContent" class="driver-bottom-area">
     <div class="driver-sheet" id="driverSheet">
+      <button id="currentLocationButton" class="driver-current-location-button" type="button" onclick="useCurrentDriverLocation()">⌖ Usar minha localização atual</button>
       <div id="mobileNotice" class="sheet-notice hidden"></div>
       <div id="mobileRequests"></div>
 
@@ -966,6 +968,7 @@ function initDriverMap(){
     });
   }
 }
+function useCurrentDriverLocation(){const btn=$("currentLocationButton");if(!navigator.geolocation){alert("Seu navegador não permite acessar a localização.");return;}if(btn){btn.disabled=true;btn.textContent="⏳ Buscando localização...";}navigator.geolocation.getCurrentPosition(pos=>{driverLocation=[pos.coords.latitude,pos.coords.longitude];if(driverMap){driverMap.invalidateSize({pan:false});const icon=L.divIcon({className:"driver-car-marker",html:"<span>🚗</span>",iconSize:[52,52],iconAnchor:[26,26]});if(driverMarker)driverMarker.setLatLng(driverLocation);else driverMarker=L.marker(driverLocation,{icon,zIndexOffset:1000}).addTo(driverMap);driverMap.setView(driverLocation,16,{animate:true});updateRideMapFromRequests();}if(btn){btn.disabled=false;btn.textContent="⌖ Usar minha localização atual";}},err=>{if(btn){btn.disabled=false;btn.textContent="⌖ Usar minha localização atual";}alert("Não foi possível obter sua localização. Verifique a permissão de localização do navegador e o GPS do celular.");},{enableHighAccuracy:true,timeout:15000,maximumAge:0});}
 function centerDriverLocation(){
   if(driverLocation&&driverMap){
     driverMap.invalidateSize({pan:false});
