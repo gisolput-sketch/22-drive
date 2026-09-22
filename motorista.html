@@ -259,52 +259,24 @@ function closeModal(){selected=null;$("modal").classList.remove("on")}
 async function confirmRide(){if(!selected)return;stopRideAlert(selected);let date=$("cdate").value,time=$("ctime").value;if(!date||!time){alert("Informe data e horário.");return}let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(selected));if(i<0)return;const patch={status:"confirmed",confirmed_date:date,confirmed_time:time,confirm_note:$("cnote").value.trim(),confirmed_at:new Date().toISOString(),driver_name:driver.name,driver_phone:driver.phone};if(realtimeReady){if(!(await updateRemoteReservation(selected,patch)))return;}else{rs[i]={...rs[i],status:"confirmed",confirmedDate:date,confirmedTime:time,confirmNote:patch.confirm_note,confirmedAt:patch.confirmed_at,driverName:driver.name,driverPhone:driver.phone};save(rs);}const confirmed={...rs[i],...patch,confirmedDate:date,confirmedTime:time,confirmNote:patch.confirm_note,passengerPhone:rs[i].passengerPhone||rs[i].telefone,passengerName:rs[i].passengerName||rs[i].nome,origin:rs[i].origin||rs[i].origem,destination:rs[i].destination||rs[i].destino,sound:rs[i].sound||rs[i].som,musicStyle:rs[i].musicStyle||rs[i].estilo_musical};closeModal();render();notice("Viagem confirmada para "+dateBR(date)+" às "+time+". Enviando a programação ao passageiro...");sendConfirmationWhatsApp(confirmed);}
 function sendConfirmationWhatsApp(r){
   const p=String(r.passengerPhone||r.telefone||"");
-  const name=String(r.passengerName||r.nome||"passageiro");
-  const tripType=String(r.tripType||r.trip_type||r.tipo_viagem||"ida");
+  const name=String(r.passengerName||r.passenger_name||r.nome||"passageiro");
   const date=String(dateBR(r.confirmedDate||r.confirmed_date||r.date||""));
   const time=String(r.confirmedTime||r.confirmed_time||r.time||"");
-  const returnDate=String(dateBR(r.returnDate||r.return_date||""));
-  const returnTime=String(r.returnTime||r.return_time||"");
   const origin=String(r.origin||r.origem||"");
   const destination=String(r.destination||r.destino||"");
-  const distance=Number(r.distanceKm??r.distance_km??0);
-  const passengers=String(r.passengers||r.passageiros||1);
-  const baggage=String(r.baggage||r.bagagem||"Nenhuma");
-  const tripValue=Number(r.tripValue??r.trip_value??r.valor_viagem??r.valor??0);
-  const tollValue=Number(r.tollValue??r.toll_value??r.pedagios??r.pedagio??0);
-  const totalValue=Number(r.totalValue??r.total_value??(tripValue+tollValue));
-  const note=String(r.note||r.observation||r.observacoes||r.observacao||"Nenhuma");
-
+  const sound=String(r.musicStyle||r.music_style||r.estilo_musical||"");
   const NL=String.fromCharCode(10);
-  const lines=[
-    "🚗 22 DRIVE — NOVA SOLICITAÇÃO",
-    "",
-    "👤 Passageiro: "+name,
-    "📱 WhatsApp: "+(p||"Não informado"),
-    "🚘 Viagem: "+(tripType==="volta"||tripType==="ida_volta"||tripType==="ida e volta"?"Ida e volta":"Somente ida"),
-    "📅 Ida: "+date+" às "+time,
-  ];
 
-  if(tripType==="volta"||tripType==="ida_volta"||tripType==="ida e volta"){
-    lines.push("🔄 Volta: "+returnDate+" às "+returnTime);
-  }
+  const msg=[
+    "🚗 22 DRIVE",
+    "Viagem aceita, "+name+"! ✅",
+    "📅 "+date+" • 🕐 "+time,
+    "📍 "+origin,
+    "→ "+destination,
+    "🎵 Som: "+(sound||"Não informado"),
+    "Obrigado pela preferência! 🙏"
+  ].join(NL);
 
-  lines.push(
-    "📍 Embarque: "+origin,
-    "🏁 Destino: "+destination,
-    "📏 Distância: "+(Number.isFinite(distance)?distance.toFixed(2):"0.00")+" km",
-    "👥 Passageiros: "+passengers,
-    "🧳 Bagagem: "+baggage,
-    "",
-    "🚗 Valor da viagem: "+moneyBR(tripValue),
-    "🛣️ Pedágios: "+moneyBR(tollValue),
-    "💰 Total: "+moneyBR(totalValue),
-    "📝 Observações: "+(note||"Nenhuma"),
-    "",
-    "Declaro estar ciente das condições de pagamento da reserva."
-  );
-
-  const msg=lines.join(NL);
   let n=p.replace(/\D/g,"");
   if(n.length>=10&&!n.startsWith("55"))n="55"+n;
 
