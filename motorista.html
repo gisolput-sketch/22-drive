@@ -75,7 +75,7 @@ body{overflow-x:hidden}
   border-radius:28px;
   background:#061b19;
   color:#fff;
-  font-size:17px;
+  font-size:14px;
   font-weight:800;
   text-align:center;
   outline:none;
@@ -88,7 +88,7 @@ body{overflow-x:hidden}
   border-radius:50%;
   background:#050505;
   color:#fff;
-  font-size:30px;
+  font-size:24px;
   line-height:1;
   cursor:pointer;
 }
@@ -118,8 +118,8 @@ body{overflow-x:hidden}
 .driver-map{
   position:relative;
   width:100%;
-  height:calc(100vh - 92px - 190px);
-  min-height:360px;
+  height:calc(100vh - 92px - 170px);
+  min-height:300px;
   background:#07111f;
   border-bottom:1px solid var(--gold);
   overflow:hidden;
@@ -129,18 +129,18 @@ body{overflow-x:hidden}
   height:100%;
   background:#07111f;
 }
-.driver-map .leaflet-tile{filter:brightness(.78) saturate(.9)}
+.driver-map .leaflet-tile{filter:none}
 .driver-map .leaflet-control-zoom{
   margin:0 14px 76px 0;
 }
 .driver-map .leaflet-control-zoom a{
-  width:42px;
-  height:42px;
-  line-height:42px;
+  width:38px;
+  height:38px;
+  line-height:38px;
   background:#050b14;
   color:#fff;
   border:1px solid var(--gold);
-  font-size:24px;
+  font-size:20px;
 }
 .driver-map .leaflet-control-zoom a:first-child{border-radius:16px 16px 0 0}
 .driver-map .leaflet-control-zoom a:last-child{border-top:0;border-radius:0 0 16px 16px}
@@ -151,17 +151,17 @@ body{overflow-x:hidden}
 }
 .driver-location-button{
   position:absolute;
-  right:14px;
-  bottom:16px;
-  width:54px;
-  height:54px;
+  right:12px;
+  bottom:12px;
+  width:48px;
+  height:48px;
   display:grid;
   place-items:center;
   border:1px solid var(--gold);
   border-radius:50%;
   background:#050b14;
   color:#fff;
-  font-size:30px;
+  font-size:24px;
   cursor:pointer;
 }
 .driver-car-marker{background:transparent!important;border:0!important}
@@ -367,6 +367,21 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 .signup-link{color:var(--gold)}
 .muted{color:var(--muted);font-size:13px}
 .hidden{display:none!important}
+
+/* Ajuste final de legibilidade: interface 20% mais compacta */
+.driver-topbar{padding:8px 14px;min-height:78px}
+.driver-logo{width:min(100%,220px);height:48px}
+.driver-status{width:155px;min-height:44px;padding:7px 11px;font-size:14px}
+.driver-menu-button{width:48px;height:48px;flex-basis:48px;font-size:24px}
+.driver-bottom-area{padding:10px 12px 12px}
+.today-routes-card{padding:12px!important;border-radius:16px!important}
+.today-routes-card h2,.today-routes-card .today-title{font-size:18px!important}
+.today-routes-card p,.today-routes-card small{font-size:12px!important}
+.mobile-ride-card{padding:11px;margin-bottom:8px}
+.mobile-ride-card .ride-price{font-size:24px}
+.mobile-ride-card .ride-address{font-size:13px}
+.mobile-ride-card .ride-meta,.mobile-ride-card .passenger-label,.mobile-ride-card .route-label{font-size:11px}
+.mobile-ride-card .ride-actions .btn{font-size:13px;padding:10px}
 </style></style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -913,7 +928,7 @@ function initDriverMap(){
   if(!window.L||driverMap)return;
   driverMap=L.map("driverMap",{zoomControl:false,attributionControl:true}).setView([-22.7333,-42.625],13);
   setTimeout(()=>driverMap&&driverMap.invalidateSize(),250);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:20,subdomains:"abcd",attribution:"© OpenStreetMap © CARTO"}).addTo(driverMap);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20,subdomains:"abcd",attribution:"© OpenStreetMap contributors"}).addTo(driverMap);
   driverMap.dragging.enable();
   driverMap.touchZoom.enable();
   driverMap.scrollWheelZoom.enable();
