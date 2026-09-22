@@ -919,20 +919,107 @@ function renderScheduledRides(){
     return '<div class="scheduled-item"><b>📅 '+esc(dateBR(d))+' • 🕐 '+esc(t)+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small></div>';
   }).join("");
 }
+const ROUTE_STATE_KEY="22drive_route_state";
+let pickupArrivalWatchId=null;
+let pickupArrivalWatchRideId=null;
+
+function getRouteState(id){
+  try{
+    const all=JSON.parse(localStorage.getItem(ROUTE_STATE_KEY)||"{}");
+    return all[String(id)]||null;
+  }catch(e){return null;}
+}
+function setRouteState(id,phase){
+  try{
+    const all=JSON.parse(localStorage.getItem(ROUTE_STATE_KEY)||"{}");
+    all[String(id)]={phase,updatedAt:new Date().toISOString()};
+    localStorage.setItem(ROUTE_STATE_KEY,JSON.stringify(all));
+  }catch(e){}
+}
+function clearRouteState(id){
+  try{
+    const all=JSON.parse(localStorage.getItem(ROUTE_STATE_KEY)||"{}");
+    delete all[String(id)];
+    localStorage.setItem(ROUTE_STATE_KEY,JSON.stringify(all));
+  }catch(e){}
+}
+function distanceMeters(a,b){
+  const R=6371000,rad=Math.PI/180;
+  const dLat=(b[0]-a[0])*rad,dLon=(b[1]-a[1])*rad;
+  const x=Math.sin(dLat/2)**2+Math.cos(a[0]*rad)*Math.cos(b[0]*rad)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+function stopPickupArrivalWatch(){
+  if(pickupArrivalWatchId!=null && navigator.geolocation){
+    try{navigator.geolocation.clearWatch(pickupArrivalWatchId);}catch(e){}
+  }
+  pickupArrivalWatchId=null;
+  pickupArrivalWatchRideId=null;
+}
+function startPickupArrivalWatch(r){
+  if(!r||!navigator.geolocation)return;
+  const state=getRouteState(r.id);
+  if(!state||state.phase!=="pickup")return;
+  if(pickupArrivalWatchRideId===String(r.id)&&pickupArrivalWatchId!=null)return;
+  stopPickupArrivalWatch();
+  pickupArrivalWatchRideId=String(r.id);
+  pickupArrivalWatchId=navigator.geolocation.watchPosition(pos=>{
+    const current=[pos.coords.latitude,pos.coords.longitude];
+    driverLocation=current;
+    const pickup=rideCoordinate(r,"pickup");
+    if(!pickup)return;
+    if(distanceMeters(current,pickup)<=120){
+      setRouteState(r.id,"dropoff_ready");
+      stopPickupArrivalWatch();
+      renderTodayAcceptedRoutes();
+      notice("📍 Você chegou ao embarque. Agora toque em “🏁 Iniciar percurso” para ir ao destino do passageiro.");
+    }
+  },()=>{}, {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+}
+function openNavigationToRidePoint(r,type){
+  const coordinate=rideCoordinate(r,type);
+  const textAddress=type==="pickup"
+    ?String(r.origin||r.origem||"").trim()
+    :String(r.destination||r.destino||"").trim();
+  if(coordinate){
+    const url="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(coordinate[0]+","+coordinate[1])+"&travelmode=driving";
+    window.open(url,"_blank");
+    return true;
+  }
+  if(textAddress){
+    const url="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(textAddress)+"&travelmode=driving";
+    window.open(url,"_blank");
+    return true;
+  }
+  return false;
+}
 function startRideRoute(id){
   const r=requests().find(x=>String(x.id)===String(id));
   if(!r)return;
-  const pickup=rideCoordinate(r,"pickup");
-  const origin=String(r.origin||r.origem||"").trim();
-  if(pickup){
-    const url="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(pickup[0]+","+pickup[1])+"&travelmode=driving";
-    window.open(url,"_blank");
-  }else if(origin){
-    const url="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(origin)+"&travelmode=driving";
-    window.open(url,"_blank");
-  }else{
-    alert("O endereço de embarque não foi informado.");
+  const state=getRouteState(id);
+  if(state&&state.phase==="dropoff_ready"){
+    if(!openNavigationToRidePoint(r,"dropoff")){
+      alert("O endereço de desembarque não foi informado.");
+      return;
+    }
+    clearRouteState(id);
+    renderTodayAcceptedRoutes();
+    notice("🏁 Percurso iniciado. Navegação aberta para o destino do passageiro.");
+    return;
   }
+  if(state&&state.phase==="pickup"){
+    openNavigationToRidePoint(r,"pickup");
+    startPickupArrivalWatch(r);
+    return;
+  }
+  if(!openNavigationToRidePoint(r,"pickup")){
+    alert("O endereço de embarque não foi informado.");
+    return;
+  }
+  setRouteState(id,"pickup");
+  startPickupArrivalWatch(r);
+  renderTodayAcceptedRoutes();
+  notice("🚗 Rota para o embarque iniciada. Ao chegar, o botão mudará para “🏁 Iniciar percurso”.");
 }
 function renderTodayAcceptedRoutes(){
   const p=$("todayRoutesPanel"); if(!p)return;
@@ -948,6 +1035,7 @@ function renderTodayAcceptedRoutes(){
   });
   if($("todayRoutesCount"))$("todayRoutesCount").textContent=rows.length?String(rows.length):"";
   if(!rows.length){
+    stopPickupArrivalWatch();
     p.innerHTML='<div class="scheduled-empty">🚗 Nenhuma rota aceita para hoje.</div>';
     return;
   }
@@ -957,8 +1045,9 @@ function renderTodayAcceptedRoutes(){
     const origin=r.origin||r.origem||"Origem não informada";
     const dest=r.destination||r.destino||"Destino não informado";
     const status=(r.status||"").toLowerCase()==="confirmed"?"Confirmada":"Aceita";
-    return '<div class="scheduled-item today-route-item"><b>🕐 '+esc(t)+' • '+status+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small><button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">🚗 Iniciar rota</button></div>';
+    return '<div class="scheduled-item today-route-item"><b>🕐 '+esc(t)+' • '+status+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small><button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">"+((getRouteState(r.id)?.phase==="dropoff_ready")?"🏁 Iniciar percurso":(getRouteState(r.id)?.phase==="pickup")?"📍 Rota para embarque":"🚗 Iniciar rota")+"</button></div>';
   }).join("");
+  rows.forEach(r=>startPickupArrivalWatch(r));
 }
 function openScheduledFromMenu(){
   const modal=$("scheduledMenuModal"), panel=$("scheduledMenuPanel");
