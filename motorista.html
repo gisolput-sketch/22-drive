@@ -80,12 +80,12 @@
 <label>Senha</label>
 <div style="position:relative">
 <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required style="padding-right:72px">
-<button type="button" id="togglePassword" class="btn gray" style="position:absolute;right:5px;top:5px;padding:8px 10px" onclick="toggleLoginPassword()">Mostrar</button>
+<button type="button" id="togglePassword" class="password-toggle" aria-label="Mostrar senha">Mostrar</button>
 </div>
 <button class="btn primary btnblock" id="loginButton" type="submit">Entrar</button>
 </form>
 <div id="loginError" class="muted" style="margin-top:10px"></div>
-<button type="button" class="btn gray" style="display:block;width:auto;margin:12px auto 0;padding:7px 12px;font-size:12px" onclick="openSignup()">Criar login</button>
+<div class="signup-refined">Ainda não tem acesso? <button type="button" id="signupLink" class="signup-link">Criar login</button></div>
 </section>
 <section id="signupScreen" class="card hidden" style="max-width:440px;margin:25px auto">
 <h2>🆕 Criar login</h2>
@@ -97,9 +97,9 @@
 <label>Senha</label>
 <div style="position:relative">
 <input id="signupPassword" type="password" minlength="6" autocomplete="new-password" required placeholder="Mínimo de 6 caracteres" style="padding-right:85px">
-<button type="button" id="toggleSignupPassword" class="btn gray" style="position:absolute;right:5px;top:5px;padding:8px 10px" onclick="toggleSignupPassword()">Mostrar</button>
+<button type="button" id="toggleSignupPassword" class="password-toggle" aria-label="Mostrar senha">Mostrar</button>
 </div>
-<div class="row" style="margin-top:15px"><button class="btn gray" type="button" onclick="closeSignup()">← Voltar</button><button class="btn primary" type="submit" id="signupButton">Criar login</button></div>
+<div class="row" style="margin-top:15px"><button class="btn gray" type="button" id="closeSignupButton">← Voltar</button><button class="btn primary" type="submit" id="signupButton">Criar login</button></div>
 </form>
 <div id="signupError" class="muted" style="margin-top:10px"></div>
 </section>
@@ -298,7 +298,7 @@ function cpfAuthEmail(cpf){return "cpf."+normalizeCpf(cpf)+"@login.22drive.local
 function getAuthClient(){if(!supabaseClient&&window.supabase)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return supabaseClient;}
 function openSignup(){const loginScreen=$("login"),signupScreen=$("signupScreen");if(loginScreen)loginScreen.classList.add("hidden");if(signupScreen){signupScreen.classList.remove("hidden");signupScreen.scrollIntoView({behavior:"smooth",block:"start"});}if($("signupError"))$("signupError").textContent="";}
 function closeSignup(){const loginScreen=$("login"),signupScreen=$("signupScreen");if(signupScreen)signupScreen.classList.add("hidden");if(loginScreen)loginScreen.classList.remove("hidden");if($("signupError"))$("signupError").textContent="";}
-function toggleSignupPassword(){const input=$("signupPassword"),btn=$("toggleSignupPassword");if(!input)return;const showing=input.type==="text";input.type=showing?"password":"text";if(btn)btn.textContent=showing?"Mostrar":"Ocultar";}
+function toggleSignupPassword(){const input=$("signupPassword"),btn=$("toggleSignupPassword");if(!input)return;const showing=input.type==="text";input.type=showing?"password":"text";if(btn){btn.textContent=showing?"Mostrar":"Ocultar";btn.setAttribute("aria-label",showing?"Mostrar senha":"Ocultar senha");}}
 async function signupDriver(){
   const name=$("signupName").value.trim(),cpf=normalizeCpf($("signupCpf").value),phone=$("signupPhone").value.trim(),password=$("signupPassword").value;
   $("signupError").textContent="";
@@ -322,7 +322,7 @@ async function signupDriver(){
     $("signupError").textContent="❌ "+(e&&e.message?e.message:"Não foi possível criar o login.");
   }finally{$("signupButton").disabled=false;$("signupButton").textContent="Criar login";}
 }
-function toggleLoginPassword(){const input=$("loginPassword"),btn=$("togglePassword");if(!input)return;const showing=input.type==="text";input.type=showing?"password":"text";if(btn)btn.textContent=showing?"Mostrar":"Ocultar";}
+function toggleLoginPassword(){const input=$("loginPassword"),btn=$("togglePassword");if(!input)return;const showing=input.type==="text";input.type=showing?"password":"text";if(btn){btn.textContent=showing?"Mostrar":"Ocultar";btn.setAttribute("aria-label",showing?"Mostrar senha":"Ocultar senha");}}
 async function loadAuthenticatedDriver(){
   const client=getAuthClient();if(!client)return false;
   const {data:{session}}=await client.auth.getSession();
@@ -615,6 +615,14 @@ document.addEventListener("DOMContentLoaded",async()=>{
   if(cpfInput)cpfInput.addEventListener("input",()=>{cpfInput.value=formatCpf(cpfInput.value);});
   const form=$("loginForm");
   if(form)form.addEventListener("submit",event=>{event.preventDefault();login();});
+  const signupLink=$("signupLink");
+  if(signupLink)signupLink.addEventListener("click",event=>{event.preventDefault();openSignup();});
+  const closeSignupButton=$("closeSignupButton");
+  if(closeSignupButton)closeSignupButton.addEventListener("click",event=>{event.preventDefault();closeSignup();});
+  const togglePassword=$("togglePassword");
+  if(togglePassword)togglePassword.addEventListener("click",event=>{event.preventDefault();toggleLoginPassword();});
+  const toggleSignupPasswordButton=$("toggleSignupPassword");
+  if(toggleSignupPasswordButton)toggleSignupPasswordButton.addEventListener("click",event=>{event.preventDefault();toggleSignupPassword();});
   const signupCpf=$("signupCpf");
   if(signupCpf)signupCpf.addEventListener("input",()=>{signupCpf.value=formatCpf(signupCpf.value);});
   const signupForm=$("signupForm");
