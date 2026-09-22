@@ -298,6 +298,8 @@
 .ride-passenger{margin:8px 0 10px;padding:8px 10px;border-top:1px solid #29415e;border-bottom:1px solid #29415e;background:#071827!important;border-radius:10px;color:#fff!important}
 .ride-passenger .passenger-label{display:block;color:#f4c400!important;font-size:12px;font-weight:800;margin-bottom:2px}
 .ride-passenger strong{display:block;color:#fff!important;font-size:17px;line-height:1.2}
+</style><style id="remove-daily-balance">
+.map-daily-balance,.header-daily-balance{display:none!important}
 </style></style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -311,11 +313,6 @@
 <main class="wrap">
 <section id="driverMapShell" class="driver-map-shell">
   <div id="driverMap" class="driver-map"></div>
-  <div class="daily-balance map-daily-balance" aria-label="Saldo do dia">
-    <span class="daily-balance-label">💰 Saldo do dia</span>
-    <strong id="mobileDailyBalance">R$ 0,00</strong>
-    <button id="toggleBalanceVisibility" class="balance-eye" type="button" aria-label="Ocultar saldo" onclick="toggleDailyBalance()">👁</button>
-  </div>
   <div class="uberish-top">
     <div class="uberish-brand"><img class="driver-logo" src="./logo-driver-horizontal.svg" alt="22 DRIVE — Sua viagem, nossa prioridade"></div>
     <select id="statusMobile" class="uberish-status" onchange="changeStatusFromMobile()">
@@ -705,22 +702,8 @@ function resetDailyBalanceAtMidnight(){
   const now=new Date(), key=localKey(now), stored=localStorage.getItem("22drive_balance_day");
   if(stored!==key)localStorage.setItem("22drive_balance_day",key);
 }
-function toggleDailyBalance(){
-  const box=$("mobileDailyBalance"), eye=$("toggleBalanceVisibility");
-  if(!box)return;
-  const hidden=box.parentElement.classList.toggle("is-hidden");
-  box.dataset.hidden=hidden?"1":"0";
-  if(eye){eye.textContent=hidden?"🙈":"👁";eye.setAttribute("aria-label",hidden?"Mostrar saldo":"Ocultar saldo");}
-}
-function updateMobileDailyBalance(value){
-  resetDailyBalanceAtMidnight();
-  const box=$("mobileDailyBalance");
-  if(!box)return;
-  const wrap=box.parentElement;
-  const hidden=wrap&&wrap.classList.contains("is-hidden");
-  box.textContent=hidden?"••••••":moneyBR(value);
-  if(wrap)wrap.dataset.hidden=hidden?"1":"0";
-}
+function toggleDailyBalance(){return;}
+function updateMobileDailyBalance(value){return;}
 async function loadEarnings(){
   if(!driver||!driver.name||!SUPABASE_URL||!SUPABASE_KEY)return;
   try{
