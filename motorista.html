@@ -85,7 +85,20 @@
 <button class="btn primary btnblock" id="loginButton" type="submit">Entrar</button>
 </form>
 <div id="loginError" class="muted" style="margin-top:10px"></div>
+<button type="button" class="btn gray" style="display:block;width:auto;margin:12px auto 0;padding:7px 12px;font-size:12px" onclick="openSignup()">Criar login</button>
 </section>
+<div id="signupModal" class="modal"><div class="box">
+<h2>🆕 Criar login</h2>
+<p class="muted">Cadastre seu CPF, nome e uma senha para acessar a Área do Motorista.</p>
+<form id="signupForm">
+<label>Nome</label><input id="signupName" required placeholder="Seu nome completo">
+<label>CPF</label><input id="signupCpf" inputmode="numeric" maxlength="14" required placeholder="000.000.000-00">
+<label>Telefone / WhatsApp</label><input id="signupPhone" inputmode="tel" placeholder="(00) 00000-0000">
+<label>Senha</label><input id="signupPassword" type="password" minlength="6" required placeholder="Mínimo de 6 caracteres">
+<div class="row" style="margin-top:15px"><button class="btn gray" type="button" onclick="closeSignup()">Cancelar</button><button class="btn primary" type="submit" id="signupButton">Criar login</button></div>
+</form>
+<div id="signupError" class="muted" style="margin-top:10px"></div>
+</div></div>
 
 <section id="app" class="hidden">
 <div id="notice" class="notice hidden"></div><div class="mobile-sheet"><div class="sheet-bar"></div><div class="mobile-actions"><button class="btn active" onclick="focusRequests()">🚗 Corridas</button><button class="btn" onclick="openGains()">💰 Ganhos</button><button class="btn" onclick="focusStatus()">🟢 Status</button></div></div>
@@ -279,6 +292,31 @@ function normalizeCpf(v){return String(v||"").replace(/\D/g,"");}
 function formatCpf(v){const d=normalizeCpf(v).slice(0,11);return d.replace(/^(\d{3})(\d)/,"$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/,"$1.$2.$3").replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/,"$1.$2.$3-$4");}
 function cpfAuthEmail(cpf){return "cpf."+normalizeCpf(cpf)+"@login.22drive.local";}
 function getAuthClient(){if(!supabaseClient&&window.supabase)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return supabaseClient;}
+function openSignup(){const m=$("signupModal");if(m)m.classList.add("on");$("signupError").textContent="";}
+function closeSignup(){const m=$("signupModal");if(m)m.classList.remove("on");}
+async function signupDriver(){
+  const name=$("signupName").value.trim(),cpf=normalizeCpf($("signupCpf").value),phone=$("signupPhone").value.trim(),password=$("signupPassword").value;
+  $("signupError").textContent="";
+  if(!name){$("signupError").textContent="⚠️ Informe seu nome.";return;}
+  if(cpf.length!==11){$("signupError").textContent="⚠️ Digite um CPF válido com 11 números.";return;}
+  if(password.length<6){$("signupError").textContent="⚠️ A senha deve ter pelo menos 6 caracteres.";return;}
+  const client=getAuthClient();if(!client){$("signupError").textContent="❌ Serviço de autenticação indisponível.";return;}
+  $("signupButton").disabled=true;$("signupButton").textContent="Criando...";
+  try{
+    const {data,error}=await client.auth.signUp({email:cpfAuthEmail(cpf),password,options:{data:{cpf,nome:name,telefone:phone}}});
+    if(error)throw error;
+    if(!data.user)throw new Error("Não foi possível criar o usuário.");
+    if(data.session){
+      closeSignup();
+      await loadAuthenticatedDriver();
+    }else{
+      $("signupError").textContent="✅ Login criado. Se aparecer confirmação de e-mail no Supabase, ela precisa estar desativada para este tipo de CPF.";
+    }
+  }catch(e){
+    console.error("22 DRIVE cadastro:",e);
+    $("signupError").textContent="❌ "+(e&&e.message?e.message:"Não foi possível criar o login.");
+  }finally{$("signupButton").disabled=false;$("signupButton").textContent="Criar login";}
+}
 function toggleLoginPassword(){const input=$("loginPassword"),btn=$("togglePassword");if(!input)return;const showing=input.type==="text";input.type=showing?"password":"text";if(btn)btn.textContent=showing?"Mostrar":"Ocultar";}
 async function loadAuthenticatedDriver(){
   const client=getAuthClient();if(!client)return false;
@@ -572,6 +610,10 @@ document.addEventListener("DOMContentLoaded",async()=>{
   if(cpfInput)cpfInput.addEventListener("input",()=>{cpfInput.value=formatCpf(cpfInput.value);});
   const form=$("loginForm");
   if(form)form.addEventListener("submit",event=>{event.preventDefault();login();});
+  const signupCpf=$("signupCpf");
+  if(signupCpf)signupCpf.addEventListener("input",()=>{signupCpf.value=formatCpf(signupCpf.value);});
+  const signupForm=$("signupForm");
+  if(signupForm)signupForm.addEventListener("submit",event=>{event.preventDefault();signupDriver();});
   await loadAuthenticatedDriver();
   if(driver){}else{$("login").classList.remove("hidden");$("app").classList.add("hidden");}
   initDriverMap();
