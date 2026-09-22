@@ -74,10 +74,14 @@
 </section>
 </section>
 <section id="login" class="card" style="max-width:440px;margin:25px auto">
-<h2>🚗 Entrar no painel</h2><p class="muted">Use seu nome e telefone para acessar a Área do Motorista.</p>
+<h2>🚗 Entrar no painel</h2><p class="muted">Acesse a Área do Motorista com seu CPF e senha.</p>
 <form id="loginForm" autocomplete="on">
-<label>Nome</label><input id="loginName" name="name" autocomplete="name" placeholder="Nome do motorista" required>
-<label>Telefone</label><input id="loginPhone" name="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="(21) 99999-9999" required>
+<label>CPF</label><input id="loginCpf" name="username" inputmode="numeric" autocomplete="username" maxlength="14" placeholder="000.000.000-00" required>
+<label>Senha</label>
+<div style="position:relative">
+<input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required style="padding-right:72px">
+<button type="button" id="togglePassword" class="btn gray" style="position:absolute;right:5px;top:5px;padding:8px 10px" onclick="toggleLoginPassword()">Mostrar</button>
+</div>
 <button class="btn primary btnblock" id="loginButton" type="submit">Entrar</button>
 </form>
 <div id="loginError" class="muted" style="margin-top:10px"></div>
@@ -197,8 +201,7 @@ async function connectSupabaseRealtime(){
     realtimeReady=true;
     render();
     realtimeChannel=supabaseClient.channel("22drive-reservas")
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"reservas"},payload=>{
-        const r=normalizeReservation(payload.new);
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"reservas"},payload=>{        const r=normalizeReservation(payload.new);
         if((r.status||"new")!=="new")stopRideAlert(r.id);
         if(!remoteReservations.some(x=>String(x.id)===String(r.id))){
           remoteReservations.unshift(r);
@@ -272,9 +275,49 @@ function requests(){
 }
 function save(x){remoteReservations=x.slice();localStorage.setItem(REQUESTS_KEY,JSON.stringify(x))}
 function notice(t){$("notice").textContent=t;$("notice").className="notice";setTimeout(()=>$("notice").className="notice hidden",4000)}
-function login(){try{unlockDriverSound();const name=$("loginName").value.trim();const phone=$("loginPhone").value.trim();if(!name){alert("Digite o nome do motorista.");$("loginName").focus();return}if(!phone){alert("Digite o telefone do motorista.");$("loginPhone").focus();return}const cleanPhone=phone.replace(/\D/g,"");if(cleanPhone.length<10){alert("Digite um telefone válido com DDD.");$("loginPhone").focus();return}driver={name,phone,status:"available"};localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));openApp();}catch(e){console.error("22 DRIVE login:",e);alert("Não foi possível entrar no painel. Recarregue a página e tente novamente.");}}
-function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"Telefone não informado";$("status").value=driver.status||"available";if($("statusMobile"))$("statusMobile").value=driver.status||"available";initDriverMap();render();loadEarnings();connectSupabaseRealtime()}
-function logout(){localStorage.removeItem(DRIVER_KEY);location.reload()}
+function normalizeCpf(v){return String(v||"").replace(/\D/g,"");}
+function formatCpf(v){const d=normalizeCpf(v).slice(0,11);return d.replace(/^(\d{3})(\d)/,"$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/,"$1.$2.$3").replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/,"$1.$2.$3-$4");}
+function cpfAuthEmail(cpf){return "cpf."+normalizeCpf(cpf)+"@login.22drive.local";}
+function getAuthClient(){if(!supabaseClient&&window.supabase)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return supabaseClient;}
+function toggleLoginPassword(){const input=$("loginPassword"),btn=$("togglePassword");if(!input)return;const showing=input.type==="text";input.type=showing?"password":"text";if(btn)btn.textContent=showing?"Mostrar":"Ocultar";}
+async function loadAuthenticatedDriver(){
+  const client=getAuthClient();if(!client)return false;
+  const {data:{session}}=await client.auth.getSession();
+  if(!session?.user)return false;
+  const {data:profile,error}=await client.from("motoristas").select("id,cpf,nome,telefone,ativo,auth_user_id").eq("auth_user_id",session.user.id).maybeSingle();
+  if(error||!profile||profile.ativo===false){await client.auth.signOut();return false;}
+  driver={id:profile.id,cpf:profile.cpf,name:profile.nome,phone:profile.telefone||"",status:"available",authUserId:session.user.id};
+  localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));
+  openApp();
+  return true;
+}
+async function login(){
+  unlockDriverSound();
+  const cpf=normalizeCpf($("loginCpf").value),password=$("loginPassword").value;
+  $("loginError").textContent="";
+  if(cpf.length!==11){$("loginError").textContent="⚠️ Digite um CPF válido com 11 números.";$("loginCpf").focus();return;}
+  if(!password||password.length<6){$("loginError").textContent="⚠️ Digite sua senha.";$("loginPassword").focus();return;}
+  const client=getAuthClient();if(!client){$("loginError").textContent="❌ Serviço de autenticação indisponível.";return;}
+  $("loginButton").disabled=true;$("loginButton").textContent="Entrando...";
+  try{
+    const {data,error}=await client.auth.signInWithPassword({email:cpfAuthEmail(cpf),password});
+    if(error)throw error;
+    const user=data&&data.user;
+    if(!user)throw new Error("Não foi possível iniciar a sessão.");
+    const {data:profile,error:profileError}=await client.from("motoristas").select("id,cpf,nome,telefone,ativo,auth_user_id").eq("auth_user_id",user.id).maybeSingle();
+    if(profileError)throw profileError;
+    if(!profile){await client.auth.signOut();throw new Error("CPF autenticado, mas ainda não está cadastrado como motorista no 22 DRIVE.");}
+    if(profile.ativo===false){await client.auth.signOut();throw new Error("Este acesso de motorista está desativado.");}
+    driver={id:profile.id,cpf:profile.cpf,name:profile.nome,phone:profile.telefone||"",status:"available",authUserId:user.id};
+    localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));
+    openApp();
+  }catch(e){
+    console.error("22 DRIVE login:",e);
+    $("loginError").textContent="❌ "+(e&&e.message?e.message:"CPF ou senha incorretos.");
+  }finally{$("loginButton").disabled=false;$("loginButton").textContent="Entrar";}
+}
+function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"CPF cadastrado";$("status").value=driver.status||"available";if($("statusMobile"))$("statusMobile").value=driver.status||"available";initDriverMap();render();loadEarnings();connectSupabaseRealtime()}
+async function logout(){try{const client=getAuthClient();if(client)await client.auth.signOut();}catch(e){console.error("22 DRIVE logout:",e)}localStorage.removeItem(DRIVER_KEY);location.reload()}
 function changeStatus(){driver.status=$("status").value;localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));notice("Status atualizado.");}
 function focusRequests(){document.querySelector(".grid>section.card")?.scrollIntoView({behavior:"smooth",block:"start"});}
 function focusStatus(){alert("Status atual: "+($("status")?.selectedOptions?.[0]?.textContent||"Não informado"));}
@@ -397,8 +440,7 @@ function updateMapStatus(){
 function renderMobileRequests(){
   const el=$("mobileRequests"); if(!el)return;
   const rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
-  const active=rs.filter(r=>["new","accepted","confirmed"].includes(r.status||"new"));
-  if($("sheetCount"))$("sheetCount").textContent=active.length?active.length+" solicitação"+(active.length===1?"":"ões"):"";
+  const active=rs.filter(r=>["new","accepted","confirmed"].includes(r.status||"new"));  if($("sheetCount"))$("sheetCount").textContent=active.length?active.length+" solicitação"+(active.length===1?"":"ões"):"";
   if(!active.length){el.innerHTML='<div class="mobile-empty">📭<br><b>Nenhuma viagem no momento</b><br><span>Fique disponível para receber novas solicitações.</span></div>';return;}
   el.innerHTML=active.map(r=>{
     const s=r.status||"new", value=rideValue(r), passenger=r.passengerName||"Passageiro";
@@ -524,15 +566,18 @@ async function finishRide(id){
   }
 }
 window.login=login;
-document.addEventListener("DOMContentLoaded",()=>{
+document.addEventListener("DOMContentLoaded",async()=>{
+  getAuthClient();
+  const cpfInput=$("loginCpf");
+  if(cpfInput)cpfInput.addEventListener("input",()=>{cpfInput.value=formatCpf(cpfInput.value);});
   const form=$("loginForm");
-  if(form){
-    form.addEventListener("submit",function(event){
-      event.preventDefault();
-      login();
-    });
-  }
-  let d=localStorage.getItem(DRIVER_KEY);if(d)openApp();initDriverMap();if("Notification" in window&&Notification.permission==="granted"){$("notificationStatus").textContent="⏳ Notificações autorizadas. Registrando este celular...";registerDriverPush().then(()=>{$("notificationStatus").textContent="✅ Notificações registradas na base. Este celular está pronto para receber Push.";}).catch(e=>{$("notificationStatus").textContent="❌ Push autorizado, mas não foi possível registrar: "+(e&&e.message?e.message:"erro desconhecido");console.error("22 DRIVE Push automático:",e);});}setInterval(()=>{monitorNewRequests();pollRemoteReservations();loadEarnings();},30000);});</script>
+  if(form)form.addEventListener("submit",event=>{event.preventDefault();login();});
+  await loadAuthenticatedDriver();
+  if(driver){}else{$("login").classList.remove("hidden");$("app").classList.add("hidden");}
+  initDriverMap();
+  if("Notification" in window&&Notification.permission==="granted"&&driver){$("notificationStatus").textContent="⏳ Notificações autorizadas. Registrando este celular...";registerDriverPush().then(()=>{$("notificationStatus").textContent="✅ Notificações registradas na base. Este celular está pronto para receber Push.";}).catch(e=>{$("notificationStatus").textContent="❌ Push autorizado, mas não foi possível registrar: "+(e&&e.message?e.message:"erro desconhecido");console.error("22 DRIVE Push automático:",e);});}
+  setInterval(()=>{if(driver){monitorNewRequests();pollRemoteReservations();loadEarnings();}},30000);
+});</script>
 <div id="pwaInstall" style="display:none;position:sticky;bottom:12px;margin:12px auto;max-width:520px;z-index:9998"><button type="button" style="width:100%;border:0;border-radius:14px;padding:14px;background:#111827;color:#fff;font-weight:900;font-size:15px;box-shadow:0 8px 24px #0003" onclick="install22Drive()">📲 Instalar 22 DRIVE como aplicativo</button></div><script>
 let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;const b=document.getElementById("pwaInstall");if(b)b.style.display="block";});
