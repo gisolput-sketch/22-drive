@@ -883,8 +883,7 @@ async function updateRideMapForRequest(r){
   pickupMarker.openPopup();
 
   const requestId=id;
-  const routingHost=["https:","//router","project-osrm","org"].join("");
-  const osrmUrl=routingHost.replace("routerproject","router.project")+"/route/v1/driving/"+pickup[1]+","+pickup[0]+";"+dropoff[1]+","+dropoff[0]+"?overview=full&geometries=geojson";
+  const osrmUrl="https://router.project-osrm.org/route/v1/driving/"+pickup[1]+","+pickup[0]+";"+dropoff[1]+","+dropoff[0]+"?overview=full&geometries=geojson";
   fetch(osrmUrl).then(res=>{if(!res.ok)throw new Error("routing");return res.json();}).then(data=>{
     if(rideMapRequestId!==requestId||!rideMapLayer||!data.routes||!data.routes[0])return;
     const coords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
@@ -911,25 +910,82 @@ function updateRideMapFromRequests(){
 
 function initDriverMap(){
   if(!window.L||driverMap)return;
-  driverMap=L.map("driverMap",{zoomControl:false,attributionControl:true}).setView([-22.7333,-42.625],13);
-  setTimeout(()=>driverMap&&driverMap.invalidateSize(),250);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20,subdomains:"abcd",attribution:"© OpenStreetMap contributors"}).addTo(driverMap);
+  const mapEl=$("driverMap");
+  if(!mapEl)return;
+
+  driverMap=L.map(mapEl,{zoomControl:false,attributionControl:true,preferCanvas:true}).setView([-22.7333,-42.625],13);
+
+  const tiles=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:19,
+    attribution:"© OpenStreetMap contributors",
+    updateWhenIdle:true,
+    keepBuffer:2
+  }).addTo(driverMap);
+
+  tiles.on("tileerror",()=>console.warn("22 DRIVE: erro ao carregar um bloco do mapa."));
+
   driverMap.dragging.enable();
   driverMap.touchZoom.enable();
   driverMap.scrollWheelZoom.enable();
   driverMap.doubleClickZoom.enable();
   L.control.zoom({position:"bottomright"}).addTo(driverMap);
+
+  const resizeMap=()=>{
+    if(driverMap){
+      driverMap.invalidateSize({pan:false});
+      updateRideMapFromRequests();
+    }
+  };
+  setTimeout(resizeMap,50);
+  setTimeout(resizeMap,300);
+  setTimeout(resizeMap,800);
+  window.addEventListener("resize",resizeMap,{passive:true});
+
+  const addOrMoveDriverMarker=()=>{
+    if(!driverLocation||!driverMap)return;
+    const icon=L.divIcon({
+      className:"driver-car-marker",
+      html:"<span>🚗</span>",
+      iconSize:[52,52],
+      iconAnchor:[26,26]
+    });
+    if(driverMarker)driverMarker.setLatLng(driverLocation);
+    else driverMarker=L.marker(driverLocation,{icon,zIndexOffset:1000}).addTo(driverMap);
+  };
+
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(pos=>{
       driverLocation=[pos.coords.latitude,pos.coords.longitude];
+      addOrMoveDriverMarker();
       driverMap.setView(driverLocation,15);
-      driverMarker=L.marker(driverLocation,{icon:L.divIcon({className:"driver-car-marker",html:"<span>🚗</span>",iconSize:[52,52],iconAnchor:[26,26]})}).addTo(driverMap);
-    },()=>{});
+      updateRideMapFromRequests();
+    },err=>console.warn("22 DRIVE localização:",err),{
+      enableHighAccuracy:true,
+      timeout:10000,
+      maximumAge:30000
+    });
   }
 }
 function centerDriverLocation(){
-  if(driverLocation&&driverMap)driverMap.setView(driverLocation,15);
-  else if(navigator.geolocation)navigator.geolocation.getCurrentPosition(pos=>{driverLocation=[pos.coords.latitude,pos.coords.longitude];if(driverMap)driverMap.setView(driverLocation,15);});
+  if(driverLocation&&driverMap){
+    driverMap.invalidateSize({pan:false});
+    driverMap.setView(driverLocation,15,{animate:true});
+    return;
+  }
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{
+      driverLocation=[pos.coords.latitude,pos.coords.longitude];
+      if(driverMap){
+        driverMap.invalidateSize({pan:false});
+        if(driverMarker)driverMarker.setLatLng(driverLocation);
+        else{
+          driverMarker=L.marker(driverLocation,{icon:L.divIcon({className:"driver-car-marker",html:"<span>🚗</span>",iconSize:[52,52],iconAnchor:[26,26]}),zIndexOffset:1000}).addTo(driverMap);
+        }
+        driverMap.setView(driverLocation,15,{animate:true});
+        updateRideMapFromRequests();
+      }
+    },err=>alert("Não foi possível obter sua localização. Verifique a permissão de localização do navegador."));
+  }
 }
 function toggleDriverSheet(){const s=$("driverSheet");s.classList.toggle("expanded");}
 function toggleTopMenu(){const m=$("topMenuPanel");if(m)m.classList.toggle("open");}
