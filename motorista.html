@@ -315,7 +315,54 @@ function sendConfirmationWhatsApp(r){
     alert("Viagem confirmada, mas o telefone do passageiro não foi informado."+NL+NL+msg);
   }
 }
-async function finishRide(id){if(!confirm("Marcar viagem como finalizada?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"finished",finished_at:new Date().toISOString()};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"finished",finishedAt:patch.finished_at};save(rs);}render();loadEarnings();notice("Viagem finalizada.")}
+async function finishRide(id){
+  if(!confirm("Marcar viagem como finalizada e enviar uma mensagem de agradecimento ao passageiro?"))return;
+  let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));
+  if(i<0)return;
+  const ride=rs[i];
+  const patch={status:"finished",finished_at:new Date().toISOString()};
+  if(realtimeReady){
+    if(!(await updateRemoteReservation(id,patch)))return;
+  }else{
+    rs[i]={...rs[i],status:"finished",finishedAt:patch.finished_at};
+    save(rs);
+  }
+  render();
+  loadEarnings();
+  sendFinishedRideWhatsApp(ride);
+  notice("Viagem finalizada. Mensagem de agradecimento preparada para o passageiro.");
+}
+
+function sendFinishedRideWhatsApp(r){
+  const p=String(r.passengerPhone||r.passenger_phone||r.telefone||"");
+  const name=String(r.passengerName||r.passenger_name||r.nome||"");
+  const NL=String.fromCharCode(10);
+  const requestLink=new URL("./",window.location.href).href;
+  const msg=[
+    "🚗 22 DRIVE",
+    "",
+    "Olá, "+(name||"passageiro")+"! 😊",
+    "",
+    "🙏 Muito obrigado pela preferência e por viajar com a 22 DRIVE!",
+    "Foi um prazer realizar sua viagem.",
+    "",
+    "🚘 Quando precisar novamente, será um prazer atender você.",
+    "📲 Para solicitar sua próxima viagem:",
+    requestLink,
+    "",
+    "Até a próxima! 🤝🚗"
+  ].join(NL);
+
+  let n=p.replace(/\D/g,"");
+  if(n.length>=10&&!n.startsWith("55"))n="55"+n;
+
+  if(n){
+    const url="https://wa.me/"+n+"?text="+encodeURIComponent(msg);
+    window.open(url,"_blank");
+  }else{
+    alert("Corrida finalizada, mas o telefone do passageiro não foi informado."+NL+NL+msg);
+  }
+}
 window.login=login;
 document.addEventListener("DOMContentLoaded",()=>{
   const form=$("loginForm");
