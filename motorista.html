@@ -85,6 +85,11 @@ function normalizeReservation(r){
     time:r.travel_time||r.hora_ida||r.horario||r.p_hora_ida||"",
     returnDate:r.return_date||r.data_volta||r.p_data_volta||"",
     returnTime:r.return_time||r.hora_volta||r.p_hora_volta||"",
+    tripType:r.trip_type||r.tipo_viagem||r.p_tipo_viagem||"ida",
+    distanceKm:r.distance_km??r.distancia_km??r.km??r.p_distancia_km??0,
+    tripValue:r.trip_value??r.valor_viagem??r.valor??r.p_valor??0,
+    tollValue:r.toll_value??r.pedagios??r.pedagio??0,
+    depositValue:r.deposit_value??r.sinal??0,
     origin:r.origin||r.embarque||r.origem||r.p_embarque||"",
     destination:r.destination||r.destino||r.p_destino||"",
     payment:r.payment_method||r.forma_pagamento||r.pagamento||r.p_forma_pagamento||"",
@@ -255,24 +260,51 @@ async function confirmRide(){if(!selected)return;stopRideAlert(selected);let dat
 function sendConfirmationWhatsApp(r){
   const p=String(r.passengerPhone||r.telefone||"");
   const name=String(r.passengerName||r.nome||"passageiro");
-  const date=String(dateBR(r.confirmedDate||r.confirmed_date||""));
-  const time=String(r.confirmedTime||r.confirmed_time||"");
+  const tripType=String(r.tripType||r.trip_type||r.tipo_viagem||"ida");
+  const date=String(dateBR(r.confirmedDate||r.confirmed_date||r.date||""));
+  const time=String(r.confirmedTime||r.confirmed_time||r.time||"");
+  const returnDate=String(dateBR(r.returnDate||r.return_date||""));
+  const returnTime=String(r.returnTime||r.return_time||"");
   const origin=String(r.origin||r.origem||"");
   const destination=String(r.destination||r.destino||"");
-  const music=String(r.musicStyle||r.estilo_musical||r.sound||r.som||"Não informado");
+  const distance=Number(r.distanceKm??r.distance_km??0);
+  const passengers=String(r.passengers||r.passageiros||1);
+  const baggage=String(r.baggage||r.bagagem||"Nenhuma");
+  const tripValue=Number(r.tripValue??r.trip_value??r.valor_viagem??r.valor??0);
+  const tollValue=Number(r.tollValue??r.toll_value??r.pedagios??r.pedagio??0);
+  const totalValue=Number(r.totalValue??r.total_value??(tripValue+tollValue));
+  const note=String(r.note||r.observation||r.observacoes||r.observacao||"Nenhuma");
 
-  // Usa um caractere de quebra de linha real (ASCII 10).
-  // Assim o WhatsApp nunca recebe os caracteres "\\n".
   const NL=String.fromCharCode(10);
-  const msg=[
-    "🚗 22 DRIVE",
-    "Viagem aceita, "+name+"! ✅",
-    "📅 "+date+" • 🕐 "+time,
-    "📍 "+origin+" → "+destination,
-    "🎵 Som: "+music,
-    "Obrigado pela preferência! 🙏"
-  ].join(NL);
+  const lines=[
+    "🚗 22 DRIVE — NOVA SOLICITAÇÃO",
+    "",
+    "👤 Passageiro: "+name,
+    "📱 WhatsApp: "+(p||"Não informado"),
+    "🚘 Viagem: "+(tripType==="volta"||tripType==="ida_volta"||tripType==="ida e volta"?"Ida e volta":"Somente ida"),
+    "📅 Ida: "+date+" às "+time,
+  ];
 
+  if(tripType==="volta"||tripType==="ida_volta"||tripType==="ida e volta"){
+    lines.push("🔄 Volta: "+returnDate+" às "+returnTime);
+  }
+
+  lines.push(
+    "📍 Embarque: "+origin,
+    "🏁 Destino: "+destination,
+    "📏 Distância: "+(Number.isFinite(distance)?distance.toFixed(2):"0.00")+" km",
+    "👥 Passageiros: "+passengers,
+    "🧳 Bagagem: "+baggage,
+    "",
+    "🚗 Valor da viagem: "+moneyBR(tripValue),
+    "🛣️ Pedágios: "+moneyBR(tollValue),
+    "💰 Total: "+moneyBR(totalValue),
+    "📝 Observações: "+(note||"Nenhuma"),
+    "",
+    "Declaro estar ciente das condições de pagamento da reserva."
+  );
+
+  const msg=lines.join(NL);
   let n=p.replace(/\D/g,"");
   if(n.length>=10&&!n.startsWith("55"))n="55"+n;
 
