@@ -1,4 +1,4 @@
-const CACHE = '22-drive-push-v3';
+const CACHE = '22-drive-push-v4';
 
 self.addEventListener('install', event => {
   event.waitUntil(self.skipWaiting());
@@ -31,16 +31,21 @@ self.addEventListener("push", event => {
   } catch (_) {
     data = {body: event.data ? event.data.text() : ""};
   }
+
   const title = data.title || "🚨 Nova viagem — 22 DRIVE";
   const options = {
     body: data.body || "Há uma nova solicitação de viagem.",
     icon: data.icon || "./icon-192.svg",
     badge: data.badge || "./icon-192.svg",
-    tag: data.tag || "22drive-new-ride",
+    tag: data.tag || ("22drive-new-ride-" + Date.now()),
     renotify: true,
-    vibrate: [250,120,250],
+    requireInteraction: true,
+    silent: false,
+    vibrate: [300,120,300,120,700],
+    timestamp: Date.now(),
     data: {url: data.url || "./motorista.html"}
   };
+
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
@@ -50,6 +55,7 @@ self.addEventListener("notificationclick", event => {
     (event.notification.data && event.notification.data.url) || "./motorista.html",
     self.location.origin
   ).href;
+
   event.waitUntil(
     clients.matchAll({type:"window", includeUncontrolled:true}).then(list => {
       for (const client of list) {
