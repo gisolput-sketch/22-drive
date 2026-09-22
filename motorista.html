@@ -20,7 +20,7 @@
 <h2>🚗 Entrar no painel</h2><p class="muted">Use seu nome e telefone para acessar a Área do Motorista.</p>
 <label>Nome</label><input id="loginName" placeholder="Nome do motorista">
 <label>Telefone</label><input id="loginPhone" placeholder="(21) 99999-9999">
-<button class="btn primary btnblock" onclick="login()">Entrar</button>
+<button class="btn primary btnblock" type="button" onclick="login()">Entrar</button>
 </section>
 
 <section id="app" class="hidden">
@@ -185,7 +185,7 @@ function requests(){
 }
 function save(x){remoteReservations=x.slice();localStorage.setItem(REQUESTS_KEY,JSON.stringify(x))}
 function notice(t){$("notice").textContent=t;$("notice").className="notice";setTimeout(()=>$("notice").className="notice hidden",4000)}
-function login(){unlockDriverSound();let name=$("loginName").value.trim(),phone=$("loginPhone").value.trim();if(!name){alert("Digite o nome do motorista.");return}driver={name,phone,status:"available"};localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));openApp()}
+function login(){try{unlockDriverSound();const name=$("loginName").value.trim();const phone=$("loginPhone").value.trim();if(!name){alert("Digite o nome do motorista.");$("loginName").focus();return}if(!phone){alert("Digite o telefone do motorista.");$("loginPhone").focus();return}const cleanPhone=phone.replace(/\D/g,"");if(cleanPhone.length<10){alert("Digite um telefone válido com DDD.");$("loginPhone").focus();return}driver={name,phone,status:"available"};localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));openApp();}catch(e){console.error("22 DRIVE login:",e);alert("Não foi possível entrar no painel. Recarregue a página e tente novamente.");}}
 function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"Telefone não informado";$("status").value=driver.status||"available";render();connectSupabaseRealtime()}
 function logout(){localStorage.removeItem(DRIVER_KEY);location.reload()}
 function changeStatus(){driver.status=$("status").value;localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));notice("Status atualizado.")}
