@@ -337,13 +337,19 @@
       <option value="busy">🟠 Trabalhando</option>
       <option value="offline">⚫ Indisponível</option>
     </select>
-    <button class="uberish-menu" type="button" aria-label="Abrir menu" onclick="toggleTopMenu()">☰</button><div id="topMenuPanel" class="top-menu-panel"><button type="button" onclick="openScheduledFromMenu();closeTopMenu()">📅 Viagens agendadas</button><button type="button" onclick="openGains();closeTopMenu()">💰 Ganhos</button><button type="button" onclick="logout()">🚪 Sair</button></div>
+    <button class="uberish-menu" type="button" aria-label="Abrir menu" onclick="toggleTopMenu()">☰</button><div id="topMenuPanel" class="top-menu-panel"><button type="button" onclick="openScheduledFromMenu();closeTopMenu()">📅 Viagens agendadas</button><button type="button" onclick="openReviewsFromMenu();closeTopMenu()">⭐ Avaliações</button><button type="button" onclick="openGains();closeTopMenu()">💰 Ganhos</button><button type="button" onclick="logout()">🚪 Sair</button></div>
   <div id="scheduledMenuModal" class="scheduled-menu-modal" aria-hidden="true">
     <div class="scheduled-menu-box">
       <div class="scheduled-menu-title"><b>📅 Viagens agendadas</b><button type="button" onclick="closeScheduledFromMenu()">✕</button></div>
       <div id="scheduledMenuPanel" class="scheduled-menu-list"></div>
     </div>
+ <div id="reviewsMenuModal" class="scheduled-menu-modal" aria-hidden="true">
+    <div class="scheduled-menu-box">
+      <div class="scheduled-menu-title"><b>⭐ Avaliações dos passageiros</b><button type="button" onclick="closeReviewsFromMenu()">✕</button></div>
+      <div id="reviewsMenuPanel" class="scheduled-menu-list"></div>
+    </div>
   </div>
+ </div>
   </div>
   <div class="uberish-map-status">
     <span class="map-status-dot"></span>
@@ -1148,6 +1154,33 @@ function renderTodayAcceptedRoutes(){
     if(state?.phase==="dropoff")startDestinationArrivalWatch(r);
   });
 }
+async function openReviewsFromMenu(){
+  const modal=$("reviewsMenuModal"),panel=$("reviewsMenuPanel");
+  if(!modal||!panel)return;
+  panel.innerHTML='<div class="scheduled-empty">⏳ Carregando avaliações...</div>';
+  modal.classList.add("open"); modal.setAttribute("aria-hidden","false");
+  if(!realtimeReady){panel.innerHTML='<div class="scheduled-empty">⚠️ Não foi possível consultar as avaliações agora.</div>';return;}
+  try{
+    const {data,error}=await supabase.from("avaliacoes").select("id,reserva_id,passageiro_nome,nota,comentario,created_at").order("created_at",{ascending:false});
+    if(error)throw error;
+    const rows=(data||[]).filter(x=>x.nota>=1&&x.nota<=5);
+    if(!rows.length){panel.innerHTML='<div class="scheduled-empty">⭐ Nenhuma avaliação recebida ainda.</div>';return;}
+    const avg=rows.reduce((s,x)=>s+Number(x.nota),0)/rows.length;
+    panel.innerHTML='<div class="scheduled-item"><b>⭐ Média: '+avg.toFixed(1)+' / 5</b><small>'+rows.length+' avaliação'+(rows.length===1?'':'ões')+'</small></div>'+rows.map(x=>{
+      const stars="★★★★★".slice(0,Number(x.nota))+"☆☆☆☆☆".slice(Number(x.nota));
+      const date=new Date(x.created_at).toLocaleDateString("pt-BR");
+      return '<div class="scheduled-item"><b>'+stars+' • '+esc(x.passageiro_nome||"Passageiro")+'</b><small>'+esc(x.comentario||"Sem comentário.")+'<br>📅 '+date+'</small></div>';
+    }).join("");
+  }catch(e){
+    console.error("22 DRIVE avaliações:",e);
+    panel.innerHTML='<div class="scheduled-empty">❌ Não foi possível carregar as avaliações.</div>';
+  }
+}
+function closeReviewsFromMenu(){
+  const modal=$("reviewsMenuModal");
+  if(modal){modal.classList.remove("open");modal.setAttribute("aria-hidden","true");}
+}
+
 function openScheduledFromMenu(){
   const modal=$("scheduledMenuModal"), panel=$("scheduledMenuPanel");
   if(!modal||!panel)return;
