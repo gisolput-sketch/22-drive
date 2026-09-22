@@ -203,13 +203,13 @@ async function loadEarnings(){
     const mondayOffset=(now.getDay()+6)%7;
     const weekStart=new Date(dayStart);
     weekStart.setDate(weekStart.getDate()-mondayOffset);
-    const url=SUPABASE_URL+"/rest/v1/reservas?select=total_value,trip_value,valor,accepted_at,confirmed_at,status,driver_name&status=in.(accepted,confirmed,finished)&driver_name=eq."+encodeURIComponent(driver.name)+"&accepted_at=gte."+encodeURIComponent(monthStart.toISOString())+"&order=accepted_at.desc&limit=1000";
+    const url=SUPABASE_URL+"/rest/v1/reservas?select=total_value,trip_value,valor,finished_at,status,driver_name&status=eq.finished&driver_name=eq."+encodeURIComponent(driver.name)+"&finished_at=gte."+encodeURIComponent(monthStart.toISOString())+"&order=accepted_at.desc&limit=1000";
     const response=await fetch(url,{cache:"no-store",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});
     if(!response.ok)throw new Error("HTTP "+response.status);
     const rows=await response.json();
     let daily=0,weekly=0,monthly=0;
     rows.forEach(r=>{
-      const accepted=new Date(r.accepted_at||r.confirmed_at||0);
+      const accepted=new Date(r.finished_at||0);
       const value=Number(r.total_value??r.trip_value??r.valor??0)||0;
       if(accepted>=monthStart)monthly+=value;
       if(accepted>=weekStart)weekly+=value;
@@ -218,7 +218,7 @@ async function loadEarnings(){
     $("dailyEarnings").textContent=moneyBR(daily);
     $("weeklyEarnings").textContent=moneyBR(weekly);
     $("monthlyEarnings").textContent=moneyBR(monthly);
-    $("earningsStatus").textContent="Atualizado agora • "+rows.length+" corrida(s) aceita(s) no período.";
+    $("earningsStatus").textContent="Atualizado agora • "+rows.length+" corrida(s) finalizada(s) no período.";
   }catch(e){
     console.error("22 DRIVE ganhos:",e);
     $("earningsStatus").textContent="⚠️ Não foi possível atualizar os ganhos agora.";
@@ -244,7 +244,7 @@ function card(r){
  let buttons="";
  if(s==="new"||!r.status)buttons='<button class="btn green" onclick="acceptRide(\''+esc(r.id)+'\')">✓ Aceitar</button><button class="btn red" onclick="cancelRide(\''+esc(r.id)+'\')">✕ Recusar</button>';
  if(s==="accepted")buttons='<button class="btn green" onclick="openModal(\''+esc(r.id)+'\')">🗓️ Confirmar horário</button><button class="btn red" onclick="cancelRide(\''+esc(r.id)+'\')">Cancelar</button>';
- if(s==="confirmed")buttons='<button class="btn primary" onclick="messagePassenger(\''+esc(r.id)+'\')">💬 WhatsApp</button><button class="btn gray" onclick="finishRide(\''+esc(r.id)+'\')">✓ Finalizar</button>';
+ if(s==="confirmed")buttons='<button class="btn primary" onclick="messagePassenger(\''+esc(r.id)+'\')">💬 WhatsApp</button><button class="btn gray" onclick="finishRide(\''+esc(r.id)+'\')">✓ Finalizar corrida</button>';
  return '<article class="request"><div class="head"><div><b>🚕 '+esc(passenger)+'</b>'+(phone?'<div class="muted">📱 '+esc(phone)+'</div>':"")+'</div><span class="badge '+b[0]+'">'+b[1]+'</span></div><div style="line-height:1.7;margin:12px 0;font-size:14px">📍 <b>Origem:</b> '+esc(origin)+mapLinks+'<br>🏁 <b>Destino:</b> '+esc(dest)+(date||time?'<br>🕐 <b>Pedido:</b> '+dateBR(date)+' '+esc(time):"")+(r.payment||r.pagamento?'<br>💳 <b>Pagamento:</b> '+esc(r.payment||r.pagamento):"")+(r.note||r.observacao?'<br>📝 <b>Obs.:</b> '+esc(r.note||r.observacao):"")+schedule+'</div><div class="actions">'+buttons+'</div></article>'
 }
 async function acceptRide(id){stopRideAlert(id);let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"accepted",accepted_at:new Date().toISOString(),driver_name:driver.name,driver_phone:driver.phone};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"accepted",acceptedAt:patch.accepted_at,driverName:driver.name,driverPhone:driver.phone};save(rs);}render();notice("Solicitação aceita. Agora confirme o horário.")}
