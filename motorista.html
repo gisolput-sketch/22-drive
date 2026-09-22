@@ -148,35 +148,41 @@
 <link rel="apple-touch-icon" href="icon-192.svg">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style id="22drive-mobile-layout-clean">
-@media(max-width:800px){
-html,body{margin:0!important;padding:0!important;background:#000!important;overflow-x:hidden!important}
-#driverMapShell{position:relative!important;display:block!important;width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:108px 18px 24px!important;box-sizing:border-box!important;overflow:visible!important;background:#000!important}
-.uberish-top{position:absolute!important;top:8px!important;left:18px!important;right:18px!important;width:auto!important;height:92px!important;min-height:92px!important;display:grid!important;grid-template-columns:1fr auto 64px!important;align-items:center!important;gap:8px!important;padding:8px 12px!important;box-sizing:border-box!important;border:1.5px solid #f4c400!important;border-radius:28px!important;background:#050505!important;z-index:1000!important}
-.uberish-top .driver-logo{width:100%!important;max-width:210px!important;height:58px!important;object-fit:contain!important;object-position:left center!important}
-.uberish-status{width:100%!important;height:52px!important;min-width:0!important;padding:7px 9px!important;font-size:16px!important;border-radius:28px!important}
-.uberish-menu{width:56px!important;height:56px!important;font-size:29px!important}
-.driver-map-shell .driver-map{position:relative!important;display:block!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%!important;height:54vh!important;min-height:390px!important;max-height:560px!important;margin:0!important;box-sizing:border-box!important;border-radius:26px!important;overflow:hidden!important}
-.driver-map-shell .leaflet-container{width:100%!important;height:100%!important}
-.driver-sheet{position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;inset:auto!important;display:flex!important;flex-direction:column!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:18px 0 0!important;padding:0!important;box-sizing:border-box!important;overflow:visible!important;z-index:20!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important}
-.driver-sheet .sheet-handle,.driver-sheet .uberish-sheet-head{display:none!important}
-#mobileNotice{order:1!important;position:relative!important;width:100%!important;box-sizing:border-box!important;margin:0 0 14px!important}
-#mobileRequests{order:2!important;position:relative!important;width:100%!important}
-#todayRoutesCard{order:3!important;position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;inset:auto!important;display:block!important;width:100%!important;max-width:none!important;height:auto!important;margin:18px 0 0!important;padding:0!important;box-sizing:border-box!important;float:none!important;clear:both!important;transform:none!important;border:1.5px solid #f4c400!important;border-radius:24px!important;background:#050b14!important;overflow:hidden!important;z-index:20!important}
-#todayRoutesCard .today-routes-head{display:flex!important;align-items:center!important;gap:10px!important;padding:13px 14px!important}
-#todayRoutesCard .scheduled-icon{font-size:26px!important}
-#todayRoutesCard .today-routes-head b{font-size:16px!important}
-#todayRoutesCard .today-routes-head small{font-size:12px!important}
-#todayRoutesPanel{position:relative!important;width:100%!important;padding:0 12px 12px!important;box-sizing:border-box!important}
-#todayRoutesCard .scheduled-item{font-size:12px!important}
-#todayRoutesCard .scheduled-item b{font-size:13px!important}
-#todayRoutesCard .scheduled-item small{font-size:11px!important}
-.mobile-ride-card{padding:14px 18px 16px!important}
-.mobile-ride-card .ride-price{font-size:34px!important}
-.mobile-ride-card .ride-payment,.mobile-ride-card .ride-meta{font-size:14px!important}
-.mobile-ride-card .ride-actions .btn{min-height:54px!important;font-size:14px!important}
-#notificationCard,.grid{display:none!important}
-.uberish-location{z-index:100!important}
+<style id="22drive-layout-from-zero">
+/* Estrutura mobile reconstruída do zero */
+@media (max-width:800px){
+  html,body{margin:0!important;padding:0!important;background:#000!important;overflow-x:hidden!important}
+  .wrap{width:100%!important;max-width:none!important;margin:0!important;padding:0 16px 30px!important;box-sizing:border-box!important}
+  #driverMapShell{position:relative!important;display:block!important;width:100%!important;margin:0!important;padding:106px 0 0!important;box-sizing:border-box!important;background:#000!important;overflow:visible!important}
+  .uberish-top{position:absolute!important;top:8px!important;left:0!important;right:0!important;width:100%!important;height:88px!important;min-height:88px!important;display:grid!important;grid-template-columns:minmax(0,1fr) 150px 58px!important;align-items:center!important;gap:8px!important;padding:8px 10px!important;box-sizing:border-box!important;background:#050505!important;border:1.5px solid #f4c400!important;border-radius:26px!important;z-index:1000!important}
+  .uberish-brand{min-width:0!important;display:flex!important;align-items:center!important}
+  .uberish-top .driver-logo{display:block!important;width:100%!important;max-width:205px!important;height:56px!important;object-fit:contain!important;object-position:left center!important}
+  .uberish-status{width:150px!important;height:50px!important;margin:0!important;padding:6px 8px!important;box-sizing:border-box!important;font-size:16px!important;border-radius:26px!important}
+  .uberish-menu{width:54px!important;height:54px!important;font-size:28px!important;justify-self:end!important}
+  .top-menu-panel{z-index:5000!important}
+  .driver-map{position:relative!important;width:100%!important;height:52vh!important;min-height:380px!important;max-height:560px!important;margin:0!important;inset:auto!important;box-sizing:border-box!important;border-radius:26px!important;overflow:hidden!important}
+  .driver-map .leaflet-container{width:100%!important;height:100%!important}
+  .uberish-map-status{display:none!important}
+  .uberish-location{z-index:100!important}
+  #driverContent{display:block!important;width:100%!important;margin:18px 0 0!important;padding:0!important;box-sizing:border-box!important}
+  #driverContent .driver-sheet{position:relative!important;display:flex!important;flex-direction:column!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;inset:auto!important;box-sizing:border-box!important;background:transparent!important;border:0!important;overflow:visible!important;z-index:20!important}
+  #driverContent .sheet-handle,#driverContent .uberish-sheet-head{display:none!important}
+  #mobileNotice{order:1!important;width:100%!important;margin:0 0 12px!important;box-sizing:border-box!important}
+  #mobileRequests{order:2!important;width:100%!important}
+  .mobile-ride-card{width:100%!important;box-sizing:border-box!important;margin:0 0 12px!important;padding:14px 18px 16px!important;border-radius:24px!important}
+  .mobile-ride-card .ride-price{font-size:34px!important}
+  .mobile-ride-card .ride-payment,.mobile-ride-card .ride-meta{font-size:14px!important}
+  .mobile-ride-card .ride-actions .btn{min-height:52px!important;font-size:14px!important}
+  #todayRoutesCard{order:3!important;position:relative!important;display:block!important;width:100%!important;height:auto!important;margin:16px 0 0!important;padding:0!important;inset:auto!important;float:none!important;clear:both!important;transform:none!important;box-sizing:border-box!important;border:1.5px solid #f4c400!important;border-radius:24px!important;background:#050b14!important;overflow:hidden!important;z-index:20!important}
+  #todayRoutesCard .today-routes-head{display:flex!important;align-items:center!important;gap:10px!important;padding:12px 14px!important}
+  #todayRoutesCard .scheduled-icon{font-size:25px!important}
+  #todayRoutesCard .today-routes-head b{font-size:16px!important}
+  #todayRoutesCard .today-routes-head small{font-size:12px!important}
+  #todayRoutesPanel{width:100%!important;padding:0 12px 12px!important;box-sizing:border-box!important}
+  #todayRoutesCard .scheduled-item{font-size:12px!important}
+  #todayRoutesCard .scheduled-item b{font-size:13px!important}
+  #todayRoutesCard .scheduled-item small{font-size:11px!important}
+  #notificationCard,.grid{display:none!important}
 }
 </style></head>
 <body>
@@ -210,7 +216,8 @@ html,body{margin:0!important;padding:0!important;background:#000!important;overf
     <div><b id="mapStatusTitle">Você está disponível</b><small id="mapStatusText">Aguardando novas viagens</small></div>
   </div>
   <button class="uberish-location" type="button" onclick="centerDriverLocation()">⌖</button>
-  <div class="driver-sheet" id="driverSheet">
+
+<div id="driverContent">  <div class="driver-sheet" id="driverSheet">
     <div class="sheet-handle" onclick="toggleDriverSheet()"></div>
     <div class="uberish-sheet-head">
       <div><b id="sheetTitle">22 DRIVE</b><small id="sheetDriverName"></small></div>
@@ -226,8 +233,7 @@ html,body{margin:0!important;padding:0!important;background:#000!important;overf
       </div>
       <div class="scheduled-panel open" id="todayRoutesPanel"></div>
     </div>
-  </div>
-</section>
+  </div></div>
 <section id="login" class="card" style="max-width:440px;margin:25px auto">
 <div class="login-brand"><img class="login-logo" src="./logo-login.svg" alt="22 DRIVE — Sua viagem, nossa prioridade"><p class="muted">Área do Motorista</p></div>
 <form id="loginForm" autocomplete="on" onsubmit="return false;">
@@ -1271,23 +1277,5 @@ if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.se
     <div class="charge-method"><b>VALOR DA VIAGEM</b><div id="chargeValue" class="charge-value">R$ 0,00</div></div>
     <button class="charge-close" type="button" onclick="closeChargeModal()">✓ Cobrança concluída</button>
   </div>
-</div><script id="routes-footer-hard-js">
-(function(){
-  function forceRoutesFooter(){
-    if(!window.matchMedia || !matchMedia("(max-width:800px)").matches)return;
-    const sheet=document.getElementById("driverSheet");
-    const routes=document.getElementById("todayRoutesCard");
-    const requests=document.getElementById("mobileRequests");
-    if(!sheet||!routes)return;
-    if(requests && routes.previousElementSibling!==requests) sheet.appendChild(routes);
-    Object.assign(sheet.style,{position:"relative",left:"auto",right:"auto",top:"auto",bottom:"auto",display:"flex",flexDirection:"column",width:"100%",height:"auto",maxHeight:"none",minHeight:"0",margin:"18px 0 0",padding:"0 0 20px",overflow:"visible",background:"transparent",border:"0",borderRadius:"0",boxShadow:"none"});
-    Object.assign(routes.style,{position:"relative",left:"auto",right:"auto",top:"auto",bottom:"auto",display:"block",width:"100%",maxWidth:"none",height:"auto",margin:"24px 0 0",order:"9999",float:"none",clear:"both",transform:"none",boxSizing:"border-box"});
-  }
-  document.addEventListener("DOMContentLoaded",forceRoutesFooter);
-  window.addEventListener("load",forceRoutesFooter);
-  window.addEventListener("resize",forceRoutesFooter);
-  setTimeout(forceRoutesFooter,500);
-  setTimeout(forceRoutesFooter,1500);
-})();
-</script></body>
+</div></body>
 </html>
