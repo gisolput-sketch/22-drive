@@ -829,8 +829,9 @@ async function updateRideMapForRequest(r){
 }
 function updateRideMapFromRequests(){
   if(!driverMap)return;
-  const rs=requests().filter(r=>["new","accepted","confirmed"].includes(r.status||"new"));
-  const ride=rs.find(r=>(r.status||"new")==="new")||rs[0];
+  // O mapa só mostra a rota de uma nova solicitação.
+  // Depois que o motorista aceita, o mapa fica livre para navegação.
+  const ride=requests().find(r=>String(r.status||"new").toLowerCase()==="new");
   if(ride)updateRideMapForRequest(ride); else clearRideMap();
 }
 
