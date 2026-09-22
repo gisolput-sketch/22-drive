@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#111827">
 <title>22 DRIVE — Área do Motorista</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:Arial,sans-serif}.wrap{max-width:1000px;margin:auto;padding:18px}.top{background:#111827;color:white;padding:18px;border-radius:0 0 18px 18px}.topin{max-width:1000px;margin:auto;display:flex;justify-content:space-between;align-items:center}.brand{font-weight:800;font-size:20px}.brand small{display:block;font-size:12px;font-weight:400;opacity:.75}.card{background:white;border:1px solid #e5e7eb;border-radius:18px;padding:17px;margin:0 0 15px;box-shadow:0 6px 20px #11182712}h2{font-size:19px;margin:0 0 12px}.muted{color:#6b7280;font-size:13px}.grid{display:grid;grid-template-columns:320px 1fr;gap:15px}@media(max-width:800px){.grid{grid-template-columns:1fr}}input,select{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;font-size:15px}label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}.btn{border:0;border-radius:10px;padding:12px 15px;font-weight:800;cursor:pointer}.primary{background:#111827;color:#fff}.green{background:#16a34a;color:#fff}.red{background:#dc2626;color:#fff}.gray{background:#e5e7eb}.btnblock{width:100%;margin-top:10px}.hidden{display:none!important}.notice{padding:12px;border-radius:10px;margin-bottom:12px;background:#dbeafe;color:#1e40af}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{padding:12px;text-align:center;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px}.stat b{display:block;font-size:22px}.request{border:1px solid #e5e7eb;border-radius:15px;padding:15px;margin-bottom:12px}.head{display:flex;justify-content:space-between;gap:8px}.badge{padding:5px 9px;border-radius:99px;font-size:11px;font-weight:800}.new{background:#dbeafe;color:#1e40af}.accepted{background:#fef3c7;color:#92400e}.confirmed{background:#dcfce7;color:#166534}.cancelled{background:#fee2e2;color:#991b1b}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions .btn{flex:1;min-width:120px}.empty{text-align:center;padding:30px;color:#6b7280;border:1px dashed #d1d5db;border-radius:13px}.status{padding:13px;border:1px solid #e5e7eb;border-radius:12px;background:#fafafa}.modal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:15px;z-index:10}.modal.on{display:flex}.box{background:white;border-radius:17px;padding:18px;width:100%;max-width:450px}.row{display:flex;gap:8px}.row>*{flex:1}.chart-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.chart-tabs .btn{flex:1;min-width:90px}.chart-tabs .active{background:#111827;color:#fff}.chart-wrap{overflow-x:auto;padding:10px 4px 4px}.chart{display:flex;align-items:flex-end;gap:8px;min-height:260px;border-bottom:1px solid #d1d5db;padding:20px 8px 0}.bar-col{min-width:42px;flex:1;height:230px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}.bar-value{font-size:10px;font-weight:800;white-space:nowrap}.bar{width:min(34px,75%);min-height:3px;border-radius:7px 7px 2px 2px;background:#111827}.bar-label{font-size:10px;color:#6b7280;white-space:nowrap}.gain-modal .box{max-width:900px;max-height:90vh;overflow:auto}.gain-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.gain-summary .stat{padding:10px}.gain-summary .stat b{font-size:18px}@media(max-width:600px){.gain-summary{grid-template-columns:repeat(2,1fr)}.chart{min-width:650px}}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f3f4f6;color:#111827;font-family:Arial,sans-serif}.wrap{max-width:1000px;margin:auto;padding:18px}.top{position:relative;z-index:30;background:#111827;color:white;padding:12px 16px;border-radius:0 0 18px 18px}.topin{max-width:1000px;margin:auto;display:flex;justify-content:space-between;align-items:center}.brand{font-weight:800;font-size:20px}.brand small{display:block;font-size:12px;font-weight:400;opacity:.75}.card{background:white;border:1px solid #e5e7eb;border-radius:18px;padding:17px;margin:0 0 15px;box-shadow:0 6px 20px #11182712}h2{font-size:19px;margin:0 0 12px}.muted{color:#6b7280;font-size:13px}.grid{display:grid;grid-template-columns:320px 1fr;gap:15px}@media(max-width:800px){.grid{grid-template-columns:1fr}}input,select{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;font-size:15px}label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}.btn{border:0;border-radius:10px;padding:12px 15px;font-weight:800;cursor:pointer}.primary{background:#111827;color:#fff}.green{background:#16a34a;color:#fff}.red{background:#dc2626;color:#fff}.gray{background:#e5e7eb}.btnblock{width:100%;margin-top:10px}.hidden{display:none!important}.notice{padding:12px;border-radius:10px;margin-bottom:12px;background:#dbeafe;color:#1e40af}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{padding:12px;text-align:center;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px}.stat b{display:block;font-size:22px}.request{border:1px solid #e5e7eb;border-radius:15px;padding:15px;margin-bottom:12px}.head{display:flex;justify-content:space-between;gap:8px}.badge{padding:5px 9px;border-radius:99px;font-size:11px;font-weight:800}.new{background:#dbeafe;color:#1e40af}.accepted{background:#fef3c7;color:#92400e}.confirmed{background:#dcfce7;color:#166534}.cancelled{background:#fee2e2;color:#991b1b}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions .btn{flex:1;min-width:120px}.empty{text-align:center;padding:30px;color:#6b7280;border:1px dashed #d1d5db;border-radius:13px}.status{padding:13px;border:1px solid #e5e7eb;border-radius:12px;background:#fafafa}.modal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:15px;z-index:10}.modal.on{display:flex}.box{background:white;border-radius:17px;padding:18px;width:100%;max-width:450px}.row{display:flex;gap:8px}.row>*{flex:1}.chart-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.chart-tabs .btn{flex:1;min-width:90px}.chart-tabs .active{background:#111827;color:#fff}.chart-wrap{overflow-x:auto;padding:10px 4px 4px}.chart{display:flex;align-items:flex-end;gap:8px;min-height:260px;border-bottom:1px solid #d1d5db;padding:20px 8px 0}.bar-col{min-width:42px;flex:1;height:230px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}.bar-value{font-size:10px;font-weight:800;white-space:nowrap}.bar{width:min(34px,75%);min-height:3px;border-radius:7px 7px 2px 2px;background:#111827}.bar-label{font-size:10px;color:#6b7280;white-space:nowrap}.gain-modal .box{max-width:900px;max-height:90vh;overflow:auto}.gain-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.gain-summary .stat{padding:10px}.gain-summary .stat b{font-size:18px}@media(max-width:600px){.gain-summary{grid-template-columns:repeat(2,1fr)}.chart{min-width:650px}}
 .driver-mobile-map{display:none}.mobile-sheet{display:none}
 @media(max-width:800px){
  body{background:#e5e7eb}.top{position:fixed;top:0;left:0;right:0;z-index:20;border-radius:0;padding:10px 14px;background:#111827dd;backdrop-filter:blur(10px)}.topin{max-width:none}.brand{font-size:17px}.brand small{display:none}.top .gray{padding:8px 11px}
@@ -20,9 +20,11 @@
  .mobile-actions .active{background:#111827;color:#fff}
  .request{border-radius:18px;box-shadow:0 3px 12px #0000000d}.actions .btn{min-width:0}
 }
-</style>
+.driver-map-shell{display:none}.driver-map{position:absolute;inset:0;background:#e5e7eb}.map-top-card{position:absolute;top:72px;left:14px;right:14px;z-index:20;background:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 5px 20px #0002;display:flex;align-items:center;gap:10px}.map-top-card small{display:block;color:#6b7280;margin-top:3px}.map-status-dot{width:12px;height:12px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 5px #dcfce7}.map-location-btn{position:absolute;right:14px;bottom:31%;z-index:21;width:46px;height:46px;border:0;border-radius:50%;background:#fff;box-shadow:0 5px 18px #0003;font-size:25px}.driver-sheet{position:absolute;z-index:25;left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;box-shadow:0 -8px 28px #0002;padding:8px 14px max(18px,env(safe-area-inset-bottom));max-height:58vh;overflow:auto;transition:max-height .25s ease}.driver-sheet.expanded{max-height:88vh}.sheet-handle{width:44px;height:5px;background:#d1d5db;border-radius:99px;margin:2px auto 10px}.sheet-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}.sheet-header b{font-size:17px}.sheet-header small{display:block;color:#6b7280;margin-top:3px}.sheet-header select{width:auto;padding:8px;border-radius:12px}.sheet-notice{background:#eff6ff;color:#1e40af;border-radius:12px;padding:10px;margin:8px 0;font-size:13px}.mobile-ride-card{border:0;border-top:1px solid #e5e7eb;padding:14px 0}.mobile-ride-card .ride-price{font-size:24px;font-weight:900}.mobile-ride-card .ride-route{line-height:1.5;margin:9px 0;color:#374151}.mobile-ride-card .ride-actions{display:flex;gap:8px}.mobile-ride-card .ride-actions .btn{flex:1;min-height:48px;font-size:15px}.leaflet-control-attribution{font-size:8px}@media(max-width:800px){body{background:#000}.top{position:fixed;top:0;left:0;right:0;border-radius:0;background:#111827;padding:10px 14px}.topin{height:42px}.top .btn{padding:8px 12px}.wrap{padding:0;max-width:none}.driver-map-shell{display:block;position:fixed;inset:0;z-index:1}.driver-map-shell+.card,.driver-map-shell~#login,.driver-map-shell~#app{z-index:10}.driver-map-shell~#app{position:relative;display:none}.driver-map-shell~#app:not(.hidden){display:none}.driver-map-shell~#login{position:fixed;z-index:100;left:14px;right:14px;top:80px}.driver-map-shell~#login.hidden{display:none!important}.driver-map-shell~#app.hidden{display:none!important}.driver-map-shell~#app:not(.hidden){display:none!important}.driver-map-shell{display:block}.driver-map-shell .leaflet-container{height:100%;width:100%}body:has(#app:not(.hidden)) .driver-map-shell{display:block}body:has(#app:not(.hidden)) #login{display:none!important}.card{border-radius:16px}.request{background:#f9fafb}.gain-modal{z-index:100}.modal{z-index:100}.top .brand{font-size:17px}.top .brand small{display:none}}</style>
 <link rel="manifest" href="manifest-motorista.json">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="apple-touch-icon" href="icon-192.svg">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -32,6 +34,27 @@
 
 <div class="driver-mobile-map"><div id="driverMap"></div></div>
 <main class="wrap">
+<section id="driverMapShell" class="driver-map-shell">
+  <div id="driverMap" class="driver-map"></div>
+  <div class="map-top-card">
+    <div class="map-status-dot"></div>
+    <div><b id="mapStatusTitle">Você está disponível</b><small id="mapStatusText">Aguardando novas viagens</small></div>
+  </div>
+  <button class="map-location-btn" type="button" onclick="centerDriverLocation()">⌖</button>
+  <div class="driver-sheet" id="driverSheet">
+    <div class="sheet-handle" onclick="toggleDriverSheet()"></div>
+    <div class="sheet-header">
+      <div><b>🚗 22 DRIVE</b><small id="sheetDriverName"></small></div>
+      <select id="statusMobile" onchange="changeStatusFromMobile()">
+        <option value="available">🟢 Disponível</option>
+        <option value="busy">🟠 Trabalhando</option>
+        <option value="offline">⚫ Indisponível</option>
+      </select>
+    </div>
+    <div id="mobileNotice" class="sheet-notice hidden"></div>
+    <div id="mobileRequests"></div>
+  </div>
+</section>
 <section id="login" class="card" style="max-width:440px;margin:25px auto">
 <h2>🚗 Entrar no painel</h2><p class="muted">Use seu nome e telefone para acessar a Área do Motorista.</p>
 <form id="loginForm" autocomplete="on">
@@ -232,7 +255,7 @@ function requests(){
 function save(x){remoteReservations=x.slice();localStorage.setItem(REQUESTS_KEY,JSON.stringify(x))}
 function notice(t){$("notice").textContent=t;$("notice").className="notice";setTimeout(()=>$("notice").className="notice hidden",4000)}
 function login(){try{unlockDriverSound();const name=$("loginName").value.trim();const phone=$("loginPhone").value.trim();if(!name){alert("Digite o nome do motorista.");$("loginName").focus();return}if(!phone){alert("Digite o telefone do motorista.");$("loginPhone").focus();return}const cleanPhone=phone.replace(/\D/g,"");if(cleanPhone.length<10){alert("Digite um telefone válido com DDD.");$("loginPhone").focus();return}driver={name,phone,status:"available"};localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));openApp();}catch(e){console.error("22 DRIVE login:",e);alert("Não foi possível entrar no painel. Recarregue a página e tente novamente.");}}
-function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"Telefone não informado";$("status").value=driver.status||"available";render();loadEarnings();connectSupabaseRealtime()}
+function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.remove("hidden");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"Telefone não informado";$("status").value=driver.status||"available";if($("statusMobile"))$("statusMobile").value=driver.status||"available";initDriverMap();render();loadEarnings();connectSupabaseRealtime()}
 function logout(){localStorage.removeItem(DRIVER_KEY);location.reload()}
 function changeStatus(){driver.status=$("status").value;localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));notice("Status atualizado.");}
 function focusRequests(){document.querySelector(".grid>section.card")?.scrollIntoView({behavior:"smooth",block:"start"});}
@@ -324,6 +347,49 @@ async function loadEarnings(){
 
 
 function dateBR(v){if(!v)return"";let p=String(v).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:v}
+let driverMap=null,driverMarker=null,driverLocation=null;
+function initDriverMap(){
+  if(!window.L||driverMap)return;
+  driverMap=L.map("driverMap",{zoomControl:false,attributionControl:true}).setView([-22.7333,-42.625],13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(driverMap);
+  L.control.zoom({position:"bottomright"}).addTo(driverMap);
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{
+      driverLocation=[pos.coords.latitude,pos.coords.longitude];
+      driverMap.setView(driverLocation,15);
+      driverMarker=L.circleMarker(driverLocation,{radius:9,color:"#111827",fillColor:"#fff",fillOpacity:1,weight:4}).addTo(driverMap);
+    },()=>{});
+  }
+}
+function centerDriverLocation(){
+  if(driverLocation&&driverMap)driverMap.setView(driverLocation,15);
+  else if(navigator.geolocation)navigator.geolocation.getCurrentPosition(pos=>{driverLocation=[pos.coords.latitude,pos.coords.longitude];if(driverMap)driverMap.setView(driverLocation,15);});
+}
+function toggleDriverSheet(){const s=$("driverSheet");s.classList.toggle("expanded");}
+function changeStatusFromMobile(){ $("status").value=$("statusMobile").value; changeStatus(); updateMapStatus(); }
+function updateMapStatus(){
+  if(!driver)return;
+  const s=driver.status||"available";
+  const title=s==="available"?"Você está disponível":s==="busy"?"Você está trabalhando":"Você está indisponível";
+  const text=s==="available"?"Aguardando novas viagens":s==="busy"?"Em atendimento":"Ative Disponível para receber viagens";
+  if($("mapStatusTitle"))$("mapStatusTitle").textContent=title;
+  if($("mapStatusText"))$("mapStatusText").textContent=text;
+}
+function renderMobileRequests(){
+  const el=$("mobileRequests"); if(!el)return;
+  const rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  const active=rs.filter(r=>["new","accepted","confirmed"].includes(r.status||"new"));
+  if(!active.length){el.innerHTML='<div class="empty" style="padding:22px 8px;border:0">📭<br><b>Nenhuma viagem no momento</b><br><span class="muted">Fique disponível para receber novas solicitações.</span></div>';return;}
+  el.innerHTML=active.map(r=>{
+    const s=r.status||"new", value=rideValue(r), passenger=r.passengerName||"Passageiro";
+    const origin=r.origin||"Origem não informada", dest=r.destination||"Destino não informado";
+    let actions="";
+    if(s==="new") actions='<button class="btn green" onclick="acceptRide(\''+esc(r.id)+'\')">✓ Aceitar</button><button class="btn red" onclick="cancelRide(\''+esc(r.id)+'\')">✕ Recusar</button>';
+    else if(s==="accepted") actions='<button class="btn green" onclick="openModal(\''+esc(r.id)+'\')">🗓️ Confirmar horário</button><button class="btn red" onclick="cancelRide(\''+esc(r.id)+'\')">Cancelar</button>';
+    else actions='<button class="btn primary" onclick="messagePassenger(\''+esc(r.id)+'\')">💬 WhatsApp</button><button class="btn gray" onclick="finishRide(\''+esc(r.id)+'\')">✓ Finalizar</button>';
+    return '<article class="mobile-ride-card"><div style="display:flex;justify-content:space-between;gap:10px"><div><b>🚕 '+esc(passenger)+'</b><div class="muted">'+(s==="new"?"Nova solicitação":s==="accepted"?"Viagem aceita":"Viagem confirmada")+'</div></div><div class="ride-price">'+moneyBR(value)+'</div></div><div class="ride-route">📍 '+esc(origin)+'<br>↓<br>🏁 '+esc(dest)+'<br>🕐 '+dateBR(r.date||"")+' '+esc(r.time||"")+'</div><div class="ride-actions">'+actions+'</div></article>';
+  }).join("");
+}
 function render(){
  let rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
  $("newCount").textContent=rs.filter(r=>r.status==="new"||!r.status).length;
@@ -331,6 +397,7 @@ function render(){
  $("confirmedCount").textContent=rs.filter(r=>r.status==="confirmed").length;
  if(!rs.length){$("requests").innerHTML='<div class="empty">📭<br><b>Nenhuma solicitação disponível.</b><br><span class="muted">As solicitações aparecerão aqui quando forem conectadas à base online.</span></div>';return}
  $("requests").innerHTML=rs.map(card).join("")
+ renderMobileRequests(); updateMapStatus();
 }
 function card(r){
  let s=r.status||"new", map={new:["new","Nova"],accepted:["accepted","Aceita"],confirmed:["confirmed","Confirmada"],cancelled:["cancelled","Cancelada"],finished:["confirmed","Finalizada"]}, b=map[s]||map.new;
