@@ -215,7 +215,11 @@ async function loadEarnings(){
     let daily=0,weekly=0,monthly=0;
     rows.forEach(r=>{
       const accepted=new Date(r.finished_at||0);
-      const value=Number(r.total_value??r.trip_value??r.valor??0)||0;
+      const value = Number(r.total_value) > 0
+        ? Number(r.total_value)
+        : (Number(r.trip_value) > 0
+          ? Number(r.trip_value)
+          : (Number(r.valor) > 0 ? Number(r.valor) : 0));
       if(accepted>=monthStart)monthly+=value;
       if(accepted>=weekStart)weekly+=value;
       if(accepted>=dayStart)daily+=value;
