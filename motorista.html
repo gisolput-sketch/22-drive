@@ -72,7 +72,6 @@
     <div id="mobileRequests"></div>
   </div>
 </section>
-</section>
 <section id="login" class="card" style="max-width:440px;margin:25px auto">
 <h2>🚗 Entrar no painel</h2><p class="muted">Acesse a Área do Motorista com seu e-mail e senha.</p>
 <form id="loginForm" autocomplete="on" onsubmit="return false;">
@@ -302,7 +301,7 @@ async function signupDriver(){
   }finally{$("signupButton").disabled=false;$("signupButton").textContent="Criar login";}
 }
 function toggleLoginPassword(){const input=$("loginPassword"),btn=$("togglePassword");if(!input)return;const showing=input.type==="text";input.type=showing?"password":"text";if(btn){btn.textContent=showing?"Mostrar":"Ocultar";btn.setAttribute("aria-label",showing?"Mostrar senha":"Ocultar senha");}}
-async async function loadAuthenticatedDriver(){
+async function loadAuthenticatedDriver(){
   const client=getAuthClient();if(!client)return false;
   const {data:{session}}=await client.auth.getSession();
   if(!session?.user)return false;
