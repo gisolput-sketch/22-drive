@@ -133,6 +133,8 @@
   .driver-sheet .sheet-handle,
   .driver-sheet .uberish-sheet-head{display:none!important}
 }
+.map-daily-balance{position:absolute!important;top:98px;right:18px;z-index:1100!important;display:grid;grid-template-columns:1fr 28px;align-items:center;gap:5px;min-width:112px;width:112px;padding:7px 6px 7px 9px;background:linear-gradient(135deg,#06111f,#0b1b2b)!important;border:1px solid #f4c400!important;border-radius:18px!important;box-shadow:0 5px 18px #000b!important;color:#fff!important}.map-daily-balance .daily-balance-label{grid-column:1/2;font-size:9px!important;line-height:1.05;color:#d7e2ef}.map-daily-balance strong{grid-column:1/2;font-size:15px!important;line-height:1.1;color:#08d878!important}.map-daily-balance .balance-eye{grid-column:2;grid-row:1/3;width:28px!important;height:28px!important;font-size:15px!important}.map-daily-balance.is-hidden strong{color:#fff!important;letter-spacing:3px}.map-daily-balance.is-hidden{background:#071525!important}
+@media(max-width:800px){.map-daily-balance{top:98px!important;right:18px!important;min-width:104px!important;width:104px!important;grid-template-columns:1fr 25px!important;padding:6px 5px 6px 8px!important;border-radius:17px!important}.map-daily-balance .daily-balance-label{font-size:8px!important}.map-daily-balance strong{font-size:13px!important}.map-daily-balance .balance-eye{width:25px!important;height:25px!important;font-size:13px!important}}
 .top-menu-panel.open{display:flex!important}</style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -146,9 +148,13 @@
 <main class="wrap">
 <section id="driverMapShell" class="driver-map-shell">
   <div id="driverMap" class="driver-map"></div>
+  <div class="daily-balance map-daily-balance" aria-label="Saldo do dia">
+    <span class="daily-balance-label">💰 Saldo do dia</span>
+    <strong id="mobileDailyBalance">R$ 0,00</strong>
+    <button id="toggleBalanceVisibility" class="balance-eye" type="button" aria-label="Ocultar saldo" onclick="toggleDailyBalance()">👁</button>
+  </div>
   <div class="uberish-top">
     <div class="uberish-brand"><img class="driver-logo" src="./logo-driver-horizontal.svg" alt="22 DRIVE — Sua viagem, nossa prioridade"></div>
-    <div class="daily-balance" aria-label="Saldo do dia"><span class="daily-balance-label">💰 Saldo do dia</span><strong id="mobileDailyBalance">R$ 0,00</strong><button id="toggleBalanceVisibility" class="balance-eye" type="button" aria-label="Ocultar saldo" onclick="toggleDailyBalance()">👁</button></div>
     <select id="statusMobile" class="uberish-status" onchange="changeStatusFromMobile()">
       <option value="available">🟢 Disponível</option>
       <option value="busy">🟠 Trabalhando</option>
