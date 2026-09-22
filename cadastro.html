@@ -38,6 +38,8 @@ input:focus{border-color:#111827}
 <form id="signupForm" autocomplete="off">
 <label for="signupName">Nome</label>
 <input id="signupName" autocomplete="name" required placeholder="Seu nome completo">
+<label for="signupEmail">E-mail</label>
+<input id="signupEmail" type="email" autocomplete="email" required placeholder="seuemail@exemplo.com">
 <label for="signupCpf">CPF</label>
 <input id="signupCpf" inputmode="numeric" maxlength="14" autocomplete="username" required placeholder="000.000.000-00">
 <label for="signupPhone">Telefone / WhatsApp</label>
@@ -75,18 +77,20 @@ $("backButton").addEventListener("click",()=>{window.location.href="./motorista.
 $("signupForm").addEventListener("submit",async event=>{
   event.preventDefault();
   const name=$("signupName").value.trim();
+  const email=$("signupEmail").value.trim();
   const cpf=normalizeCpf($("signupCpf").value);
   const phone=$("signupPhone").value.trim();
   const password=$("signupPassword").value;
   showError("");
   if(!name){showError("⚠️ Informe seu nome.");return;}
+  if(!email||!email.includes("@")){showError("⚠️ Digite um e-mail válido.");return;}
   if(cpf.length!==11){showError("⚠️ Digite um CPF válido com 11 números.");return;}
   if(password.length<6){showError("⚠️ A senha deve ter pelo menos 6 caracteres.");return;}
   const button=$("signupButton");
   button.disabled=true;button.textContent="Criando...";
   try{
     const {data,error}=await client.auth.signUp({
-      email:cpfAuthEmail(cpf),
+      email,
       password,
       options:{data:{cpf,nome:name,telefone:phone}}
     });
