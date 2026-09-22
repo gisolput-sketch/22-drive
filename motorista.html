@@ -424,9 +424,10 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
     <button class="driver-menu-button" type="button" aria-label="Abrir menu" onclick="toggleTopMenu()">☰</button>
 
     <div id="topMenuPanel" class="top-menu-panel">
+      <button type="button" onclick="openGainsFromMenu();closeTopMenu()">💰 Ganhos</button>
       <button type="button" onclick="openScheduledFromMenu();closeTopMenu()">📅 Viagens agendadas</button>
       <button type="button" onclick="openReviewsFromMenu();closeTopMenu()">⭐ Avaliações</button>
-            <button type="button" onclick="logout()">🚪 Sair</button>
+      <button type="button" onclick="logout();closeTopMenu()">🚪 Sair</button>
     </div>
   </header>
 
@@ -516,9 +517,24 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 </section>
 </main>
 
-<div id="gainStatus" class="muted" style="margin-top:10px"></div>
-<div style="margin-top:15px"><button class="btn gray btnblock" onclick="closeGains()">Fechar</button></div>
-</div></div>
+<div id="gainModal" class="scheduled-menu-modal" aria-hidden="true">
+  <div class="scheduled-menu-box">
+    <div class="scheduled-menu-title">
+      <b>💰 Ganhos</b>
+      <button type="button" onclick="closeGains()">✕</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button id="gainTodayBtn" class="btn gray" type="button" onclick="setGainPeriod('today')">Hoje</button>
+      <button id="gainWeekBtn" class="btn gray" type="button" onclick="setGainPeriod('week')">Semana</button>
+      <button id="gainMonthBtn" class="btn gray" type="button" onclick="setGainPeriod('month')">Mês</button>
+    </div>
+    <div class="scheduled-item"><b>💵 Total: <span id="gainTotal">R$ 0,00</span></b><small id="gainPeriodLabel">Hoje</small></div>
+    <div class="scheduled-item"><b>🚗 Corridas: <span id="gainRides">0</span></b><small>Média por dia: <span id="gainAverage">R$ 0,00</span></small></div>
+    <div class="scheduled-item"><b>🛣️ Pedágios: <span id="gainTolls">R$ 0,00</span></b></div>
+    <div id="gainChart" style="display:flex;align-items:flex-end;gap:4px;min-height:100px;overflow-x:auto;padding:10px 0"></div>
+    <div id="gainStatus" class="muted" style="margin-top:8px"></div>
+  </div>
+</div>
 
 <script>
 const DRIVER_KEY="22drive_driver";
@@ -993,6 +1009,20 @@ function centerDriverLocation(){
 function toggleDriverSheet(){const s=$("driverSheet");s.classList.toggle("expanded");}
 function toggleTopMenu(){const m=$("topMenuPanel");if(m)m.classList.toggle("open");}
 function closeTopMenu(){const m=$("topMenuPanel");if(m)m.classList.remove("open");}
+async function openGainsFromMenu(){
+  const modal=$("gainModal");
+  if(!modal)return;
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden","false");
+  gainPeriod="today";
+  ["today","week","month"].forEach(x=>{const b=$("gain"+x.charAt(0).toUpperCase()+x.slice(1)+"Btn");if(b)b.classList.toggle("active",x==="today");});
+  $("gainStatus").textContent="⏳ Carregando ganhos...";
+  await loadFinancialChart();
+}
+function closeGains(){
+  const modal=$("gainModal");
+  if(modal){modal.classList.remove("open");modal.setAttribute("aria-hidden","true");}
+}
 function changeStatusFromMobile(){ const v=$("statusMobile").value==="available"?"available":"offline"; $("status").value=v; changeStatus(); updateMapStatus(); }
 function updateMapStatus(){
   if(!driver)return;
