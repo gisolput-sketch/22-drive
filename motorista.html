@@ -137,6 +137,9 @@ body{overflow:hidden}
 .driver-map .leaflet-control-zoom{
   margin:0 14px 76px 0;
 }
+.driver-map .leaflet-control-zoom + .leaflet-control{
+  margin-right:14px;
+}
 .driver-map .leaflet-control-zoom a{
   width:38px;
   height:38px;
@@ -156,8 +159,8 @@ body{overflow:hidden}
 .driver-current-location-button{width:100%;min-height:40px;margin:0 0 8px;border:1px solid var(--gold);border-radius:12px;background:#0b1a2b;color:#fff;font-size:13px;font-weight:800;cursor:pointer}.driver-current-location-button:disabled{opacity:.65;cursor:wait}
 .driver-location-button{
   position:absolute;
-  right:12px;
-  bottom:12px;
+  right:14px;
+  bottom:92px;
   width:48px;
   height:48px;
   display:grid;
@@ -338,7 +341,7 @@ body{overflow:hidden}
   .driver-map{height:calc(100dvh - 74px - 190px);min-height:0}
   .driver-map .leaflet-control-zoom{margin-right:10px;margin-bottom:72px}
   .driver-map .leaflet-control-zoom a{width:40px;height:40px;line-height:40px}
-  .driver-location-button{right:10px;bottom:10px;width:50px;height:50px;font-size:28px}
+  .driver-location-button{right:10px;bottom:92px;width:50px;height:50px;font-size:28px}
   .driver-bottom-area{padding:10px 10px 12px}
   .today-routes-card{padding:12px 13px}
   .today-routes-icon{width:42px;height:42px;flex-basis:42px;font-size:22px}
