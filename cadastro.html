@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>22 DRIVE — Cadastro do Motorista</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#f3f4f6;color:#111827;font-family:Arial,sans-serif}
+body{display:flex;align-items:center;justify-content:center;padding:24px}
+.card{width:100%;max-width:440px;background:#fff;border:1px solid #e5e7eb;border-radius:20px;padding:22px;box-shadow:0 10px 30px #11182718}
+h1{margin:0 0 5px;font-size:22px}
+h2{margin:0 0 8px;font-size:19px}
+.muted{color:#6b7280;font-size:13px;line-height:1.45}
+label{display:block;font-weight:700;font-size:13px;margin:14px 0 6px}
+input{width:100%;padding:13px;border:1px solid #d1d5db;border-radius:11px;font-size:15px;outline:none}
+input:focus{border-color:#111827}
+.btn{border:0;border-radius:11px;padding:13px 15px;font-weight:800;cursor:pointer}
+.primary{background:#111827;color:#fff}
+.gray{background:#e5e7eb;color:#111827}
+.btnblock{width:100%;margin-top:16px}
+.row{display:flex;gap:9px;margin-top:15px}.row>*{flex:1}
+.password-wrap{position:relative}.password-wrap input{padding-right:85px}
+.toggle{position:absolute;right:5px;top:5px;padding:8px 10px;border:0;border-radius:8px;background:#e5e7eb;font-weight:700}
+#signupError{margin-top:12px}
+.brand{margin-bottom:20px}.brand b{font-size:24px}.brand small{display:block;color:#6b7280;margin-top:3px}
+.success{background:#ecfdf5;color:#166534;border:1px solid #bbf7d0;padding:12px;border-radius:11px;margin-top:12px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<main class="card">
+<div class="brand">🚗 <b>22 DRIVE</b><small>Cadastro do Motorista</small></div>
+<section id="formArea">
+<h2>🆕 Criar login</h2>
+<p class="muted">Preencha seus dados. Depois do cadastro, você retornará para a página de login.</p>
+<form id="signupForm" autocomplete="off">
+<label for="signupName">Nome</label>
+<input id="signupName" autocomplete="name" required placeholder="Seu nome completo">
+<label for="signupCpf">CPF</label>
+<input id="signupCpf" inputmode="numeric" maxlength="14" autocomplete="username" required placeholder="000.000.000-00">
+<label for="signupPhone">Telefone / WhatsApp</label>
+<input id="signupPhone" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000">
+<label for="signupPassword">Senha</label>
+<div class="password-wrap">
+<input id="signupPassword" type="password" minlength="6" autocomplete="new-password" required placeholder="Mínimo de 6 caracteres">
+<button type="button" id="toggleSignupPassword" class="toggle">Mostrar</button>
+</div>
+<div class="row">
+<button class="btn gray" type="button" id="backButton">← Voltar ao login</button>
+<button class="btn primary" type="submit" id="signupButton">Criar login</button>
+</div>
+</form>
+<div id="signupError" class="muted"></div>
+</section>
+</main>
+<script>
+const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co";
+const SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
+const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+function normalizeCpf(v){return String(v||"").replace(/\D/g,"");}
+function formatCpf(v){const d=normalizeCpf(v).slice(0,11);return d.replace(/^(\d{3})(\d)/,"$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/,"$1.$2.$3").replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/,"$1.$2.$3-$4");}
+function cpfAuthEmail(cpf){return "cpf."+normalizeCpf(cpf)+"@login.22drive.local";}
+function showError(msg){$("signupError").textContent=msg;}
+$("signupCpf").addEventListener("input",()=>{$("signupCpf").value=formatCpf($("signupCpf").value);});
+$("toggleSignupPassword").addEventListener("click",()=>{
+  const input=$("signupPassword"),button=$("toggleSignupPassword");
+  const showing=input.type==="text";
+  input.type=showing?"password":"text";
+  button.textContent=showing?"Mostrar":"Ocultar";
+});
+$("backButton").addEventListener("click",()=>{window.location.href="./motorista.html";});
+$("signupForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const name=$("signupName").value.trim();
+  const cpf=normalizeCpf($("signupCpf").value);
+  const phone=$("signupPhone").value.trim();
+  const password=$("signupPassword").value;
+  showError("");
+  if(!name){showError("⚠️ Informe seu nome.");return;}
+  if(cpf.length!==11){showError("⚠️ Digite um CPF válido com 11 números.");return;}
+  if(password.length<6){showError("⚠️ A senha deve ter pelo menos 6 caracteres.");return;}
+  const button=$("signupButton");
+  button.disabled=true;button.textContent="Criando...";
+  try{
+    const {data,error}=await client.auth.signUp({
+      email:cpfAuthEmail(cpf),
+      password,
+      options:{data:{cpf,nome:name,telefone:phone}}
+    });
+    if(error)throw error;
+    if(!data||!data.user)throw new Error("Não foi possível criar o usuário.");
+    if(!data.session){
+      showError("⚠️ O cadastro foi criado, mas o Supabase está exigindo confirmação de e-mail. Para o login por CPF funcionar imediatamente, desative a confirmação de e-mail no Supabase.");
+      return;
+    }
+    $("formArea").innerHTML='<div class="success"><b>✅ Cadastro realizado com sucesso!</b><br><br>Seu login foi criado. Você será levado para a tela de login.</div>';
+    setTimeout(()=>{window.location.href="./motorista.html?cadastro=ok";},1200);
+  }catch(e){
+    console.error("22 DRIVE cadastro:",e);
+    showError("❌ "+(e&&e.message?e.message:"Não foi possível criar o login."));
+  }finally{
+    button.disabled=false;
+    button.textContent="Criar login";
+  }
+});
+</script>
+</body>
+</html>
