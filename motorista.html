@@ -497,8 +497,7 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 .today-routes-card h2,.today-routes-card .today-title{font-size:18px!important}
 .today-routes-card p,.today-routes-card small{font-size:12px!important}
 .mobile-ride-card{padding:11px;margin-bottom:8px}
-.mobile-ride-card .ride-price{font-size:24px}.mobile-ride-card .ride-address{font-size:13px}
-.mobile-ride-card .ride-meta,.mobile-ride-card .passenger-label,.mobile-ride-card .route-label{font-size:11px}
+.mobile-ride-card .ride-price{font-size:24px}.mobile-ride-card .ride-address{font-size:13px}.mobile-ride-card .ride-meta,.mobile-ride-card .passenger-label,.mobile-ride-card .route-label{font-size:11px}
 .mobile-ride-card .ride-actions .btn{font-size:13px;padding:10px}
 .gain-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.gain-summary-grid .scheduled-item{margin:0;text-align:center}.gain-summary-grid small{font-size:15px;font-weight:700;color:#fff}
 </style></style>
@@ -997,8 +996,7 @@ function rideCoordinate(r,kind){
   const lng=kind==="pickup"?Number(r.originLng):Number(r.destinationLng);
   if(!Number.isFinite(lat)||!Number.isFinite(lng))return null;
   return [lat,lng];}
-function rideMarkerIcon(kind){
-  const pickup=kind==="pickup";
+function rideMarkerIcon(kind){  const pickup=kind==="pickup";
   return L.divIcon({
     className:"",
     html:'<div class="ride-map-pin '+(pickup?"pickup":"dropoff")+'"><span>'+(pickup?"●":"◆")+'</span></div>',
@@ -1497,8 +1495,7 @@ function restoreTodayRoutesPanel(){
   const card=$("todayRoutesCard");
   if(!card)return;  try{
     const saved=localStorage.getItem("22drive_today_routes_open");
-    if(saved==="0")card.classList.add("collapsed");
-    else card.classList.remove("collapsed");
+    if(saved==="0")card.classList.add("collapsed");    else card.classList.remove("collapsed");
   }catch(e){}
 }
 function renderTodayAcceptedRoutes(){
@@ -1631,7 +1628,7 @@ function renderMobileRequests(){
       primary='<button class="btn green" data-action="accept" data-id="'+esc(r.id)+'">✓ Aceitar</button><button class="btn red" data-action="cancel" data-id="'+esc(r.id)+'">✕ Recusar</button>';
       secondary='';
     }else if(s==="accepted"){
-      primary='<button class="btn red" data-action="cancel" data-id="'+esc(r.id)+'">✕ Cancelar</button>';
+      primary='<button class="btn green" data-action="route" data-id="'+esc(r.id)+'">🚗 Iniciar rota</button><button class="btn red" data-action="cancel" data-id="'+esc(r.id)+'">✕ Cancelar</button>';
       secondary='';
     }else{
       primary='<button class="btn green" data-action="arrived" data-id="'+esc(r.id)+'">'+(r.driverArrivedAt?"✅ Cheguei no embarque":"📍 Cheguei no embarque")+'</button><button class="btn green" data-action="whatsapp" data-id="'+esc(r.id)+'">💬 WhatsApp</button><button class="btn red" data-action="finish" data-id="'+esc(r.id)+'">✓ Finalizar</button>';
@@ -1705,18 +1702,10 @@ async function acceptRide(id){
   render();
   renderTodayAcceptedRoutes();
 
-  // Ao aceitar a corrida, abre o WhatsApp do passageiro com a mensagem de confirmação pronta.
-  // O motorista revisa e toca em Enviar no próprio WhatsApp.
-  const acceptedRide={...rs[i],...patch,
-    passengerPhone:rs[i].passengerPhone||rs[i].passenger_phone||rs[i].whatsapp||rs[i].telefone,
-    passengerName:rs[i].passengerName||rs[i].passenger_name||rs[i].nome,
-    origin:rs[i].origin||rs[i].embarque||rs[i].origem,
-    destination:rs[i].destination||rs[i].destino,
-    confirmedDate:rs[i].confirmedDate||rs[i].confirmed_date||rs[i].date||rs[i].data,
-    confirmedTime:rs[i].confirmedTime||rs[i].confirmed_time||rs[i].time||rs[i].horario,
-    musicStyle:rs[i].musicStyle||rs[i].music_style||rs[i].estilo_musical
-  };
-  sendConfirmationWhatsApp(acceptedRide);
+  // Ao aceitar, não abrimos o WhatsApp automaticamente.
+  // O próximo passo é o motorista tocar em “🚗 Iniciar rota”.
+  setRouteState(id,"accepted");
+  renderTodayAcceptedRoutes();
 
   // Depois de aceitar, leva o motorista diretamente para a aba/seção de corridas de hoje.
   setTimeout(()=>{
@@ -1998,20 +1987,3 @@ if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.se
     event.preventDefault();
     event.stopImmediatePropagation();
     const raw=btn.getAttribute("onclick")||"";
-    const m=raw.match(/(acceptRide|cancelRide|openModal|markDriverArrived|messagePassenger|finishRide)\(['"]([^'"]+)['"]\)/);
-    if(m) runAction(m[1].replace("acceptRide","accept").replace("cancelRide","cancel").replace("openModal","confirm").replace("markDriverArrived","arrived").replace("messagePassenger","whatsapp").replace("finishRide","finish"),m[2]);
-  },true);
-
-  window.addEventListener("error",function(event){
-    console.error("22 DRIVE — erro JavaScript:",event.error||event.message);
-    const n=document.getElementById("notice");
-    if(n){
-      n.textContent="⚠️ O painel encontrou um erro. Recarregue a página e tente novamente.";
-      n.className="notice";
-    }
-  });
-})();
-</script>
-
-</body>
-</html>
