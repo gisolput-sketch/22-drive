@@ -284,6 +284,41 @@ body{overflow:hidden}
   line-height:1.3;
 }
 .today-routes-empty:empty:before{content:"🚗 Nenhuma rota aceita para hoje."}
+/* Aba fixa e recolhível de Corridas de hoje */
+#todayRoutesCard{
+  position:relative;
+  z-index:1400;
+  cursor:pointer;
+}
+#todayRoutesCard .today-routes-header{
+  cursor:pointer;
+  user-select:none;
+}
+#todayRoutesCard .today-routes-header:after{
+  content:"⌃";
+  margin-left:auto;
+  color:var(--gold);
+  font-size:22px;
+  font-weight:900;
+}
+#todayRoutesCard.collapsed .today-routes-header:after{content:"⌄"}
+#todayRoutesCard.collapsed .today-routes-divider,
+#todayRoutesCard.collapsed .today-routes-content{display:none}
+#todayRoutesCard .today-route-item{
+  margin:6px 0;
+  padding:9px 10px;
+  border:1px solid #26364a;
+  border-radius:11px;
+  background:#07111f;
+}
+#todayRoutesCard .today-route-item b{font-size:12px}
+#todayRoutesCard .today-route-item small{font-size:11px;line-height:1.35}
+#todayRoutesCard .today-route-item .btn{
+  font-size:12px;
+  padding:9px 10px;
+  border-radius:9px;
+}
+
 .scheduled-item{padding:9px 0;border-bottom:1px solid var(--line)}
 .scheduled-item:last-child{border-bottom:0}
 .scheduled-item b{display:block;color:#fff;font-size:13px}
@@ -509,11 +544,11 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
       <div id="mobileRequests"></div>
 
       <section class="today-routes-card" id="todayRoutesCard" aria-labelledby="todayRoutesTitle">
-        <div class="today-routes-header">
+        <div class="today-routes-header" role="button" tabindex="0" onclick="toggleTodayRoutes()" onkeydown="if(event.key==='Enter'||event.key===' ')toggleTodayRoutes()">
           <div class="today-routes-icon" aria-hidden="true">🚗</div>
           <div class="today-routes-heading">
-            <h2 id="todayRoutesTitle">Rotas aceitas de hoje</h2>
-            <p>Viagens confirmadas para hoje</p>
+            <h2 id="todayRoutesTitle">Corridas de hoje</h2>
+            <p>Toque aqui para abrir suas corridas</p>
           </div>
           <span class="today-routes-count" id="todayRoutesCount"></span>
         </div>
@@ -770,7 +805,8 @@ async function signupDriver(){
     if(!data.user)throw new Error("Não foi possível criar o usuário.");
     if(data.session){
       closeSignup();
-      await loadAuthenticatedDriver();
+      restoreTodayRoutesPanel();
+  await loadAuthenticatedDriver();
     }else{
       $("signupError").textContent="✅ Login criado. Se aparecer confirmação de e-mail no Supabase, ela precisa estar desativada para este tipo de CPF.";
     }
@@ -1453,6 +1489,21 @@ function reservationDateKey(r){
   const d=reservationDateOnly(r);
   return d ? d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0") : "";
 }
+function toggleTodayRoutes(){
+  const card=$("todayRoutesCard");
+  if(!card)return;
+  card.classList.toggle("collapsed");
+  try{localStorage.setItem("22drive_today_routes_open",card.classList.contains("collapsed")?"0":"1");}catch(e){}
+}
+function restoreTodayRoutesPanel(){
+  const card=$("todayRoutesCard");
+  if(!card)return;
+  try{
+    const saved=localStorage.getItem("22drive_today_routes_open");
+    if(saved==="0")card.classList.add("collapsed");
+    else card.classList.remove("collapsed");
+  }catch(e){}
+}
 function renderTodayAcceptedRoutes(){
   const p=$("todayRoutesPanel"); if(!p)return;
   const todayKey=localDateKey();
@@ -1489,7 +1540,7 @@ function renderTodayAcceptedRoutes(){
     const value=rideValue(r);
     const payment=String(r.payment||r.payment_method||r.forma_pagamento||r.pagamento||"Não informado").trim()||"Não informado";
     const date=String(r.confirmedDate||r.confirmed_date||r.date||r.travel_date||"");
-    return '<div class="scheduled-item today-route-item"><b>🕐 '+esc(t)+' • '+status+'</b><small>👤 '+esc(passenger)+'<br>📅 '+esc(dateBR(date))+' às '+esc(t)+'<br>💰 <strong>'+esc(moneyBR(value))+'</strong><br>💳 '+esc(payment)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small>'+routeButton+arrivalButton+'</div>';
+    return '<div class="scheduled-item today-route-item" onclick="event.stopPropagation()"><b>🕐 '+esc(t)+' • '+status+'</b><small>👤 '+esc(passenger)+'<br>💰 <strong>'+esc(moneyBR(value))+'</strong> • 💳 '+esc(payment)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small>'+routeButton+arrivalButton+'</div>';
   }).join("");
   rows.forEach(r=>{
     const state=getRouteState(r.id);
