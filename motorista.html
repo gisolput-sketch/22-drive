@@ -1413,7 +1413,8 @@ function renderTodayAcceptedRoutes(){
   const today=startOfToday();
   const rows=requests().filter(r=>{
     const status=String(r.status||"new").toLowerCase();
-    const d=reservationDateOnly(r);
+    const dateValue=r.confirmedDate||r.confirmed_date||r.date||r.travel_date||r.data_ida||r.data;
+    const d=reservationDateOnly({...r,date:dateValue});
     return ["accepted","confirmed"].includes(status) && d && d.getTime()===today.getTime();
   }).sort((a,b)=>{
     const ta=String(a.confirmedTime||a.confirmed_time||a.time||a.horario||"23:59").slice(0,5);
@@ -1580,7 +1581,21 @@ function card(r){
  if(s==="confirmed")buttons='<button class="btn green" onclick="markDriverArrived(\''+esc(r.id)+'\')">'+(r.driverArrivedAt?"✅ Cheguei no embarque":"📍 Cheguei no embarque")+'</button><button class="btn primary" onclick="messagePassenger(\''+esc(r.id)+'\')">💬 WhatsApp</button><button class="btn gray" onclick="finishRide(\''+esc(r.id)+'\')">✓ Finalizar corrida</button>';
  return '<article class="request"><div class="head"><div><b>🚕 '+esc(passenger)+'</b>'+(phone?'<div class="muted">📱 '+esc(phone)+'</div>':"")+'</div><span class="badge '+b[0]+'">'+b[1]+'</span></div><div style="line-height:1.7;margin:12px 0;font-size:14px">📍 <b>Origem:</b> '+esc(origin)+mapLinks+'<br>🏁 <b>Destino:</b> '+esc(dest)+(date||time?'<br>🕐 <b>Pedido:</b> '+dateBR(date)+' '+esc(time):"")+(r.payment||r.pagamento?'<br>💳 <b>Pagamento:</b> '+esc(r.payment||r.pagamento):"")+(r.note||r.observacao?'<br>📝 <b>Obs.:</b> '+esc(r.note||r.observacao):"")+schedule+'</div><div class="actions">'+buttons+'</div></article>'
 }
-async function acceptRide(id){stopRideAlert(id);let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"accepted",accepted_at:new Date().toISOString(),driver_name:driver.name,driver_phone:driver.phone};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"accepted",acceptedAt:patch.accepted_at,driverName:driver.name,driverPhone:driver.phone};save(rs);}render();notice("Solicitação aceita. Agora confirme o horário.")}
+async function acceptRide(id){
+  stopRideAlert(id);
+  let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));
+  if(i<0)return;
+  const patch={status:"accepted",accepted_at:new Date().toISOString(),driver_name:driver.name,driver_phone:driver.phone};
+  if(realtimeReady){
+    if(!(await updateRemoteReservation(id,patch)))return;
+  }else{
+    rs[i]={...rs[i],...patch,acceptedAt:patch.accepted_at,driverName:driver.name,driverPhone:driver.phone};
+    save(rs);
+  }
+  render();
+  renderTodayAcceptedRoutes();
+  notice("Solicitação aceita. A viagem de hoje foi colocada em Rotas aceitas de hoje.");
+}
 async function cancelRide(id){stopRideAlert(id);if(!confirm("Deseja recusar/cancelar esta solicitação?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"cancelled",cancelled_at:new Date().toISOString(),cancelled_by:"driver"};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"cancelled",cancelledAt:patch.cancelled_at,cancelledBy:"driver"};save(rs);}render();notice("Solicitação cancelada.")}
 function openModal(id){selected=id;let r=requests().find(x=>String(x.id)===String(id));if(!r)return;let d=new Date(),today=d.toISOString().slice(0,10);$("cdate").value=r.date||r.data||today;$("ctime").value=r.time||r.horario||"";$("cnote").value="";$("modal").classList.add("on")}
 function closeModal(){selected=null;$("modal").classList.remove("on")}
