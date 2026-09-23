@@ -1306,7 +1306,7 @@ function startPickupArrivalWatch(r){
     const pickup=rideCoordinate(r,"pickup");
     if(!pickup)return;
     if(distanceMeters(current,pickup)<=120){
-      setRouteState(r.id,"dropoff");
+      setRouteState(r.id,"dropoff_ready");
       stopPickupArrivalWatch();
       const destinationUrl=buildNavigationUrl(r,"dropoff");
       let switched=false;
@@ -1344,17 +1344,23 @@ function buildNavigationUrl(r,type){
 function openNavigationToRidePoint(r,type){
   const url=buildNavigationUrl(r,type);
   if(!url)return false;
+  // No celular, não dependemos de window.open/popup.
+  // A própria aba é enviada para a navegação, o que também funciona
+  // quando o navegador encaminha o link para o Google Maps.
   try{
     if(routeNavigationWindow&&!routeNavigationWindow.closed){
       routeNavigationWindow.location.href=url;
       routeNavigationWindow.focus?.();
-    }else{
-      routeNavigationWindow=window.open(url,"22drive_navigation");
+      return true;
     }
+  }catch(e){}
+  try{
+    window.location.href=url;
+    return true;
   }catch(e){
-    routeNavigationWindow=window.open(url,"22drive_navigation");
+    console.error("22 DRIVE navegação:",e);
+    return false;
   }
-  return !!routeNavigationWindow;
 }
 function startRideRoute(id){
   const r=requests().find(x=>String(x.id)===String(id));
@@ -1372,8 +1378,19 @@ function startRideRoute(id){
     return;
   }
   if(state&&state.phase==="pickup"){
-    openNavigationToRidePoint(r,"pickup");
+    if(!openNavigationToRidePoint(r,"pickup")){
+      alert("Não foi possível abrir a navegação para o embarque.");
+      return;
+    }
     startPickupArrivalWatch(r);
+    return;
+  }
+  if(state&&state.phase==="dropoff"){
+    if(!openNavigationToRidePoint(r,"dropoff")){
+      alert("Não foi possível abrir a navegação para o destino.");
+      return;
+    }
+    startDestinationArrivalWatch(r);
     return;
   }
   if(!openNavigationToRidePoint(r,"pickup")){
