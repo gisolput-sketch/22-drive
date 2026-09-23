@@ -384,7 +384,7 @@ let pendingOtpPhone="";
 let pendingOtpMode="login";
 let pendingProfileDraft=null;
 
-function formatAuthPhone(raw){
+function localPassengerPhone(raw){\n  const digits=String(raw||"").replace(/\\D/g,"");\n  return digits.startsWith("55")?digits.slice(-11):digits;\n}\n\nfunction formatAuthPhone(raw){
   const digits=String(raw||"").replace(/\D/g,"");
   if(digits.startsWith("55")) return "+"+digits;
   if(digits.length===10||digits.length===11) return "+55"+digits;
@@ -412,7 +412,7 @@ async function verifyPassengerOtp(){
   if(!/^\d{6}$/.test(token)){alert("Digite o código de 6 dígitos.");return;}
   const {data,error}=await passengerSupabase.auth.verifyOtp({phone:pendingOtpPhone,token,type:"sms"});
   if(error){console.error(error);alert("❌ Código inválido ou expirado. Solicite outro código.");return;}
-  const normalized=normalizePhone(pendingOtpPhone);
+  const normalized=localPassengerPhone(pendingOtpPhone);
   const {data:profile,error:profileError}=await passengerSupabase.from("passageiros").select("id,nome,whatsapp,email,favoritos").eq("whatsapp",normalized).maybeSingle();
   if(profileError){console.error(profileError);alert("❌ Não foi possível carregar seu cadastro.");return;}
   if(profile){
