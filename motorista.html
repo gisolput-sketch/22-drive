@@ -869,7 +869,23 @@ async function login(){
     $("loginError").textContent="❌ "+(e&&e.message?e.message:"E-mail ou senha incorretos.");
   }finally{$("loginButton").disabled=false;$("loginButton").textContent="Entrar";}
 }
-function openApp(){try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}if(!driver)return;$("login").classList.add("hidden");$("app").classList.add("hidden");$("driverMapShell").classList.add("active");$("driverName").textContent=driver.name;$("driverPhone").textContent=driver.phone||"CPF cadastrado";const normalizedStatus=driver.status==="available"?"available":"offline";driver.status=normalizedStatus;$("status").value=normalizedStatus;if($("statusMobile"))$("statusMobile").value=normalizedStatus;initDriverMap();render();loadEarnings();connectSupabaseRealtime()}
+function openApp(){
+  try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}
+  if(!driver)return;
+  $("login")?.classList.add("hidden");
+  $("app")?.classList.add("hidden");
+  $("driverMapShell")?.classList.add("active");
+  if($("driverName"))$("driverName").textContent=driver.name||"Motorista";
+  if($("driverPhone"))$("driverPhone").textContent=driver.phone||"CPF cadastrado";
+  const normalizedStatus=driver.status==="available"?"available":"offline";
+  driver.status=normalizedStatus;
+  if($("status"))$("status").value=normalizedStatus;
+  if($("statusMobile"))$("statusMobile").value=normalizedStatus;
+  initDriverMap();
+  render();
+  loadEarnings();
+  connectSupabaseRealtime();
+}
 async function logout(){try{const client=getAuthClient();if(client)await client.auth.signOut();}catch(e){console.error("22 DRIVE logout:",e)}localStorage.removeItem(DRIVER_KEY);location.reload()}
 function changeStatus(){const v=$("status").value==="available"?"available":"offline";driver.status=v;localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));if($("statusMobile"))$("statusMobile").value=v;notice(v==="available"?"🟢 Motorista disponível.":"⚫ Motorista indisponível.");updateMapStatus();}
 function focusRequests(){document.querySelector(".grid>section.card")?.scrollIntoView({behavior:"smooth",block:"start"});}
