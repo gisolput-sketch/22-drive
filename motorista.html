@@ -1422,6 +1422,10 @@ function messageArrivalWhatsApp(id){
     return;
   }
   const url="https://wa.me/"+n+"?text="+encodeURIComponent(msg);
+  // Ao avisar manualmente que chegou, a próxima etapa da viagem é o destino.
+  // Isso garante que o botão "🏁 Iniciar rota" fique disponível imediatamente.
+  setRouteState(id,"dropoff_ready");
+  renderTodayAcceptedRoutes();
   window.open(url,"_blank");
 }
 
