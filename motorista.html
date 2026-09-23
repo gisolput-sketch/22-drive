@@ -1409,6 +1409,18 @@ function messageArrivalWhatsApp(id){
 }
 
 function localDateKey(){
+  // As rotas de "hoje" seguem o fuso da operação (Rio de Janeiro),
+  // e não o UTC do Supabase nem um fuso diferente configurado no aparelho.
+  try{
+    const parts=new Intl.DateTimeFormat("en-CA",{
+      timeZone:"America/Sao_Paulo",
+      year:"numeric",month:"2-digit",day:"2-digit"
+    }).formatToParts(new Date());
+    const y=parts.find(p=>p.type==="year")?.value;
+    const m=parts.find(p=>p.type==="month")?.value;
+    const d=parts.find(p=>p.type==="day")?.value;
+    if(y&&m&&d)return y+"-"+m+"-"+d;
+  }catch(e){}
   const n=new Date();
   return n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0")+"-"+String(n.getDate()).padStart(2,"0");
 }
@@ -1571,12 +1583,28 @@ function renderMobileRequests(){
   });
 }
 function render(){
- let rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
- $("newCount").textContent=rs.filter(r=>r.status==="new"||!r.status).length;
- $("acceptedCount").textContent=rs.filter(r=>r.status==="accepted").length;
- $("confirmedCount").textContent=rs.filter(r=>r.status==="confirmed").length;
- if(!rs.length){$("requests").innerHTML='<div class="empty">📭<br><b>Nenhuma solicitação disponível.</b><br><span class="muted">As solicitações aparecerão aqui quando forem conectadas à base online.</span></div>';}else{$("requests").innerHTML=rs.map(card).join("");}
- renderMobileRequests(); renderTodayAcceptedRoutes(); renderScheduledRides(); updateMapStatus(); updateRideMapFromRequests();
+  let rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+
+  // A interface atual do motorista não usa mais os antigos contadores/lista.
+  // Eles podem não existir no DOM; nunca deixe isso interromper a renderização
+  // de "Rotas aceitas de hoje".
+  const newCount=$("newCount");
+  const acceptedCount=$("acceptedCount");
+  const confirmedCount=$("confirmedCount");
+  const requestsPanel=$("requests");
+  if(newCount)newCount.textContent=rs.filter(r=>r.status==="new"||!r.status).length;
+  if(acceptedCount)acceptedCount.textContent=rs.filter(r=>r.status==="accepted").length;
+  if(confirmedCount)confirmedCount.textContent=rs.filter(r=>r.status==="confirmed").length;
+  if(requestsPanel){
+    if(!rs.length)requestsPanel.innerHTML='<div class="empty">📭<br><b>Nenhuma solicitação disponível.</b><br><span class="muted">As solicitações aparecerão aqui quando forem conectadas à base online.</span></div>';
+    else requestsPanel.innerHTML=rs.map(card).join("");
+  }
+
+  renderMobileRequests();
+  renderTodayAcceptedRoutes();
+  renderScheduledRides();
+  updateMapStatus();
+  updateRideMapFromRequests();
 }
 function card(r){
  let s=r.status||"new", map={new:["new","Nova"],accepted:["accepted","Aceita"],confirmed:["confirmed","Confirmada"],cancelled:["cancelled","Cancelada"],finished:["confirmed","Finalizada"]}, b=map[s]||map.new;
