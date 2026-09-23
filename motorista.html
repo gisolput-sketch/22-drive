@@ -446,6 +446,8 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 .signup-link{color:var(--gold)}
 .muted{color:var(--muted);font-size:13px}
 .hidden{display:none!important}
+/* Acesso direto ao painel: sem tela de senha */
+#login{display:none!important}
 
 /* Tela principal limpa: somente mapa + cabeçalho + rotas aceitas */
 #app{display:none!important}
@@ -2721,27 +2723,37 @@ async function finishRide(id){
   render();
 }
 
-  // Inicialização segura da área do motorista.
-  // Restaura a sessão do Supabase quando a página é aberta.
+  // Acesso direto ao painel do motorista — sem senha.
+  // O painel é aberto automaticamente neste dispositivo.
   window.addEventListener("DOMContentLoaded", async ()=>{
-    const loginForm=$("loginForm");
-    if(loginForm && !loginForm.dataset.bound){
-      loginForm.dataset.bound="1";
-      loginForm.addEventListener("submit",event=>{event.preventDefault();login();});
-    }
     try{
-      const client=getAuthClient();
-      if(client){
-        const ok=await loadAuthenticatedDriver();
-        if(!ok){
-          $("login")?.classList.remove("hidden");
-          $("driverMapShell")?.classList.remove("active");
-        }
+      const saved=localStorage.getItem(DRIVER_KEY);
+      if(saved){
+        try{ driver=JSON.parse(saved); }catch(e){ driver=null; }
       }
+      if(!driver){
+        driver={
+          id:4,
+          cpf:"20923573798",
+          name:"Kayky Pereira da Silva",
+          phone:"21999696851",
+          status:"available",
+          authUserId:"97c6c435-f026-4ccc-9dd5-657287d8d689"
+        };
+        localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));
+      }
+      $("login")?.classList.add("hidden");
+      openApp();
     }catch(e){
-      console.error("22 DRIVE inicialização do login:",e);
-      const loginError=$("loginError");
-      if(loginError) loginError.textContent="❌ Não foi possível iniciar o login. Recarregue a página e tente novamente.";
+      console.error("22 DRIVE erro ao abrir painel sem senha:",e);
+      $("login")?.classList.add("hidden");
+      const shell=$("driverMapShell");
+      if(shell)shell.classList.add("active");
+      const noticeBox=$("mobileNotice");
+      if(noticeBox){
+        noticeBox.classList.remove("hidden");
+        noticeBox.textContent="⚠️ O painel foi aberto, mas houve um erro ao iniciar o mapa.";
+      }
     }
   });
 
