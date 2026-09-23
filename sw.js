@@ -1,4 +1,4 @@
-const CACHE = '22-drive-push-v14';
+const CACHE = '22-drive-push-v15';
 
 self.addEventListener('install', event => {
   event.waitUntil(self.skipWaiting());
@@ -18,6 +18,19 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin === self.location.origin) {
+    const isHtml = event.request.mode === "navigate" || (event.request.headers.get("accept") || "").includes("text/html");
+    if (isHtml) {
+      event.respondWith(
+        fetch(event.request, {cache:"no-store"})
+          .then(response => {
+            const copy = response.clone();
+            caches.open(CACHE).then(cache => cache.put(event.request, copy)).catch(()=>{});
+            return response;
+          })
+          .catch(() => caches.match(event.request))
+      );
+      return;
+    }
     event.respondWith(
       caches.match(event.request).then(cached => cached || fetch(event.request))
     );
