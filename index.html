@@ -434,7 +434,8 @@ async function verifyPassengerOtp(){
   }
 }
 
-function initPassengerAccess(){}\nfunction loadPassengerProfile(){
+function initPassengerAccess(){}
+function loadPassengerProfile(){
   try{return JSON.parse(localStorage.getItem(PROFILE_KEY)||"null")}catch(_){return null}
 }
 
