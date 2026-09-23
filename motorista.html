@@ -497,8 +497,7 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 .today-routes-card h2,.today-routes-card .today-title{font-size:18px!important}
 .today-routes-card p,.today-routes-card small{font-size:12px!important}
 .mobile-ride-card{padding:11px;margin-bottom:8px}
-.mobile-ride-card .ride-price{font-size:24px}
-.mobile-ride-card .ride-address{font-size:13px}
+.mobile-ride-card .ride-price{font-size:24px}.mobile-ride-card .ride-address{font-size:13px}
 .mobile-ride-card .ride-meta,.mobile-ride-card .passenger-label,.mobile-ride-card .route-label{font-size:11px}
 .mobile-ride-card .ride-actions .btn{font-size:13px;padding:10px}
 .gain-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.gain-summary-grid .scheduled-item{margin:0;text-align:center}.gain-summary-grid small{font-size:15px;font-weight:700;color:#fff}
@@ -997,8 +996,7 @@ function rideCoordinate(r,kind){
   const lat=kind==="pickup"?Number(r.originLat):Number(r.destinationLat);
   const lng=kind==="pickup"?Number(r.originLng):Number(r.destinationLng);
   if(!Number.isFinite(lat)||!Number.isFinite(lng))return null;
-  return [lat,lng];
-}
+  return [lat,lng];}
 function rideMarkerIcon(kind){
   const pickup=kind==="pickup";
   return L.divIcon({
@@ -1149,7 +1147,7 @@ function scheduleDriverMapReturn(){
 
 function useCurrentDriverLocation(){
   const fallbackBtn=$("currentLocationButton");
-  const btn=mapBtn||fallbackBtn;
+  const btn=fallbackBtn;
   if(!navigator.geolocation){alert("Seu navegador não permite acessar a localização.");return;}
   if(btn){btn.disabled=true;btn.textContent="⏳";}
   navigator.geolocation.getCurrentPosition(pos=>{
@@ -1497,8 +1495,7 @@ function toggleTodayRoutes(){
 }
 function restoreTodayRoutesPanel(){
   const card=$("todayRoutesCard");
-  if(!card)return;
-  try{
+  if(!card)return;  try{
     const saved=localStorage.getItem("22drive_today_routes_open");
     if(saved==="0")card.classList.add("collapsed");
     else card.classList.remove("collapsed");
@@ -1612,7 +1609,7 @@ function renderMobileRequests(){
   const todayCard=$("todayRoutesCard");
   if(!el)return;
   const rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
-  const active=rs.filter(r=>["new","confirmed"].includes(r.status||"new") && !isScheduledFromTwoDays(r));
+  const active=rs.filter(r=>["new","accepted","confirmed"].includes(r.status||"new") && !isScheduledFromTwoDays(r));
   if($("sheetCount"))$("sheetCount").textContent=active.length?active.length+" solicitação"+(active.length===1?"":"ões"):"";
   if(!active.length){
     el.innerHTML="";
@@ -1960,5 +1957,61 @@ let deferredInstallPrompt=null;
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;const b=document.getElementById("pwaInstall");if(b)b.style.display="block";});
 async function install22Drive(){if(!deferredInstallPrompt){alert("No Android, abra o menu do navegador e escolha 'Instalar aplicativo' ou 'Adicionar à tela inicial'.");return;}deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;const b=document.getElementById("pwaInstall");if(b)b.style.display="none";}
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));}
-</script></body>
+</script>
+<script>
+/* 22 DRIVE — correção de eventos de toque no painel do motorista */
+(function(){
+  function runAction(action,id){
+    if(!action || !id) return;
+    try{
+      if(action==="accept") return acceptRide(id);
+      if(action==="cancel") return cancelRide(id);
+      if(action==="confirm") return openModal(id);
+      if(action==="arrived") return markDriverArrived(id);
+      if(action==="whatsapp") return messagePassenger(id);
+      if(action==="route") return showRideRoute(id);
+      if(action==="finish") return finishRide(id);
+      if(action==="close") return toggleDriverSheet();
+      if(action==="gains") return openGains();
+    }catch(err){
+      console.error("22 DRIVE — erro no botão:",action,err);
+      alert("Não foi possível executar esta ação. Tente novamente.");
+    }
+  }
+
+  /* Captura o toque antes de outros listeners. Evita botão sem resposta em Android. */
+  document.addEventListener("click",function(event){
+    const btn=event.target.closest("#mobileRequests button[data-action]");
+    if(!btn || btn.dataset.eventsFixed==="1") return;
+    btn.dataset.eventsFixed="1";
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    runAction(btn.dataset.action,btn.dataset.id);
+  },true);
+
+  /* Botões criados pelo cartão antigo usam onclick inline. Este fallback garante
+     que Aceitar/Cancelar/Confirmar/WhatsApp/Finalizar continuem clicáveis. */
+  document.addEventListener("click",function(event){
+    const btn=event.target.closest(".request .actions button");
+    if(!btn || btn.dataset.eventsFixed==="1") return;
+    btn.dataset.eventsFixed="1";
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const raw=btn.getAttribute("onclick")||"";
+    const m=raw.match(/(acceptRide|cancelRide|openModal|markDriverArrived|messagePassenger|finishRide)\(['"]([^'"]+)['"]\)/);
+    if(m) runAction(m[1].replace("acceptRide","accept").replace("cancelRide","cancel").replace("openModal","confirm").replace("markDriverArrived","arrived").replace("messagePassenger","whatsapp").replace("finishRide","finish"),m[2]);
+  },true);
+
+  window.addEventListener("error",function(event){
+    console.error("22 DRIVE — erro JavaScript:",event.error||event.message);
+    const n=document.getElementById("notice");
+    if(n){
+      n.textContent="⚠️ O painel encontrou um erro. Recarregue a página e tente novamente.";
+      n.className="notice";
+    }
+  });
+})();
+</script>
+
+</body>
 </html>
