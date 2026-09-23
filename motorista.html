@@ -1656,6 +1656,20 @@ async function acceptRide(id){
   }
   render();
   renderTodayAcceptedRoutes();
+
+  // Ao aceitar a corrida, abre o WhatsApp do passageiro com a mensagem de confirmação pronta.
+  // O motorista revisa e toca em Enviar no próprio WhatsApp.
+  const acceptedRide={...rs[i],...patch,
+    passengerPhone:rs[i].passengerPhone||rs[i].passenger_phone||rs[i].whatsapp||rs[i].telefone,
+    passengerName:rs[i].passengerName||rs[i].passenger_name||rs[i].nome,
+    origin:rs[i].origin||rs[i].embarque||rs[i].origem,
+    destination:rs[i].destination||rs[i].destino,
+    confirmedDate:rs[i].confirmedDate||rs[i].confirmed_date||rs[i].date||rs[i].data,
+    confirmedTime:rs[i].confirmedTime||rs[i].confirmed_time||rs[i].time||rs[i].horario,
+    musicStyle:rs[i].musicStyle||rs[i].music_style||rs[i].estilo_musical
+  };
+  sendConfirmationWhatsApp(acceptedRide);
+
   // Depois de aceitar, leva o motorista diretamente para a aba/seção de corridas de hoje.
   setTimeout(()=>{
     const todayCard=document.getElementById("todayRoutesCard");
