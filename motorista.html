@@ -1685,6 +1685,29 @@ function sendConfirmationWhatsApp(r){
     alert("Viagem confirmada, mas o telefone do passageiro não foi informado."+NL+NL+msg);
   }
 }
+function buildArrivalWhatsAppUrl(r){
+  const p=String(r.passengerPhone||r.passenger_phone||r.telefone||"");
+  const name=String(r.passengerName||r.passenger_name||r.nome||"");
+  const origin=String(r.origin||r.origem||"");
+  const driverName=String(driver?.name||r.driverName||r.driver_name||"");
+  const NL=String.fromCharCode(10);
+  const msg=[
+    "🚗 22 DRIVE",
+    "",
+    "Olá, "+(name||"passageiro")+"! 😊",
+    "",
+    "📍 Cheguei ao local de embarque e estou aguardando você.",
+    origin?"📌 Embarque: "+origin:"",
+    driverName?"👨‍✈️ Motorista: "+driverName:"",
+    "",
+    "Por favor, fique atento para iniciarmos a viagem. 🚗"
+  ].filter(Boolean).join(NL);
+  let n=p.replace(/\D/g,"");
+  if(n.length>=10&&!n.startsWith("55"))n="55"+n;
+  if(!n)return {url:"",msg};
+  return {url:"https://wa.me/"+n+"?text="+encodeURIComponent(msg),msg};
+}
+
 function buildFinishedRideWhatsAppUrl(r){
   const p=String(r.passengerPhone||r.passenger_phone||r.telefone||"");
   const name=String(r.passengerName||r.passenger_name||r.nome||"");
@@ -1742,7 +1765,17 @@ async function markDriverArrived(id){
       }
     }
     render();
-    notice("📍 Passageiro avisado: você chegou ao embarque.");
+    const wa=buildArrivalWhatsAppUrl(ride);
+    if(wa.url){
+      const waWindow=window.open(wa.url,"_blank");
+      if(waWindow){
+        notice("📍 Chegada registrada. WhatsApp aberto com a mensagem pronta para você enviar.");
+      }else{
+        notice("📍 Chegada registrada. O navegador bloqueou a abertura do WhatsApp.");
+      }
+    }else{
+      notice("📍 Chegada registrada, mas o WhatsApp do passageiro não foi informado.");
+    }
   };
 
   try{
