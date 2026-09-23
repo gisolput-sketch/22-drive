@@ -956,6 +956,9 @@ function initDriverMap(){
   const resizeMap=()=>{
     if(driverMap){
       driverMap.invalidateSize({pan:false});
+      if(driverMap){
+  driverMap.on('dragstart zoomstart',scheduleDriverMapReturn);
+}
       updateRideMapFromRequests();
     }
   };
@@ -989,6 +992,18 @@ function initDriverMap(){
     });
   }
 }
+let driverMapReturnTimer=null;
+function scheduleDriverMapReturn(){
+  if(driverMapReturnTimer) clearTimeout(driverMapReturnTimer);
+  driverMapReturnTimer=setTimeout(()=>{
+    if(driverLocation && driverMap){
+      driverMap.setView(driverLocation,16,{animate:true});
+    } else {
+      useCurrentDriverLocation();
+    }
+  },10000);
+}
+
 function useCurrentDriverLocation(){
   const mapBtn=document.querySelector(".driver-location-button");
   const fallbackBtn=$("currentLocationButton");
