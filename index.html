@@ -40,7 +40,23 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
  crossorigin=""></script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script>
+(async function(){
+  const URL="https://mqvumerrkyddootxeziv.supabase.co";
+  const KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
+  const sb=window.supabase.createClient(URL,KEY);
+  const {data}=await sb.auth.getSession();
+  if(!data.session){ window.location.replace("./login.html"); return; }
+  const phone=String(data.session.user.phone||"").replace(/\D/g,"").replace(/^55/,"");
+  if(phone){
+    const {data:profile,error}=await sb.from("passageiros").select("id,nome,whatsapp,email,favoritos").eq("whatsapp",phone).maybeSingle();
+    if(error || !profile){ window.location.replace("./cadastro-passageiro.html"); return; }
+    localStorage.setItem("22drive_passenger_profile",JSON.stringify({
+      name:profile.nome||"",phone:profile.whatsapp||phone,email:profile.email||"",favorites:profile.favoritos||[]
+    }));
+  }
+})();
+</script>
 </head>
 <body>
 <div class="app">
@@ -51,34 +67,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 </header>
 
 <main>
-<section class="card" id="passengerAccessCard">
-<h2>📱 Acesso do passageiro</h2>
-<div id="passengerLoginBox">
-<p class="muted">Entre usando apenas seu número de WhatsApp. Enviaremos um código para confirmar que o número realmente é seu.</p>
-<div class="field"><label>WhatsApp</label><input id="accessPhone" type="tel" inputmode="tel" placeholder="(21) 99999-9999"></div>
-<button class="btn primary" type="button" id="accessLoginBtn">📲 Entrar e receber código</button>
-<button class="btn secondary" type="button" id="accessRegisterBtn">📝 Ainda não tenho cadastro</button>
-</div>
-<div id="passengerRegisterBox" style="display:none">
-<p class="muted">Faça seu cadastro uma vez. Depois, seu WhatsApp será usado para reconhecer você automaticamente.</p>
-<div class="field"><label>WhatsApp</label><input id="registerPhone" type="tel" inputmode="tel" placeholder="(21) 99999-9999"></div>
-<div class="field"><label>Nome completo</label><input id="registerName" placeholder="Seu nome"></div>
-<div class="field"><label>E-mail <span class="muted">(opcional)</span></label><input id="registerEmail" type="email" placeholder="seu@email.com"></div>
-<button class="btn primary" type="button" id="registerSendBtn">📲 Cadastrar e receber código</button>
-<button class="btn secondary" type="button" id="backLoginBtn">← Voltar para entrar</button>
-</div>
-<div id="passengerOtpBox" style="display:none">
-<p class="muted" id="otpMessage"></p>
-<div class="field"><label>Código de confirmação</label><input id="accessOtp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Digite o código de 6 dígitos"></div>
-<button class="btn primary" type="button" id="verifyOtpBtn">✅ Confirmar código</button>
-<button class="btn secondary" type="button" id="resendOtpBtn">🔄 Enviar outro código</button>
-</div>
-<div id="profileSavedBox" style="display:none">
-<div class="notice" id="profileSavedText"></div>
-<button class="btn dark" type="button" id="editProfileBtn">✏️ Alterar meu cadastro</button>
-</div>
-<div id="authStatus" class="muted" style="margin-top:10px"></div>
-</section>
+
 
 <section class="card" id="favoriteAddressesCard">
 <h2>⭐ Meus endereços favoritos</h2>
@@ -445,25 +434,7 @@ async function verifyPassengerOtp(){
   }
 }
 
-function initPassengerAccess(){
-  if(!passengerSupabase) passengerSupabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-  $("accessLoginBtn").onclick=()=>sendPassengerOtp("login");
-  $("accessRegisterBtn").onclick=()=>{
-    $("passengerLoginBox").style.display="none"; $("passengerRegisterBox").style.display="block";
-    $("registerPhone").value=$("accessPhone").value;
-  };
-  $("backLoginBtn").onclick=()=>{
-    $("passengerRegisterBox").style.display="none"; $("passengerLoginBox").style.display="block";
-  };
-  $("registerSendBtn").onclick=()=>{
-    if(!$("registerName").value.trim()){alert("Informe seu nome.");return;}
-    pendingProfileDraft={name:$("registerName").value.trim(),email:$("registerEmail").value.trim()};
-    sendPassengerOtp("register");
-  };
-  $("verifyOtpBtn").onclick=verifyPassengerOtp;
-  $("resendOtpBtn").onclick=()=>sendPassengerOtp(pendingOtpMode);
-}
-function loadPassengerProfile(){
+function initPassengerAccess(){}\nfunction loadPassengerProfile(){
   try{return JSON.parse(localStorage.getItem(PROFILE_KEY)||"null")}catch(_){return null}
 }
 
