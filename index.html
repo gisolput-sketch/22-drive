@@ -568,17 +568,38 @@ async function createReservationInSupabase(){
     passengerSupabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   }
 
+  const passengerName=$("name").value.trim();
+  const passengerPhone=$("phone").value.trim();
+  const originAddress=$("from").value;
+  const destinationAddress=$("to").value;
+  const travelDate=$("date").value;
+  const travelTime=$("time").value;
+  const returnDate=type==="volta"?$("rdate").value:null;
+  const returnTime=type==="volta"?$("rtime").value:null;
+
   const reservation={
-    passenger_name:$("name").value.trim(),
-    passenger_phone:$("phone").value.trim(),
+    // Campos novos usados pelo painel atual
+    passenger_name:passengerName,
+    passenger_phone:passengerPhone,
     passenger_email:loadPassengerProfile()?.email||null,
     trip_type:type==="volta"?"ida_volta":"ida",
-    travel_date:$("date").value,
-    travel_time:$("time").value,
-    return_date:type==="volta"?$("rdate").value:null,
-    return_time:type==="volta"?$("rtime").value:null,
-    origin:$("from").value,
-    destination:$("to").value,
+    travel_date:travelDate,
+    travel_time:travelTime,
+    return_date:returnDate,
+    return_time:returnTime,
+    origin:originAddress,
+    destination:destinationAddress,
+
+    // Campos legados mantidos para compatibilidade com funções/consultas existentes
+    nome:passengerName,
+    whatsapp:passengerPhone,
+    tipo_viagem:type==="volta"?"ida_volta":"ida",
+    data_ida:travelDate,
+    hora_ida:travelTime,
+    data_volta:returnDate,
+    hora_volta:returnTime,
+    embarque:originAddress,
+    destino:destinationAddress,
     origin_lat:fromResult&&fromResult.lat?Number(fromResult.lat):null,
     origin_lng:fromResult&&fromResult.lon?Number(fromResult.lon):null,
     destination_lat:toResult&&toResult.lat?Number(toResult.lat):null,
