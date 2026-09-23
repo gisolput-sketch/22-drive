@@ -48,7 +48,7 @@ async function sendLink(){
   $("sendBtn").disabled=true;setStatus("");
   try{
     localStorage.setItem("22drive_registration_draft",JSON.stringify({name,phone,email}));
-    const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true,emailRedirectTo:location.origin+location.pathname}});
+    const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true,emailRedirectTo:"https://gisolput-sketch.github.io/22-drive/"}});
     if(error)throw error;
     $("formBox").style.display="none";$("waitingBox").style.display="block";
   }catch(e){console.error(e);localStorage.removeItem("22drive_registration_draft");setStatus("❌ "+(e.message||"Não foi possível enviar o link."))}
