@@ -47,14 +47,13 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
   const sb=window.supabase.createClient(URL,KEY);
   const {data}=await sb.auth.getSession();
   if(!data.session){ window.location.replace("./login.html"); return; }
-  const phone=String(data.session.user.phone||"").replace(/\D/g,"").replace(/^55/,"");
-  if(phone){
-    const {data:profile,error}=await sb.from("passageiros").select("id,nome,whatsapp,email,favoritos").eq("whatsapp",phone).maybeSingle();
-    if(error || !profile){ window.location.replace("./cadastro-passageiro.html"); return; }
-    localStorage.setItem("22drive_passenger_profile",JSON.stringify({
-      name:profile.nome||"",phone:profile.whatsapp||phone,email:profile.email||"",favorites:profile.favoritos||[]
-    }));
-  }
+  const email=String(data.session.user.email||"").trim().toLowerCase();
+  if(!email){ window.location.replace("./login.html"); return; }
+  const {data:profile,error}=await sb.from("passageiros").select("id,nome,whatsapp,email,favoritos").eq("email",email).maybeSingle();
+  if(error || !profile){ window.location.replace("./cadastro-passageiro.html?email="+encodeURIComponent(email)); return; }
+  localStorage.setItem("22drive_passenger_profile",JSON.stringify({
+    name:profile.nome||"",phone:profile.whatsapp||"",email:profile.email||email,favorites:profile.favoritos||[]
+  }));
 })();
 </script>
 </head>
@@ -128,7 +127,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <input id="from" type="hidden" required>
 <input id="to" type="hidden" required>
 <input id="km" type="hidden" value="0" required>
-<p class="muted">O site calcula a distância real pelas ruas automaticamente. Tarifa: R$ 1,50/km, com mínimo de R$ 20,00 por trecho.</p>
+<p class="muted">O site calcula a distância real pelas ruas automaticamente. Tarifa: até 9 km, R$ 20,00. Após 9 km, acrescenta R$ 2,00 por km.</p>
 </section>
 
 <section class="card">
