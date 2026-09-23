@@ -383,10 +383,31 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 
 /* Tela principal limpa: somente mapa + cabeçalho + rotas aceitas */
 #app{display:none!important}
-#driverMapShell .driver-bottom-area{height:150px;overflow:auto}
+#driverMapShell .driver-bottom-area{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:1200;
+  height:auto;
+  max-height:none;
+  overflow:visible;
+  padding:10px 12px 12px;
+  background:transparent;
+  pointer-events:none;
+}
+#driverMapShell .driver-bottom-area > *{pointer-events:auto}
+#driverMapShell .driver-sheet{max-width:900px;margin:0 auto}
+#mobileRequests{overflow:visible}
+.mobile-ride-card{position:relative;z-index:1250}
 @media(max-width:700px){
-  #driverMapShell{height:100dvh;min-height:100dvh;padding-top:74px;padding-bottom:190px}
-  #driverMapShell .driver-bottom-area{height:190px;padding:8px 10px 10px}
+  #driverMapShell{height:100dvh;min-height:100dvh;padding-top:74px;padding-bottom:0}
+  .driver-map{height:calc(100dvh - 74px);min-height:0}
+  #driverMapShell .driver-bottom-area{
+    padding:8px 10px 10px;
+    max-height:none;
+    overflow:visible;
+  }
   #driverMapShell .today-routes-card{min-height:124px}
 }
 /* Status do motorista: controle exclusivamente no topo */
