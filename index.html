@@ -291,6 +291,35 @@ async function submitPassengerReview(){
   btn.textContent="✅ Avaliação enviada";
   $("reviewMessage").textContent="Obrigado pela sua avaliação! ⭐";
 }
+function updatePassengerDriverMap(r){
+  if(!driveMap||!r)return;
+  const lat=Number(r.driver_lat);
+  const lng=Number(r.driver_lng);
+  if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+
+  const arrived=!!r.driver_arrived_at;
+  const icon=L.divIcon({
+    className:"passenger-driver-marker",
+    html:arrived?"<span>🚗</span>":"<span>🚕</span>",
+    iconSize:[50,50],
+    iconAnchor:[25,25]
+  });
+
+  if(passengerDriverMarker){
+    passengerDriverMarker.setLatLng([lat,lng]);
+    passengerDriverMarker.setIcon(icon);
+  }else{
+    passengerDriverMarker=L.marker([lat,lng],{icon,zIndexOffset:1200}).addTo(driveMap);
+  }
+
+  passengerDriverMarker.bindPopup(arrived?"🚗 Motorista chegou ao embarque.":"🚕 Localização atual do motorista.");
+
+  if(arrived){
+    driveMap.setView([lat,lng],16,{animate:true});
+    if($("routeStatus"))$("routeStatus").textContent="📍 O motorista chegou ao local de embarque.";
+  }
+}
+
 function showTripStatus(r){
   if(!r)return;
   const box=$("tripStatusBox"),card=$("tripStatusCard");
@@ -301,7 +330,11 @@ function showTripStatus(r){
   }
   if(r.driver_name) html+="<br>🚗 Motorista: "+r.driver_name;
   if(r.confirm_note) html+="<br>📝 "+r.confirm_note;
+  if(r.driver_arrived_at){
+    html+="<br>📍 <b>O motorista já chegou ao local de embarque.</b>";
+  }
   box.innerHTML=html;
+  updatePassengerDriverMap(r);
   card.style.display="block";
   if(String(r.status).toLowerCase()==="finished") preparePassengerReview(r);
 }
@@ -440,7 +473,7 @@ async function findPassengerProfile(){
 let rates=JSON.parse(localStorage.getItem("22drive_rates")||"null")||defaults;
 const $=id=>document.getElementById(id);
 
-let driveMap=null, fromMarker=null, toMarker=null, routeLine=null;
+let driveMap=null, fromMarker=null, toMarker=null, routeLine=null, passengerDriverMarker=null;
 let fromResult=null, toResult=null;
 let searchTimers={fromPlace:null,toPlace:null};
 let routeController=null;
