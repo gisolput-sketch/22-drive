@@ -1895,10 +1895,10 @@ async function finishRide(id){
     save(rs);
   }
   render();
+}
 
   // Inicialização segura da área do motorista.
-  // O arquivo anterior estava sem o fechamento do script e sem restaurar a sessão,
-  // fazendo o navegador interromper todo o JavaScript e deixar o login travado.
+  // Restaura a sessão do Supabase quando a página é aberta.
   window.addEventListener("DOMContentLoaded", async ()=>{
     try{
       const client=getAuthClient();
@@ -1911,10 +1911,10 @@ async function finishRide(id){
       }
     }catch(e){
       console.error("22 DRIVE inicialização do login:",e);
-      $("loginError")&&( $("loginError").textContent="❌ Não foi possível iniciar o login. Recarregue a página e tente novamente." );
+      const loginError=$("loginError");
+      if(loginError) loginError.textContent="❌ Não foi possível iniciar o login. Recarregue a página e tente novamente.";
     }
   });
-}
 
 </script>
 </body>
