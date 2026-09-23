@@ -42,7 +42,7 @@ async function sendLink(){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setStatus("Informe um e-mail válido.");return}
   $("sendBtn").disabled=true;setStatus("");
   try{
-    const {data,error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});
+    const {data,error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:"https://gisolput-sketch.github.io/22-drive/"}});
     if(error)throw error;
     localStorage.setItem("22drive_pending_login",JSON.stringify({phone,email}));
     $("loginBox").style.display="none";$("successBox").style.display="block";
