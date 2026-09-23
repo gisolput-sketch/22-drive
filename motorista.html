@@ -398,6 +398,13 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 }
 #driverMapShell .driver-bottom-area > *{pointer-events:auto}
 #driverMapShell .driver-sheet{max-width:900px;margin:0 auto}
+#driverMapShell #mobileRequests{width:100%;max-height:none;overflow:visible}
+#driverMapShell .mobile-ride-card{
+  max-height:none;
+  overflow:visible;
+  position:relative;
+  z-index:1250;
+}
 #mobileRequests{overflow:visible}
 .mobile-ride-card{position:relative;z-index:1250}
 @media(max-width:700px){
@@ -1410,11 +1417,20 @@ function closeScheduledFromMenu(){
   if(modal){modal.classList.remove("open");modal.setAttribute("aria-hidden","true");}
 }
 function renderMobileRequests(){
-  const el=$("mobileRequests"); if(!el)return;
+  const el=$("mobileRequests");
+  const todayCard=$("todayRoutesCard");
+  if(!el)return;
   const rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
   const active=rs.filter(r=>["new","accepted","confirmed"].includes(r.status||"new") && !isScheduledFromTwoDays(r));
   if($("sheetCount"))$("sheetCount").textContent=active.length?active.length+" solicitação"+(active.length===1?"":"ões"):"";
-  if(!active.length){el.innerHTML="";return;}
+  if(!active.length){
+    el.innerHTML="";
+    if(todayCard)todayCard.style.display="";
+    return;
+  }
+  // Quando existe uma corrida ativa, o cartão da corrida ocupa o primeiro plano
+  // sobre o mapa e o painel de rotas de hoje fica oculto para não empurrá-lo.
+  if(todayCard)todayCard.style.display="none";
   el.innerHTML=active.map(r=>{
     const s=r.status||"new", value=rideValue(r);
     const origin=r.origin||r.origem||"Origem não informada", dest=r.destination||r.destino||"Destino não informado";
