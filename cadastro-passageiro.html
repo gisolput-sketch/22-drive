@@ -47,9 +47,6 @@ async function sendLink(){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setStatus("Informe um e-mail válido.");return}
   $("sendBtn").disabled=true;setStatus("");
   try{
-    const {data:existing,error:pe}=await sb.from("passageiros").select("id").eq("whatsapp",phone).maybeSingle();
-    if(pe)throw pe;
-    if(existing){setStatus("Este WhatsApp já está cadastrado. Volte para Entrar.");return}
     localStorage.setItem("22drive_registration_draft",JSON.stringify({name,phone,email}));
     const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true,emailRedirectTo:location.origin+location.pathname}});
     if(error)throw error;
