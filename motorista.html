@@ -135,7 +135,7 @@ body{overflow:hidden}
 }
 .driver-map .leaflet-tile{filter:none}
 .driver-map .leaflet-control-zoom{
-  margin:0 14px 76px 0;
+  margin:14px 14px 0 0;
 }
 .driver-map .leaflet-control-zoom + .leaflet-control{
   margin-right:14px;
@@ -159,10 +159,11 @@ body{overflow:hidden}
 .driver-current-location-button{width:100%;min-height:40px;margin:0 0 8px;border:1px solid var(--gold);border-radius:12px;background:#0b1a2b;color:#fff;font-size:13px;font-weight:800;cursor:pointer}.driver-current-location-button:disabled{opacity:.65;cursor:wait}
 .driver-location-button{
   position:absolute;
-  right:14px;
-  bottom:92px;
-  width:48px;
-  height:48px;
+  z-index:500;
+  top:14px;
+  right:70px;
+  width:38px;
+  height:38px;
   display:grid;
   place-items:center;
   border:1px solid var(--gold);
@@ -341,7 +342,7 @@ body{overflow:hidden}
   .driver-map{height:calc(100dvh - 74px - 190px);min-height:0}
   .driver-map .leaflet-control-zoom{margin-right:10px;margin-bottom:72px}
   .driver-map .leaflet-control-zoom a{width:40px;height:40px;line-height:40px}
-  .driver-location-button{right:10px;bottom:92px;width:50px;height:50px;font-size:28px}
+  .driver-location-button{right:58px;top:10px;width:40px;height:40px;font-size:24px}
   .driver-bottom-area{padding:10px 10px 12px}
   .today-routes-card{padding:12px 13px}
   .today-routes-icon{width:42px;height:42px;flex-basis:42px;font-size:22px}
@@ -435,12 +436,12 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
   </header>
 
   <div id="driverMap" class="driver-map" aria-label="Mapa da área do motorista">
-    <button class="driver-location-button" type="button" onclick="centerDriverLocation()" aria-label="Centralizar localização">⌖</button>
+    <button class="driver-location-button" type="button" onclick="useCurrentDriverLocation()" aria-label="Usar localização atual">⌖</button>
   </div>
 
   <div id="driverContent" class="driver-bottom-area">
     <div class="driver-sheet" id="driverSheet">
-      <button id="currentLocationButton" class="driver-current-location-button" type="button" onclick="useCurrentDriverLocation()">⌖</button>
+      <button id="currentLocationButton" class="driver-current-location-button hidden" type="button" onclick="useCurrentDriverLocation()" aria-hidden="true">⌖</button>
       <div id="mobileNotice" class="sheet-notice hidden"></div>
       <div id="mobileRequests"></div>
 
@@ -987,27 +988,27 @@ function initDriverMap(){
     });
   }
 }
-function useCurrentDriverLocation(){const btn=$("currentLocationButton");if(!navigator.geolocation){alert("Seu navegador não permite acessar a localização.");return;}if(btn){btn.disabled=true;btn.textContent="⏳ Buscando localização...";}navigator.geolocation.getCurrentPosition(pos=>{driverLocation=[pos.coords.latitude,pos.coords.longitude];if(driverMap){driverMap.invalidateSize({pan:false});const icon=L.divIcon({className:"driver-car-marker",html:"<span>🚗</span>",iconSize:[52,52],iconAnchor:[26,26]});if(driverMarker)driverMarker.setLatLng(driverLocation);else driverMarker=L.marker(driverLocation,{icon,zIndexOffset:1000}).addTo(driverMap);driverMap.setView(driverLocation,16,{animate:true});updateRideMapFromRequests();}if(btn){btn.disabled=false;btn.textContent="⌖";}},err=>{if(btn){btn.disabled=false;btn.textContent="⌖";}alert("Não foi possível obter sua localização. Verifique a permissão de localização do navegador e o GPS do celular.");},{enableHighAccuracy:true,timeout:15000,maximumAge:0});}
-function centerDriverLocation(){
-  if(driverLocation&&driverMap){
-    driverMap.invalidateSize({pan:false});
-    driverMap.setView(driverLocation,15,{animate:true});
-    return;
-  }
-  if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(pos=>{
-      driverLocation=[pos.coords.latitude,pos.coords.longitude];
-      if(driverMap){
-        driverMap.invalidateSize({pan:false});
-        if(driverMarker)driverMarker.setLatLng(driverLocation);
-        else{
-          driverMarker=L.marker(driverLocation,{icon:L.divIcon({className:"driver-car-marker",html:"<span>🚗</span>",iconSize:[52,52],iconAnchor:[26,26]}),zIndexOffset:1000}).addTo(driverMap);
-        }
-        driverMap.setView(driverLocation,15,{animate:true});
-        updateRideMapFromRequests();
-      }
-    },err=>alert("Não foi possível obter sua localização. Verifique a permissão de localização do navegador."));
-  }
+function useCurrentDriverLocation(){
+  const mapBtn=document.querySelector(".driver-location-button");
+  const fallbackBtn=$("currentLocationButton");
+  const btn=mapBtn||fallbackBtn;
+  if(!navigator.geolocation){alert("Seu navegador não permite acessar a localização.");return;}
+  if(btn){btn.disabled=true;btn.textContent="⏳";}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    driverLocation=[pos.coords.latitude,pos.coords.longitude];
+    if(driverMap){
+      driverMap.invalidateSize({pan:false});
+      const icon=L.divIcon({className:"driver-car-marker",html:"<span>🚗</span>",iconSize:[52,52],iconAnchor:[26,26]});
+      if(driverMarker)driverMarker.setLatLng(driverLocation);
+      else driverMarker=L.marker(driverLocation,{icon,zIndexOffset:1000}).addTo(driverMap);
+      driverMap.setView(driverLocation,16,{animate:true});
+      updateRideMapFromRequests();
+    }
+    if(btn){btn.disabled=false;btn.textContent="⌖";}
+  },err=>{
+    if(btn){btn.disabled=false;btn.textContent="⌖";}
+    alert("Não foi possível obter sua localização. Verifique a permissão de localização do navegador e o GPS do celular.");
+  },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
 }
 function toggleDriverSheet(){const s=$("driverSheet");s.classList.toggle("expanded");}
 function toggleTopMenu(){const m=$("topMenuPanel");if(m)m.classList.toggle("open");}
