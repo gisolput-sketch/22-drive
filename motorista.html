@@ -1895,3 +1895,27 @@ async function finishRide(id){
     save(rs);
   }
   render();
+
+  // Inicialização segura da área do motorista.
+  // O arquivo anterior estava sem o fechamento do script e sem restaurar a sessão,
+  // fazendo o navegador interromper todo o JavaScript e deixar o login travado.
+  window.addEventListener("DOMContentLoaded", async ()=>{
+    try{
+      const client=getAuthClient();
+      if(client){
+        const ok=await loadAuthenticatedDriver();
+        if(!ok){
+          $("login")?.classList.remove("hidden");
+          $("driverMapShell")?.classList.remove("active");
+        }
+      }
+    }catch(e){
+      console.error("22 DRIVE inicialização do login:",e);
+      $("loginError")&&( $("loginError").textContent="❌ Não foi possível iniciar o login. Recarregue a página e tente novamente." );
+    }
+  });
+}
+
+</script>
+</body>
+</html>
