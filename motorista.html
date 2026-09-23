@@ -588,14 +588,14 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 </section>
 <section id="login" class="card login-card">
 <div class="login-brand"><img class="login-logo" src="./logo-login.svg" alt="22 DRIVE — Sua viagem, nossa prioridade"><p class="muted">Área do Motorista</p></div>
-<form id="loginForm" autocomplete="on">
+<form id="loginForm" autocomplete="on" onsubmit="login();return false;">
 <label>E-mail</label><input id="loginEmail" name="username" type="email" autocomplete="username" placeholder="seuemail@exemplo.com" required>
 <label>Senha</label>
 <div class="password-field">
 <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required>
 <button type="button" id="togglePassword" class="password-toggle" aria-label="Mostrar senha" onclick="toggleLoginPassword();return false;">Mostrar</button>
 </div>
-<button class="btn primary btnblock" id="loginButton" type="submit">Entrar</button>
+<button class="btn primary btnblock" id="loginButton" type="button" onclick="login();return false;">Entrar</button>
 </form>
 <div id="loginError" class="muted login-error"></div>
 <button class="btn gray btnblock" type="button" onclick="forgotPassword()">🔑 Esqueci minha senha</button>
@@ -1378,14 +1378,14 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 </section>
 <section id="login" class="card login-card">
 <div class="login-brand"><img class="login-logo" src="./logo-login.svg" alt="22 DRIVE — Sua viagem, nossa prioridade"><p class="muted">Área do Motorista</p></div>
-<form id="loginForm" autocomplete="on">
+<form id="loginForm" autocomplete="on" onsubmit="login();return false;">
 <label>E-mail</label><input id="loginEmail" name="username" type="email" autocomplete="username" placeholder="seuemail@exemplo.com" required>
 <label>Senha</label>
 <div class="password-field">
 <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required>
 <button type="button" id="togglePassword" class="password-toggle" aria-label="Mostrar senha" onclick="toggleLoginPassword();return false;">Mostrar</button>
 </div>
-<button class="btn primary btnblock" id="loginButton" type="submit">Entrar</button>
+<button class="btn primary btnblock" id="loginButton" type="button" onclick="login();return false;">Entrar</button>
 </form>
 <div id="loginError" class="muted login-error"></div>
 <button class="btn gray btnblock" type="button" onclick="forgotPassword()">🔑 Esqueci minha senha</button>
