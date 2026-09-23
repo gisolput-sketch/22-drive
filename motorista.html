@@ -1408,14 +1408,24 @@ function messageArrivalWhatsApp(id){
   window.open(url,"_blank");
 }
 
+function localDateKey(){
+  const n=new Date();
+  return n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0")+"-"+String(n.getDate()).padStart(2,"0");
+}
+function reservationDateKey(r){
+  const raw=r.confirmedDate||r.confirmed_date||r.date||r.travel_date||r.data_ida||r.data||"";
+  const s=String(raw).trim();
+  const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m)return m[1]+"-"+m[2]+"-"+m[3];
+  const d=reservationDateOnly(r);
+  return d ? d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0") : "";
+}
 function renderTodayAcceptedRoutes(){
   const p=$("todayRoutesPanel"); if(!p)return;
-  const today=startOfToday();
+  const todayKey=localDateKey();
   const rows=requests().filter(r=>{
     const status=String(r.status||"new").toLowerCase();
-    const dateValue=r.confirmedDate||r.confirmed_date||r.date||r.travel_date||r.data_ida||r.data;
-    const d=reservationDateOnly({...r,date:dateValue});
-    return ["accepted","confirmed"].includes(status) && d && d.getTime()===today.getTime();
+    return ["accepted","confirmed"].includes(status) && reservationDateKey(r)===todayKey;
   }).sort((a,b)=>{
     const ta=String(a.confirmedTime||a.confirmed_time||a.time||a.horario||"23:59").slice(0,5);
     const tb=String(b.confirmedTime||b.confirmed_time||b.time||b.horario||"23:59").slice(0,5);
