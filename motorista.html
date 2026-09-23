@@ -588,14 +588,14 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 </section>
 <section id="login" class="card login-card">
 <div class="login-brand"><img class="login-logo" src="./logo-login.svg" alt="22 DRIVE — Sua viagem, nossa prioridade"><p class="muted">Área do Motorista</p></div>
-<form id="loginForm" autocomplete="on" onsubmit="return false;">
+<form id="loginForm" autocomplete="on">
 <label>E-mail</label><input id="loginEmail" name="username" type="email" autocomplete="username" placeholder="seuemail@exemplo.com" required>
 <label>Senha</label>
 <div class="password-field">
 <input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required>
 <button type="button" id="togglePassword" class="password-toggle" aria-label="Mostrar senha" onclick="toggleLoginPassword();return false;">Mostrar</button>
 </div>
-<button class="btn primary btnblock" id="loginButton" type="button" onclick="login();return false;">Entrar</button>
+<button class="btn primary btnblock" id="loginButton" type="submit">Entrar</button>
 </form>
 <div id="loginError" class="muted login-error"></div>
 <button class="btn gray btnblock" type="button" onclick="forgotPassword()">🔑 Esqueci minha senha</button>
@@ -846,28 +846,46 @@ async function forgotPassword(){
 }
 async function login(){
   unlockDriverSound();
-  const email=$("loginEmail").value.trim(),password=$("loginPassword").value;
-  $("loginError").textContent="";
-  if(!email||!email.includes("@")){$("loginError").textContent="⚠️ Digite um e-mail válido.";$("loginEmail").focus();return;}
-  if(!password||password.length<6){$("loginError").textContent="⚠️ Digite sua senha.";$("loginPassword").focus();return;}
-  const client=getAuthClient();if(!client){$("loginError").textContent="❌ Serviço de autenticação indisponível.";return;}
-  $("loginButton").disabled=true;$("loginButton").textContent="Entrando...";
+  const email=$("loginEmail")?.value.trim()||"";
+  const password=$("loginPassword")?.value||"";
+  const errorBox=$("loginError");
+  const button=$("loginButton");
+  if(errorBox)errorBox.textContent="";
+  if(!email||!email.includes("@")){if(errorBox)errorBox.textContent="⚠️ Digite o e-mail usado no cadastro.";return;}
+  if(!password){if(errorBox)errorBox.textContent="⚠️ Digite sua senha.";return;}
+  const client=getAuthClient();
+  if(!client){if(errorBox)errorBox.textContent="❌ Supabase não carregou. Recarregue a página.";return;}
+  if(button){button.disabled=true;button.textContent="Entrando...";}
   try{
-    const {data,error}=await client.auth.signInWithPassword({email,password});
-    if(error)throw error;
-    const user=data&&data.user;
-    if(!user)throw new Error("Não foi possível iniciar a sessão.");
-    const {data:profile,error:profileError}=await client.from("motoristas").select("id,cpf,nome,telefone,ativo,auth_user_id").eq("auth_user_id",user.id).maybeSingle();
-    if(profileError)throw profileError;
-    if(!profile){await client.auth.signOut();throw new Error("E-mail autenticado, mas ainda não está cadastrado como motorista no 22 DRIVE.");}
-    if(profile.ativo===false){await client.auth.signOut();throw new Error("Este acesso de motorista está desativado.");}
+    const authResult=await client.auth.signInWithPassword({email,password});
+    if(authResult.error)throw new Error("Falha na autenticação: "+authResult.error.message);
+    const user=authResult.data?.user;
+    if(!user)throw new Error("A autenticação não retornou o usuário.");
+    const profileResult=await client.from("motoristas").select("id,cpf,nome,telefone,ativo,auth_user_id").eq("auth_user_id",user.id).maybeSingle();
+    if(profileResult.error)throw new Error("Login OK, mas não consegui ler o cadastro do motorista: "+profileResult.error.message);
+    const profile=profileResult.data;
+    if(!profile){
+      await client.auth.signOut();
+      throw new Error("Login OK, porém este e-mail não está vinculado a um motorista em 'motoristas'.");
+    }
+    if(profile.ativo===false){
+      await client.auth.signOut();
+      throw new Error("Este acesso de motorista está desativado.");
+    }
     driver={id:profile.id,cpf:profile.cpf,name:profile.nome,phone:profile.telefone||"",status:"available",authUserId:user.id};
     localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));
-    openApp();
+    try{
+      openApp();
+    }catch(appError){
+      console.error("22 DRIVE erro ao abrir painel:",appError);
+      throw new Error("Login realizado, mas o painel não abriu: "+(appError?.message||"erro de interface"));
+    }
   }catch(e){
     console.error("22 DRIVE login:",e);
-    $("loginError").textContent="❌ "+(e&&e.message?e.message:"E-mail ou senha incorretos.");
-  }finally{$("loginButton").disabled=false;$("loginButton").textContent="Entrar";}
+    if(errorBox)errorBox.textContent="❌ "+(e?.message||"E-mail ou senha incorretos.");
+  }finally{
+    if(button){button.disabled=false;button.textContent="Entrar";}
+  }
 }
 function openApp(){
   try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}
@@ -1916,6 +1934,11 @@ async function finishRide(id){
   // Inicialização segura da área do motorista.
   // Restaura a sessão do Supabase quando a página é aberta.
   window.addEventListener("DOMContentLoaded", async ()=>{
+    const loginForm=$("loginForm");
+    if(loginForm && !loginForm.dataset.bound){
+      loginForm.dataset.bound="1";
+      loginForm.addEventListener("submit",event=>{event.preventDefault();login();});
+    }
     try{
       const client=getAuthClient();
       if(client){
