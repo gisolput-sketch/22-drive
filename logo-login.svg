@@ -1,20 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1536" role="img" aria-label="22 DRIVE">
 <defs>
- <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff06a"/><stop offset=".45" stop-color="#ffc400"/><stop offset="1" stop-color="#e08b00"/></linearGradient>
- <linearGradient id="white" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#d7dbe0"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff45c"/><stop offset=".48" stop-color="#ffc400"/><stop offset="1" stop-color="#df8a00"/></linearGradient>
+ <linearGradient id="silver" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#d8dce2"/></linearGradient>
+ <filter id="shadow"><feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#000" flood-opacity=".75"/></filter>
 </defs>
-<rect width="800" height="800" rx="48" fill="#050505"/>
-<circle cx="400" cy="235" r="170" fill="none" stroke="url(#gold)" stroke-width="12" stroke-dasharray="300 30"/>
-<path d="M400 70c-63 0-114 51-114 114 0 78 114 183 114 183S514 262 514 184C514 121 463 70 400 70zm0 65a49 49 0 1 1 0 98 49 49 0 0 1 0-98z" fill="url(#gold)"/>
-<path d="M120 470c42-82 95-120 158-132 82-16 166-16 248 0 63 12 116 50 158 132l-24 88H140z" fill="#070707" stroke="url(#gold)" stroke-width="10"/>
-<path d="M250 352h300l62 88H188z" fill="#0b0b0b" stroke="#f5c400" stroke-width="7"/>
-<path d="M278 367h244l34 54H244z" fill="#171717" stroke="#cfd3d8" stroke-width="5"/>
-<path d="M150 458h500l-40 87H190z" fill="#0a0a0a" stroke="#f5c400" stroke-width="7"/>
-<path d="M180 512h440" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-<path d="M116 596C245 566 388 548 560 510c83-18 132-1 168 43-92 7-183 33-281 66-114 38-225 58-331 58 0 0 2-44 0-81z" fill="#080808" stroke="url(#gold)" stroke-width="10"/>
-<path d="M554 593c25-5 49-8 72-10" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-<path d="M625 578c18-2 34-3 50-3" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-<text x="400" y="705" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="105" font-weight="900" font-style="italic" letter-spacing="-5"><tspan fill="url(#gold)">22</tspan><tspan fill="url(#white)"> DRIVE</tspan></text>
-<path d="M92 742h50M658 742h50" stroke="url(#gold)" stroke-width="6"/>
-<text x="400" y="752" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="700" letter-spacing="4" fill="#fff">SUA VIAGEM, NOSSA PRIORIDADE</text>
+<rect width="1536" height="1536" fill="#050505"/>
+<g filter="url(#shadow)">
+ <path d="M1080 250a285 285 0 0 1 174 247" fill="none" stroke="url(#gold)" stroke-width="25"/>
+ <path d="M282 615a410 410 0 0 1 300-371" fill="none" stroke="url(#gold)" stroke-width="25"/>
+ <path d="M930 262c0 116-174 268-174 268S582 378 582 262c0-96 78-174 174-174s174 78 174 174Z" fill="url(#gold)"/>
+ <circle cx="756" cy="258" r="76" fill="#050505"/>
+ <path d="M490 650c54-116 146-172 266-190 108-16 220-16 328 0 120 18 212 74 266 190l-35 155H525Z" fill="#050505" stroke="url(#gold)" stroke-width="17"/>
+ <path d="M590 552h332l87 124H503Z" fill="#090909" stroke="#ffc400" stroke-width="13"/>
+ <path d="M633 570h246l48 82H585Z" fill="#151515" stroke="#d7dbe0" stroke-width="9"/>
+ <path d="M530 675h453l137 57-61 101H486l-63-101Z" fill="#070707" stroke="url(#gold)" stroke-width="13"/>
+ <path d="M474 744l113 34 45 61H506Z" fill="#fff"/>
+ <path d="M1007 778l113-34-12 95h-126Z" fill="#fff"/>
+ <path d="M620 792h272" stroke="#ffc400" stroke-width="9" stroke-linecap="round"/>
+ <path d="M430 875c218-20 442-66 650-120 132-34 253-6 341 71-139 17-269 57-425 112-186 66-383 116-592 119 12-58 21-117 26-182Z" fill="#080808" stroke="url(#gold)" stroke-width="16"/>
+ <path d="M1027 929c49-14 98-25 146-32" stroke="#fff" stroke-width="13" stroke-linecap="round"/>
+ <path d="M1191 895c38-6 73-9 106-9" stroke="#fff" stroke-width="13" stroke-linecap="round"/>
+</g>
+<g font-family="Arial,Helvetica,sans-serif" font-style="italic" font-weight="900" text-anchor="middle">
+ <text x="760" y="1230" font-size="205" letter-spacing="-12"><tspan fill="url(#gold)">22</tspan><tspan fill="url(#silver)"> DRIVE</tspan></text>
+</g>
+<path d="M118 1300h72M1346 1300h72" stroke="url(#gold)" stroke-width="9"/>
+<text x="768" y="1315" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="43" font-weight="700" letter-spacing="8" fill="#fff">SUA VIAGEM, NOSSA PRIORIDADE</text>
 </svg>
