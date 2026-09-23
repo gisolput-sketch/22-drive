@@ -52,21 +52,32 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 
 <main>
 <section class="card" id="passengerAccessCard">
-<h2>👤 Cadastro do passageiro</h2>
-<p class="muted">Cadastre-se uma vez. Nas próximas solicitações, seus dados serão preenchidos automaticamente neste aparelho.</p>
-<div id="profileLoginBox">
-<div class="field"><label>WhatsApp cadastrado</label><input id="profilePhone" type="tel" placeholder="(21) 99999-9999"></div>
-<div class="grid">
-<div class="field"><label>Nome completo</label><input id="profileName" placeholder="Seu nome"></div>
-<div class="field"><label>E-mail <span class="muted">(opcional)</span></label><input id="profileEmail" type="email" placeholder="seu@email.com"></div>
+<h2>📱 Acesso do passageiro</h2>
+<div id="passengerLoginBox">
+<p class="muted">Entre usando apenas seu número de WhatsApp. Enviaremos um código para confirmar que o número realmente é seu.</p>
+<div class="field"><label>WhatsApp</label><input id="accessPhone" type="tel" inputmode="tel" placeholder="(21) 99999-9999"></div>
+<button class="btn primary" type="button" id="accessLoginBtn">📲 Entrar e receber código</button>
+<button class="btn secondary" type="button" id="accessRegisterBtn">📝 Ainda não tenho cadastro</button>
 </div>
-<button class="btn primary" type="button" id="saveProfileBtn">💾 Salvar meu cadastro</button>
-<button class="btn dark" type="button" id="findProfileBtn">🔎 Buscar meu cadastro pelo WhatsApp</button>
+<div id="passengerRegisterBox" style="display:none">
+<p class="muted">Faça seu cadastro uma vez. Depois, seu WhatsApp será usado para reconhecer você automaticamente.</p>
+<div class="field"><label>WhatsApp</label><input id="registerPhone" type="tel" inputmode="tel" placeholder="(21) 99999-9999"></div>
+<div class="field"><label>Nome completo</label><input id="registerName" placeholder="Seu nome"></div>
+<div class="field"><label>E-mail <span class="muted">(opcional)</span></label><input id="registerEmail" type="email" placeholder="seu@email.com"></div>
+<button class="btn primary" type="button" id="registerSendBtn">📲 Cadastrar e receber código</button>
+<button class="btn secondary" type="button" id="backLoginBtn">← Voltar para entrar</button>
+</div>
+<div id="passengerOtpBox" style="display:none">
+<p class="muted" id="otpMessage"></p>
+<div class="field"><label>Código de confirmação</label><input id="accessOtp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Digite o código de 6 dígitos"></div>
+<button class="btn primary" type="button" id="verifyOtpBtn">✅ Confirmar código</button>
+<button class="btn secondary" type="button" id="resendOtpBtn">🔄 Enviar outro código</button>
 </div>
 <div id="profileSavedBox" style="display:none">
 <div class="notice" id="profileSavedText"></div>
 <button class="btn dark" type="button" id="editProfileBtn">✏️ Alterar meu cadastro</button>
 </div>
+<div id="authStatus" class="muted" style="margin-top:10px"></div>
 </section>
 
 <section class="card" id="favoriteAddressesCard">
@@ -369,6 +380,84 @@ function normalizePhone(v){
   return String(v||"").replace(/\D/g,"");
 }
 
+let pendingOtpPhone="";
+let pendingOtpMode="login";
+let pendingProfileDraft=null;
+
+function formatAuthPhone(raw){
+  const digits=String(raw||"").replace(/\D/g,"");
+  if(digits.startsWith("55")) return "+"+digits;
+  if(digits.length===10||digits.length===11) return "+55"+digits;
+  return "";
+}
+
+async function sendPassengerOtp(mode){
+  const input=$(mode==="register"?"registerPhone":"accessPhone");
+  const phone=formatAuthPhone(input.value);
+  if(!/^\+55\d{10,11}$/.test(phone)){alert("Informe um WhatsApp brasileiro válido.");return;}
+  if(!passengerSupabase) passengerSupabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  const {error}=await passengerSupabase.auth.signInWithOtp({phone});
+  if(error){console.error(error);alert("❌ Não foi possível enviar o código. Verifique se o login por telefone/OTP está ativado no Supabase.");return;}
+  pendingOtpPhone=phone;
+  pendingOtpMode=mode;
+  $("passengerLoginBox").style.display="none";
+  $("passengerRegisterBox").style.display="none";
+  $("passengerOtpBox").style.display="block";
+  $("otpMessage").textContent="Enviamos um código de 6 dígitos para "+phone+". Digite o código para continuar.";
+}
+
+async function verifyPassengerOtp(){
+  if(!pendingOtpPhone)return;
+  const token=$("accessOtp").value.trim();
+  if(!/^\d{6}$/.test(token)){alert("Digite o código de 6 dígitos.");return;}
+  const {data,error}=await passengerSupabase.auth.verifyOtp({phone:pendingOtpPhone,token,type:"sms"});
+  if(error){console.error(error);alert("❌ Código inválido ou expirado. Solicite outro código.");return;}
+  const normalized=normalizePhone(pendingOtpPhone);
+  const {data:profile,error:profileError}=await passengerSupabase.from("passageiros").select("id,nome,whatsapp,email,favoritos").eq("whatsapp",normalized).maybeSingle();
+  if(profileError){console.error(profileError);alert("❌ Não foi possível carregar seu cadastro.");return;}
+  if(profile){
+    const saved={name:profile.nome||"",phone:profile.whatsapp||normalized,email:profile.email||"",favorites:profile.favoritos||[]};
+    localStorage.setItem(PROFILE_KEY,JSON.stringify(saved));
+    showPassengerProfile(saved);
+    renderFavorites();
+    $("authStatus").textContent="✅ Número confirmado. Cadastro reconhecido.";
+    return;
+  }
+  if(pendingOtpMode==="register"){
+    const name=$("registerName").value.trim(), email=$("registerEmail").value.trim();
+    if(!name){alert("Informe seu nome para concluir o cadastro.");return;}
+    const {error:insertError}=await passengerSupabase.from("passageiros").insert({nome:name,whatsapp:normalized,email:email||null,favoritos:[]});
+    if(insertError){console.error(insertError);alert("❌ Não foi possível concluir o cadastro: "+insertError.message);return;}
+    const saved={name,phone:normalized,email,favorites:[]};
+    localStorage.setItem(PROFILE_KEY,JSON.stringify(saved));
+    showPassengerProfile(saved); renderFavorites();
+    $("authStatus").textContent="✅ Cadastro concluído e WhatsApp confirmado.";
+  }else{
+    $("passengerOtpBox").style.display="none";
+    $("passengerRegisterBox").style.display="block";
+    $("registerPhone").value=normalized;
+    $("authStatus").textContent="Este WhatsApp ainda não possui cadastro. Preencha seus dados para criar seu cadastro.";
+  }
+}
+
+function initPassengerAccess(){
+  if(!passengerSupabase) passengerSupabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  $("accessLoginBtn").onclick=()=>sendPassengerOtp("login");
+  $("accessRegisterBtn").onclick=()=>{
+    $("passengerLoginBox").style.display="none"; $("passengerRegisterBox").style.display="block";
+    $("registerPhone").value=$("accessPhone").value;
+  };
+  $("backLoginBtn").onclick=()=>{
+    $("passengerRegisterBox").style.display="none"; $("passengerLoginBox").style.display="block";
+  };
+  $("registerSendBtn").onclick=()=>{
+    if(!$("registerName").value.trim()){alert("Informe seu nome.");return;}
+    pendingProfileDraft={name:$("registerName").value.trim(),email:$("registerEmail").value.trim()};
+    sendPassengerOtp("register");
+  };
+  $("verifyOtpBtn").onclick=verifyPassengerOtp;
+  $("resendOtpBtn").onclick=()=>sendPassengerOtp(pendingOtpMode);
+}
 function loadPassengerProfile(){
   try{return JSON.parse(localStorage.getItem(PROFILE_KEY)||"null")}catch(_){return null}
 }
@@ -1286,7 +1375,8 @@ $("reset").onclick=()=>{
  calc();
  window.scrollTo({top:0,behavior:"smooth"});
 };
-setMin();
+initPassengerAccess();
+setMin();setMin();
 $("rdate").min=$("date").value;
 updateReturnFields();
 updateNoLovePaymentDate();
