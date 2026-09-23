@@ -337,6 +337,37 @@ body{overflow:hidden}
 #chargeModal .charge-method b{display:block;color:var(--gold);font-size:14px}
 #chargeModal .charge-value{font-size:34px;font-weight:900;margin:8px 0 16px}
 #chargeModal .charge-close{width:100%;min-height:50px;border:0;border-radius:14px;background:var(--green);color:#04120d;font-weight:900;font-size:16px}
+#driverChargeModal{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:6000;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:#000c;
+}
+#driverChargeModal.open{display:flex}
+#driverChargeModal .charge-box{
+  width:min(430px,100%);
+  background:#07111f;
+  color:#fff;
+  border:1px solid var(--gold);
+  border-radius:20px;
+  padding:22px;
+  box-shadow:0 20px 60px #000d;
+}
+#driverChargeModal .charge-title{font-size:24px;font-weight:900;margin-bottom:6px}
+#driverChargeModal .charge-sub{color:#b9c8e5;font-size:13px;margin-bottom:16px}
+#driverChargeModal .charge-value{font-size:38px;font-weight:900;color:var(--gold);margin:8px 0 16px}
+#driverChargeModal .charge-method{
+  border:1px solid #29415e;border-radius:14px;padding:14px;background:#0b1a2b;margin-bottom:14px;
+}
+#driverChargeModal .charge-method b{display:block;color:var(--gold);font-size:14px;margin-bottom:4px}
+#driverChargeModal .charge-close{
+  width:100%;min-height:50px;border:0;border-radius:14px;background:var(--green);
+  color:#04120d;font-weight:900;font-size:16px;
+}
 @media(max-width:700px){
   #driverMapShell{padding-top:74px;padding-bottom:150px}
   .driver-topbar{min-height:74px;padding:8px 10px;gap:8px}
@@ -493,6 +524,19 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
           <div class="today-routes-content-inner" id="todayRoutesPanel"></div>
         </div>
       </section>
+    </div>
+  </div>
+
+  <div id="driverChargeModal" aria-hidden="true">
+    <div class="charge-box">
+      <div class="charge-title">💳 Cobrança da viagem</div>
+      <div class="charge-sub" id="chargeRidePassenger">Viagem finalizada automaticamente.</div>
+      <div class="charge-value" id="chargeRideValue">R$ 0,00</div>
+      <div class="charge-method">
+        <b id="chargePaymentLabel">Forma de pagamento</b>
+        <span id="chargePaymentValue">Não informado</span>
+      </div>
+      <button class="charge-close" type="button" onclick="closeDriverChargeModal()">Concluir cobrança</button>
     </div>
   </div>
 
@@ -942,12 +986,14 @@ async function updateRideMapForRequest(r){
   rideMapLayer.addLayer(pickupLabel);
   rideMapLayer.addLayer(dropoffLabel);
   const points=[pickup,dropoff];
-  if(driverLocation)points.push(driverLocation);
+  if(driverLocation)points.unshift(driverLocation);
   driverMap.fitBounds(L.latLngBounds(points),{padding:[35,35],maxZoom:15,animate:true});
   pickupMarker.openPopup();
 
   const requestId=id;
-  const osrmUrl="https://router.project-osrm.org/route/v1/driving/"+pickup[1]+","+pickup[0]+";"+dropoff[1]+","+dropoff[0]+"?overview=full&geometries=geojson";
+  const routePoints=(driverLocation?[driverLocation,pickup,dropoff]:[pickup,dropoff])
+    .map(p=>Number(p[1])+","+Number(p[0])).join(";");
+  const osrmUrl="https://router.project-osrm.org/route/v1/driving/"+routePoints+"?overview=full&geometries=geojson&steps=true";
   fetch(osrmUrl).then(res=>{if(!res.ok)throw new Error("routing");return res.json();}).then(data=>{
     if(rideMapRequestId!==requestId||!rideMapLayer||!data.routes||!data.routes[0])return;
     const coords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
@@ -1171,6 +1217,7 @@ async function autoFinishAtDestination(r){
     clearRouteState(id);
     render();
     loadEarnings();
+    showDriverChargeModal(r);
     notice("🏁 Você chegou ao destino. Viagem finalizada e cobrança exibida.");
   }
   destinationAutoFinishing=false;
@@ -1239,29 +1286,55 @@ function startPickupArrivalWatch(r){
     const pickup=rideCoordinate(r,"pickup");
     if(!pickup)return;
     if(distanceMeters(current,pickup)<=120){
-      setRouteState(r.id,"dropoff_ready");
+      setRouteState(r.id,"dropoff");
       stopPickupArrivalWatch();
+      const destinationUrl=buildNavigationUrl(r,"dropoff");
+      let switched=false;
+      try{
+        if(routeNavigationWindow&&!routeNavigationWindow.closed&&destinationUrl){
+          routeNavigationWindow.location.href=destinationUrl;
+          routeNavigationWindow.focus?.();
+          switched=true;
+        }
+      }catch(e){}
+      if(!switched && destinationUrl){
+        // Tenta abrir novamente; em alguns aparelhos o navegador pode bloquear.
+        try{routeNavigationWindow=window.open(destinationUrl,"22drive_navigation");switched=!!routeNavigationWindow;}catch(e){}
+      }
+      startDestinationArrivalWatch(r);
       renderTodayAcceptedRoutes();
-      notice("📍 Você chegou ao embarque. Agora toque em “🏁 Iniciar percurso” para ir ao destino do passageiro.");
+      notice(switched
+        ?"📍 Embarque alcançado. Navegação alterada automaticamente para o destino do passageiro."
+        :"📍 Embarque alcançado. Toque em “🏁 Iniciar rota” para abrir o destino do passageiro.");
     }
   },()=>{}, {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
 }
-function openNavigationToRidePoint(r,type){
+let routeNavigationWindow=null;
+function buildNavigationUrl(r,type){
   const coordinate=rideCoordinate(r,type);
   const textAddress=type==="pickup"
     ?String(r.origin||r.origem||"").trim()
     :String(r.destination||r.destino||"").trim();
-  if(coordinate){
-    const url="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(coordinate[0]+","+coordinate[1])+"&travelmode=driving";
-    window.open(url,"_blank");
-    return true;
+  const destination=coordinate
+    ?(coordinate[0]+","+coordinate[1])
+    :textAddress;
+  if(!destination)return "";
+  return "https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(destination)+"&travelmode=driving&dir_action=navigate";
+}
+function openNavigationToRidePoint(r,type){
+  const url=buildNavigationUrl(r,type);
+  if(!url)return false;
+  try{
+    if(routeNavigationWindow&&!routeNavigationWindow.closed){
+      routeNavigationWindow.location.href=url;
+      routeNavigationWindow.focus?.();
+    }else{
+      routeNavigationWindow=window.open(url,"22drive_navigation");
+    }
+  }catch(e){
+    routeNavigationWindow=window.open(url,"22drive_navigation");
   }
-  if(textAddress){
-    const url="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(textAddress)+"&travelmode=driving";
-    window.open(url,"_blank");
-    return true;
-  }
-  return false;
+  return !!routeNavigationWindow;
 }
 function startRideRoute(id){
   const r=requests().find(x=>String(x.id)===String(id));
@@ -1343,7 +1416,7 @@ function renderTodayAcceptedRoutes(){
     let routeButton="";
     let arrivalButton="";
     if(phase==="dropoff_ready"){
-      routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">🏁 Iniciar percurso</button>';
+      routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">🚗 Iniciar rota</button>';
       arrivalButton='<button class="btn primary btnblock" style="margin-top:8px" type="button" onclick="messageArrivalWhatsApp('+JSON.stringify(String(r.id))+')">📲 Avisar passageiro que cheguei</button>';
     }else{
       const label=phase==="pickup"?"📍 Rota para embarque":"🚗 Iniciar rota";
@@ -1597,6 +1670,25 @@ async function markDriverArrived(id){
   }
 }
 
+function showDriverChargeModal(r){
+  const modal=$("driverChargeModal");
+  if(!modal)return;
+  const passenger=String(r.passengerName||r.passenger_name||r.nome||"Passageiro");
+  const value=rideValue(r);
+  const payment=String(r.payment||r.payment_method||r.forma_pagamento||r.pagamento||"Não informado").trim();
+  if($("chargeRidePassenger"))$("chargeRidePassenger").textContent="👤 "+passenger+" • viagem finalizada";
+  if($("chargeRideValue"))$("chargeRideValue").textContent=moneyBR(value);
+  if($("chargePaymentValue"))$("chargePaymentValue").textContent=payment||"Não informado";
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden","false");
+}
+function closeDriverChargeModal(){
+  const modal=$("driverChargeModal");
+  if(modal){
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden","true");
+  }
+}
 async function finishRide(id){
   if(!confirm("Marcar viagem como finalizada e enviar uma mensagem de agradecimento ao passageiro?"))return;
   let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));
