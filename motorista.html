@@ -407,6 +407,7 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 .mobile-ride-card .ride-address{font-size:13px}
 .mobile-ride-card .ride-meta,.mobile-ride-card .passenger-label,.mobile-ride-card .route-label{font-size:11px}
 .mobile-ride-card .ride-actions .btn{font-size:13px;padding:10px}
+.gain-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.gain-summary-grid .scheduled-item{margin:0;text-align:center}.gain-summary-grid small{font-size:15px;font-weight:700;color:#fff}
 </style></style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -530,12 +531,12 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
       <b>💰 Ganhos</b>
       <button type="button" onclick="closeGains()">✕</button>
     </div>
-    <div style="display:flex;gap:6px;margin-bottom:12px">
-      <button id="gainTodayBtn" class="btn gray" type="button" onclick="setGainPeriod('today')">Hoje</button>
-      <button id="gainWeekBtn" class="btn gray" type="button" onclick="setGainPeriod('week')">Semana</button>
-      <button id="gainMonthBtn" class="btn gray" type="button" onclick="setGainPeriod('month')">Mês</button>
+    <div class="gain-summary-grid">
+      <div class="scheduled-item"><b>📅 Hoje</b><small id="gainTodayTotal">R$ 0,00</small></div>
+      <div class="scheduled-item"><b>📆 Semana</b><small id="gainWeekTotal">R$ 0,00</small></div>
+      <div class="scheduled-item"><b>🗓️ Mês</b><small id="gainMonthTotal">R$ 0,00</small></div>
     </div>
-    <div class="scheduled-item"><b>💵 Total: <span id="gainTotal">R$ 0,00</span></b><small id="gainPeriodLabel">Hoje</small></div>
+    <div class="scheduled-item"><b>💵 Período selecionado: <span id="gainTotal">R$ 0,00</span></b><small id="gainPeriodLabel">Hoje</small></div>
     <div class="scheduled-item"><b>🚗 Corridas: <span id="gainRides">0</span></b><small>Média por dia: <span id="gainAverage">R$ 0,00</span></small></div>
     <div class="scheduled-item"><b>🛣️ Pedágios: <span id="gainTolls">R$ 0,00</span></b></div>
     <div id="gainChart" style="display:flex;align-items:flex-end;gap:4px;min-height:100px;overflow-x:auto;padding:10px 0"></div>
@@ -802,6 +803,12 @@ function periodDates(){
 }
 function renderFinancialChart(){
   if(!$("gainChart"))return;
+  const now=new Date(), dayKey=localKey(now);
+  const weekStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()-((now.getDay()+6)%7));
+  const monthStart=new Date(now.getFullYear(),now.getMonth(),1);
+  let today=0,week=0,month=0;
+  gainRows.forEach(r=>{const d=new Date(r.finished_at),v=rideValue(r);if(localKey(d)===dayKey)today+=v;if(d>=weekStart)week+=v;if(d>=monthStart)month+=v;});
+  $("gainTodayTotal").textContent=moneyBR(today); $("gainWeekTotal").textContent=moneyBR(week); $("gainMonthTotal").textContent=moneyBR(month);
   const {start,end}=periodDates(), map={};
   for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1))map[localKey(d)]=0;
   gainRows.forEach(r=>{const d=new Date(r.finished_at);const k=localKey(d);if(Object.prototype.hasOwnProperty.call(map,k))map[k]+=rideValue(r);});
