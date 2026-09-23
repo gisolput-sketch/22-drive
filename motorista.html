@@ -1515,7 +1515,7 @@ function renderMobileRequests(){
   const todayCard=$("todayRoutesCard");
   if(!el)return;
   const rs=requests().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
-  const active=rs.filter(r=>["new","accepted","confirmed"].includes(r.status||"new") && !isScheduledFromTwoDays(r));
+  const active=rs.filter(r=>["new","confirmed"].includes(r.status||"new") && !isScheduledFromTwoDays(r));
   if($("sheetCount"))$("sheetCount").textContent=active.length?active.length+" solicitação"+(active.length===1?"":"ões"):"";
   if(!active.length){
     el.innerHTML="";
