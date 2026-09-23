@@ -2,28 +2,61 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#080808">
-<title>22 DRIVE — Cadastro do Passageiro</title>
+<meta name="theme-color" content="#080808"><title>22 DRIVE — Cadastro do Passageiro</title>
 <style>
-:root{--gold:#f4c400;--gold2:#d89400;--black:#070707;--muted:#9ca3af}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,Arial,sans-serif;background:#050505;color:#fff}
-body{display:flex;align-items:center;justify-content:center;padding:22px}.bg{position:fixed;inset:0;background:radial-gradient(circle at 50% 5%,#3b3000 0,#111 30%,#050505 68%);z-index:-2}.glow{position:fixed;width:340px;height:340px;border-radius:50%;background:#f4c40018;filter:blur(60px);top:-130px;z-index:-1}
-.card{width:100%;max-width:430px;background:#101010ef;border:1px solid #f4c40030;border-radius:28px;padding:28px 22px;box-shadow:0 24px 70px #000b}.brand{text-align:center}.logo{width:112px;height:112px;object-fit:contain;border-radius:28px;border:1px solid #f4c40055;box-shadow:0 12px 35px #000;display:block;margin:0 auto 13px}.brand h1{margin:0;font-size:30px}.brand p{margin:6px 0 25px;color:#d1d5db;font-size:13px}h2{text-align:center;font-size:20px;margin:0 0 8px}.muted{color:var(--muted);font-size:13px;line-height:1.5;text-align:center}label{display:block;font-size:12px;font-weight:800;margin:17px 0 7px}input{width:100%;padding:14px;border-radius:14px;border:1px solid #333;background:#181818;color:#fff;font-size:15px;outline:none}input:focus{border-color:var(--gold);box-shadow:0 0 0 3px #f4c40018}.btn{width:100%;border:0;border-radius:14px;padding:15px;font-size:15px;font-weight:900;cursor:pointer;margin-top:13px}.primary{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#080808}.secondary{background:#242424;color:#fff;border:1px solid #3b3b3b}.link{background:transparent;color:#f4c400}.status{min-height:20px;margin-top:12px;font-size:12px;text-align:center;color:#fca5a5}.success{background:#052e16;border:1px solid #166534;border-radius:14px;padding:14px;color:#bbf7d0;font-size:13px;line-height:1.5;text-align:center}#otpBox{display:none}.code{letter-spacing:8px;text-align:center;font-size:25px;font-weight:900}.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#f4c40018;color:#f4c400;font-size:11px;font-weight:800;margin-bottom:12px}
+:root{--gold:#f4c400;--gold2:#d89400;--muted:#9ca3af}*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,Arial,sans-serif;background:#050505;color:#fff}body{display:flex;align-items:center;justify-content:center;padding:22px}.bg{position:fixed;inset:0;background:radial-gradient(circle at 50% 5%,#3b3000 0,#111 30%,#050505 68%);z-index:-2}.glow{position:fixed;width:340px;height:340px;border-radius:50%;background:#f4c40018;filter:blur(60px);top:-130px;z-index:-1}.card{width:100%;max-width:430px;background:#101010ef;border:1px solid #f4c40030;border-radius:28px;padding:28px 22px;box-shadow:0 24px 70px #000b}.brand{text-align:center}.logo{width:112px;height:112px;object-fit:contain;border-radius:28px;border:1px solid #f4c40055;box-shadow:0 12px 35px #000;display:block;margin:0 auto 13px}.brand h1{margin:0;font-size:30px}.brand p{margin:6px 0 25px;color:#d1d5db;font-size:13px}h2{text-align:center;font-size:20px;margin:0 0 8px}.muted{color:var(--muted);font-size:13px;line-height:1.5;text-align:center}label{display:block;font-size:12px;font-weight:800;margin:17px 0 7px}input{width:100%;padding:14px;border-radius:14px;border:1px solid #333;background:#181818;color:#fff;font-size:15px;outline:none}input:focus{border-color:var(--gold);box-shadow:0 0 0 3px #f4c40018}.btn{width:100%;border:0;border-radius:14px;padding:15px;font-size:15px;font-weight:900;cursor:pointer;margin-top:13px}.primary{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#080808}.secondary{background:#242424;color:#fff;border:1px solid #3b3b3b}.link{background:transparent;color:#f4c400}.status{min-height:20px;margin-top:12px;font-size:12px;text-align:center;color:#fca5a5}.success{background:#052e16;border:1px solid #166534;border-radius:14px;padding:14px;color:#bbf7d0;font-size:13px;line-height:1.5;text-align:center}.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#f4c40018;color:#f4c400;font-size:11px;font-weight:800;margin-bottom:12px}
 </style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head>
 <body><div class="bg"></div><div class="glow"></div><main class="card">
 <div class="brand"><img class="logo" src="./logo-login.svg" alt="22 DRIVE"><h1>22 DRIVE</h1><p>Cadastro do passageiro</p></div>
-<section id="formBox"><div style="text-align:center"><span class="badge">📝 NOVO CADASTRO</span></div><h2>Crie seu cadastro</h2><p class="muted">Preencha seus dados. Depois enviaremos um código para confirmar seu WhatsApp.</p>
+<section id="formBox"><div style="text-align:center"><span class="badge">📝 NOVO CADASTRO</span></div><h2>Crie seu cadastro</h2><p class="muted">Preencha seus dados. A confirmação será feita gratuitamente pelo seu e-mail.</p>
 <label for="name">Nome completo</label><input id="name" autocomplete="name" placeholder="Seu nome completo">
 <label for="phone">WhatsApp</label><input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(21) 99999-9999">
-<label for="email">E-mail <span style="color:#777">(opcional)</span></label><input id="email" type="email" autocomplete="email" placeholder="seu@email.com">
-<button class="btn primary" id="sendBtn" type="button">📲 Cadastrar e receber código</button><button class="btn secondary" id="loginBtn" type="button">← Voltar para entrar</button><div id="status" class="status"></div></section>
-<section id="otpBox"><div style="text-align:center"><span class="badge">🔐 CONFIRMAÇÃO</span></div><h2>Confirme seu WhatsApp</h2><p class="muted" id="otpText"></p><label for="otp">Código de 6 dígitos</label><input id="otp" class="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"><button class="btn primary" id="verifyBtn" type="button">✅ Confirmar cadastro</button><button class="btn secondary" id="resendBtn" type="button">🔄 Enviar outro código</button><button class="btn link" id="backBtn" type="button">← Voltar</button><div id="otpStatus" class="status"></div></section>
+<label for="email">E-mail</label><input id="email" type="email" autocomplete="email" placeholder="seu@email.com">
+<button class="btn primary" id="sendBtn" type="button">📧 Cadastrar e enviar link</button><button class="btn secondary" id="loginBtn" type="button">← Voltar para entrar</button><div id="status" class="status"></div></section>
+<section id="waitingBox" style="display:none"><div class="success"><b>📧 Cadastro quase pronto!</b><br><br>Abra seu e-mail e toque no link de confirmação. Depois o cadastro será concluído automaticamente.</div><button class="btn link" id="backBtn" type="button">← Voltar</button></section>
 </main>
 <script>
-const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co",SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);const $=id=>document.getElementById(id);let pendingPhone="",draft=null;
-function formatPhone(raw){let d=String(raw||"").replace(/\D/g,"");if(d.startsWith("55"))return "+"+d;if(d.length===10||d.length===11)return "+55"+d;return ""}function normalized(raw){return String(raw||"").replace(/\D/g,"").replace(/^55/,"")}function status(id,t){$(id).textContent=t}
-const params=new URLSearchParams(location.search);if(params.get("phone"))$("phone").value=params.get("phone");
-async function sendCode(){const name=$("name").value.trim(),phone=formatPhone($("phone").value),email=$("email").value.trim();if(!name){status("status","Informe seu nome.");return}if(!/^\+55\d{10,11}$/.test(phone)){status("status","Informe um WhatsApp brasileiro válido.");return}if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){status("status","Informe um e-mail válido.");return}draft={name,email};$("sendBtn").disabled=true;status("status","");try{const {error}=await sb.auth.signInWithOtp({phone});if(error)throw error;pendingPhone=phone;$("formBox").style.display="none";$("otpBox").style.display="block";$("otpText").textContent="Enviamos o código para "+phone+". Digite abaixo para concluir seu cadastro.";$("otp").focus()}catch(e){console.error(e);status("status","❌ "+(e.message||"Não foi possível enviar o código."))}finally{$("sendBtn").disabled=false}}
-async function verifyCode(){const token=$("otp").value.trim();if(!/^\d{6}$/.test(token)){status("otpStatus","Digite o código de 6 dígitos.");return}$("verifyBtn").disabled=true;status("otpStatus","");try{const {error}=await sb.auth.verifyOtp({phone:pendingPhone,token,type:"sms"});if(error)throw error;const phone=normalized(pendingPhone);const {data:existing,error:se}=await sb.from("passageiros").select("id").eq("whatsapp",phone).maybeSingle();if(se)throw se;if(existing){window.location.href="./index.html?v=20260923login";return}const {error:ie}=await sb.from("passageiros").insert({nome:draft.name,whatsapp:phone,email:draft.email||null,favoritos:[]});if(ie)throw ie;localStorage.setItem("22drive_passenger_profile",JSON.stringify({name:draft.name,phone,email:draft.email||"",favorites:[]}));$("otpBox").innerHTML='<div class="success"><b>✅ Cadastro confirmado!</b><br><br>Seu WhatsApp foi verificado. Abrindo o agendamento...</div>';setTimeout(()=>window.location.href="./index.html?v=20260923login",900)}catch(e){console.error(e);status("otpStatus","❌ "+(e.message||"Não foi possível concluir o cadastro."))}finally{$("verifyBtn").disabled=false}}
-$("sendBtn").onclick=sendCode;$("verifyBtn").onclick=verifyCode;$("resendBtn").onclick=sendCode;$("loginBtn").onclick=()=>location.href="./login.html";$("backBtn").onclick=()=>{$("otpBox").style.display="none";$("formBox").style.display="block";status("otpStatus","")};$("otp").addEventListener("input",()=>{$("otp").value=$("otp").value.replace(/\D/g,"").slice(0,6)});
+const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co",SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY),$=id=>document.getElementById(id);
+function normalized(raw){return String(raw||"").replace(/\D/g,"").replace(/^55/,"")}
+function setStatus(t){$("status").textContent=t}
+const params=new URLSearchParams(location.search);
+if(params.get("phone"))$("phone").value=params.get("phone");
+if(params.get("email"))$("email").value=params.get("email");
+async function finishRegistration(){
+  const {data:{session}}=await sb.auth.getSession();
+  const draft=JSON.parse(localStorage.getItem("22drive_registration_draft")||"null");
+  if(!session||!draft||String(session.user?.email||"").toLowerCase()!==String(draft.email||"").toLowerCase())return;
+  try{
+    const {data:existing,error:se}=await sb.from("passageiros").select("id").eq("whatsapp",normalized(draft.phone)).maybeSingle();
+    if(se)throw se;
+    if(existing){localStorage.removeItem("22drive_registration_draft");location.href="./index.html?v=20260923k";return}
+    const {error}=await sb.rpc("salvar_passageiro",{p_nome:draft.name,p_whatsapp:normalized(draft.phone),p_email:draft.email,p_favoritos:[]});
+    if(error)throw error;
+    localStorage.removeItem("22drive_registration_draft");
+    localStorage.setItem("22drive_passenger_profile",JSON.stringify({name:draft.name,phone:normalized(draft.phone),email:draft.email,favorites:[]}));
+    $("formBox").style.display="none";$("waitingBox").style.display="block";
+    $("waitingBox").querySelector(".success").innerHTML="<b>✅ Cadastro confirmado!</b><br><br>Seu e-mail foi verificado e seu cadastro foi salvo. Abrindo o agendamento...";
+    setTimeout(()=>location.href="./index.html?v=20260923k",900);
+  }catch(e){console.error(e);setStatus("❌ "+(e.message||"Não foi possível concluir o cadastro."))}
+}
+async function sendLink(){
+  const name=$("name").value.trim(),phone=normalized($("phone").value),email=$("email").value.trim().toLowerCase();
+  if(!name){setStatus("Informe seu nome.");return}
+  if(!/^\d{10,11}$/.test(phone)){setStatus("Informe um WhatsApp brasileiro válido.");return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setStatus("Informe um e-mail válido.");return}
+  $("sendBtn").disabled=true;setStatus("");
+  try{
+    const {data:existing,error:pe}=await sb.from("passageiros").select("id").eq("whatsapp",phone).maybeSingle();
+    if(pe)throw pe;
+    if(existing){setStatus("Este WhatsApp já está cadastrado. Volte para Entrar.");return}
+    localStorage.setItem("22drive_registration_draft",JSON.stringify({name,phone,email}));
+    const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true,emailRedirectTo:location.origin+location.pathname}});
+    if(error)throw error;
+    $("formBox").style.display="none";$("waitingBox").style.display="block";
+  }catch(e){console.error(e);localStorage.removeItem("22drive_registration_draft");setStatus("❌ "+(e.message||"Não foi possível enviar o link."))}
+  finally{$("sendBtn").disabled=false}
+}
+$("sendBtn").onclick=sendLink;$("loginBtn").onclick=()=>location.href="./login.html";$("backBtn").onclick=()=>location.reload();
+finishRegistration();
 </script></body></html>
