@@ -497,8 +497,7 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 .today-routes-card h2,.today-routes-card .today-title{font-size:18px!important}
 .today-routes-card p,.today-routes-card small{font-size:12px!important}
 .mobile-ride-card{padding:11px;margin-bottom:8px}
-.mobile-ride-card .ride-price{font-size:24px}.mobile-ride-card .ride-address{font-size:13px}.mobile-ride-card .ride-meta,.mobile-ride-card .passenger-label,.mobile-ride-card .route-label{font-size:11px}
-.mobile-ride-card .ride-actions .btn{font-size:13px;padding:10px}
+.mobile-ride-card .ride-price{font-size:24px}.mobile-ride-card .ride-address{font-size:13px}.mobile-ride-card .ride-meta,.mobile-ride-card .passenger-label,.mobile-ride-card .route-label{font-size:11px}.mobile-ride-card .ride-actions .btn{font-size:13px;padding:10px}
 .gain-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.gain-summary-grid .scheduled-item{margin:0;text-align:center}.gain-summary-grid small{font-size:15px;font-weight:700;color:#fff}
 </style></style>
 <link rel="manifest" href="manifest-motorista.json">
@@ -997,8 +996,7 @@ function rideCoordinate(r,kind){
   if(!Number.isFinite(lat)||!Number.isFinite(lng))return null;
   return [lat,lng];}
 function rideMarkerIcon(kind){  const pickup=kind==="pickup";
-  return L.divIcon({
-    className:"",
+  return L.divIcon({    className:"",
     html:'<div class="ride-map-pin '+(pickup?"pickup":"dropoff")+'"><span>'+(pickup?"●":"◆")+'</span></div>',
     iconSize:[34,34],
     iconAnchor:[9,30],
@@ -1497,8 +1495,7 @@ function restoreTodayRoutesPanel(){
     const saved=localStorage.getItem("22drive_today_routes_open");
     if(saved==="0")card.classList.add("collapsed");    else card.classList.remove("collapsed");
   }catch(e){}
-}
-function renderTodayAcceptedRoutes(){
+}function renderTodayAcceptedRoutes(){
   const p=$("todayRoutesPanel"); if(!p)return;
   const todayKey=localDateKey();
   const rows=requests().filter(r=>{
@@ -1628,7 +1625,7 @@ function renderMobileRequests(){
       primary='<button class="btn green" data-action="accept" data-id="'+esc(r.id)+'">✓ Aceitar</button><button class="btn red" data-action="cancel" data-id="'+esc(r.id)+'">✕ Recusar</button>';
       secondary='';
     }else if(s==="accepted"){
-      primary='<button class="btn green" data-action="route" data-id="'+esc(r.id)+'">🚗 Iniciar rota</button><button class="btn red" data-action="cancel" data-id="'+esc(r.id)+'">✕ Cancelar</button>';
+      primary='<button class="btn green" type="button" onclick="startRideRoute(\''+esc(r.id)+\'')">🚗 Iniciar rota</button><button class="btn red" type="button" onclick="cancelRide(\''+esc(r.id)+\'')">✕ Cancelar</button>';
       secondary='';
     }else{
       primary='<button class="btn green" data-action="arrived" data-id="'+esc(r.id)+'">'+(r.driverArrivedAt?"✅ Cheguei no embarque":"📍 Cheguei no embarque")+'</button><button class="btn green" data-action="whatsapp" data-id="'+esc(r.id)+'">💬 WhatsApp</button><button class="btn red" data-action="finish" data-id="'+esc(r.id)+'">✓ Finalizar</button>';
@@ -1898,92 +1895,3 @@ async function finishRide(id){
     save(rs);
   }
   render();
-  loadEarnings();
-  if(waWindow){
-    waWindow.location.href=wa.url;
-    notice("Viagem finalizada. WhatsApp aberto com a mensagem de agradecimento.");
-  }else{
-    alert("Corrida finalizada, mas o telefone do passageiro não foi informado."+String.fromCharCode(10)+String.fromCharCode(10)+wa.msg);
-  }
-}
-window.login=login;
-document.addEventListener("DOMContentLoaded",async()=>{
-  const client=getAuthClient();
-  if(client){
-    client.auth.onAuthStateChange(async(event,session)=>{
-      if(event==="PASSWORD_RECOVERY" && session?.user){
-        const newPassword=prompt("🔐 Digite sua nova senha (mínimo 6 caracteres):");
-        if(newPassword!==null){
-          if(newPassword.length<6){
-            alert("⚠️ A senha deve ter pelo menos 6 caracteres.");
-          }else{
-            const {error}=await client.auth.updateUser({password:newPassword});
-            if(error)alert("❌ Não foi possível trocar a senha: "+error.message);
-            else{
-              alert("✅ Senha alterada com sucesso! Agora você já pode entrar no 22 DRIVE.");
-              await client.auth.signOut();
-            }
-          }
-        }
-      }
-    });
-  }
-
-  const form=$("loginForm");
-  if(form)form.addEventListener("submit",event=>{event.preventDefault();login();});
-  const signupLink=$("signupLink");
-  const togglePassword=$("togglePassword");
-  if(togglePassword)togglePassword.addEventListener("click",event=>{event.preventDefault();toggleLoginPassword();});
-  await loadAuthenticatedDriver();
-  if(driver){}else{$("login").classList.remove("hidden");$("app").classList.add("hidden");$("driverMapShell").classList.remove("active");}
-  if(driver)initDriverMap();
-  if("Notification" in window&&Notification.permission==="granted"&&driver){$("notificationStatus").textContent="⏳ Notificações autorizadas. Registrando este celular...";registerDriverPush().then(()=>{$("notificationStatus").textContent="✅ Notificações registradas na base. Este celular está pronto para receber Push.";}).catch(e=>{$("notificationStatus").textContent="❌ Push autorizado, mas não foi possível registrar: "+(e&&e.message?e.message:"erro desconhecido");console.error("22 DRIVE Push automático:",e);});}
-  setInterval(()=>{if(driver){resetDailyBalanceAtMidnight();monitorNewRequests();pollRemoteReservations();loadEarnings();}},30000);
-  setTimeout(resetDailyBalanceAtMidnight,1000);
-});</script>
-<div id="pwaInstall" style="display:none;position:sticky;bottom:12px;margin:12px auto;max-width:520px;z-index:9998"><button type="button" style="width:100%;border:0;border-radius:14px;padding:14px;background:#111827;color:#fff;font-weight:900;font-size:15px;box-shadow:0 8px 24px #0003" onclick="install22Drive()">📲 Instalar 22 DRIVE como aplicativo</button></div><script>
-let deferredInstallPrompt=null;
-window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;const b=document.getElementById("pwaInstall");if(b)b.style.display="block";});
-async function install22Drive(){if(!deferredInstallPrompt){alert("No Android, abra o menu do navegador e escolha 'Instalar aplicativo' ou 'Adicionar à tela inicial'.");return;}deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;const b=document.getElementById("pwaInstall");if(b)b.style.display="none";}
-if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.error));}
-</script>
-<script>
-/* 22 DRIVE — correção de eventos de toque no painel do motorista */
-(function(){
-  function runAction(action,id){
-    if(!action || !id) return;
-    try{
-      if(action==="accept") return acceptRide(id);
-      if(action==="cancel") return cancelRide(id);
-      if(action==="confirm") return openModal(id);
-      if(action==="arrived") return markDriverArrived(id);
-      if(action==="whatsapp") return messagePassenger(id);
-      if(action==="route") return showRideRoute(id);
-      if(action==="finish") return finishRide(id);
-      if(action==="close") return toggleDriverSheet();
-      if(action==="gains") return openGains();
-    }catch(err){
-      console.error("22 DRIVE — erro no botão:",action,err);
-      alert("Não foi possível executar esta ação. Tente novamente.");
-    }
-  }
-
-  /* Captura o toque antes de outros listeners. Evita botão sem resposta em Android. */
-  document.addEventListener("click",function(event){
-    const btn=event.target.closest("#mobileRequests button[data-action]");
-    if(!btn || btn.dataset.eventsFixed==="1") return;
-    btn.dataset.eventsFixed="1";
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    runAction(btn.dataset.action,btn.dataset.id);
-  },true);
-
-  /* Botões criados pelo cartão antigo usam onclick inline. Este fallback garante
-     que Aceitar/Cancelar/Confirmar/WhatsApp/Finalizar continuem clicáveis. */
-  document.addEventListener("click",function(event){
-    const btn=event.target.closest(".request .actions button");
-    if(!btn || btn.dataset.eventsFixed==="1") return;
-    btn.dataset.eventsFixed="1";
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    const raw=btn.getAttribute("onclick")||"";
