@@ -979,8 +979,7 @@ async function updateRideMapForRequest(r){
     .bindPopup("<b>🔴 Desembarque</b><br>"+esc(r.destination||"Endereço não informado"));
   const pickupLabel=L.marker(pickup,{icon:rideLabelIcon("🟢 Embarque"),interactive:false,zIndexOffset:650});
   const dropoffLabel=L.marker(dropoff,{icon:rideLabelIcon("🔴 Desembarque"),interactive:false,zIndexOffset:650});
-  const route=L.polyline([pickup,dropoff],{color:"#1683ff",weight:6,opacity:.35,dashArray:"10 7",lineCap:"round"});
-  rideMapLayer.addLayer(route);
+  // Não desenha linha reta de fallback: a rota visível só aparece quando o roteador devolver o caminho pelas ruas.
   rideMapLayer.addLayer(pickupMarker);
   rideMapLayer.addLayer(dropoffMarker);
   rideMapLayer.addLayer(pickupLabel);
@@ -998,7 +997,6 @@ async function updateRideMapForRequest(r){
     if(rideMapRequestId!==requestId||!rideMapLayer||!data.routes||!data.routes[0])return;
     const coords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
     if(coords.length>1){
-      rideMapLayer.removeLayer(route);
       const roadRoute=L.polyline(coords,{color:"#1683ff",weight:6,opacity:.95,lineCap:"round",lineJoin:"round"});
       rideMapLayer.addLayer(roadRoute);
       const fitPoints=coords.slice();
