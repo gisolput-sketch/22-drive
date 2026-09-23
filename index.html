@@ -384,7 +384,12 @@ let pendingOtpPhone="";
 let pendingOtpMode="login";
 let pendingProfileDraft=null;
 
-function localPassengerPhone(raw){\n  const digits=String(raw||"").replace(/\\D/g,"");\n  return digits.startsWith("55")?digits.slice(-11):digits;\n}\n\nfunction formatAuthPhone(raw){
+function localPassengerPhone(raw){
+  const digits=String(raw||"").replace(/\D/g,"");
+  return digits.startsWith("55")?digits.slice(-11):digits;
+}
+
+function formatAuthPhone(raw){
   const digits=String(raw||"").replace(/\D/g,"");
   if(digits.startsWith("55")) return "+"+digits;
   if(digits.length===10||digits.length===11) return "+55"+digits;
