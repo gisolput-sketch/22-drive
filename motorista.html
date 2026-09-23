@@ -786,6 +786,796 @@ function requests(){
 }
 function save(x){remoteReservations=x.slice();localStorage.setItem(REQUESTS_KEY,JSON.stringify(x))}
 function notice(t){$("notice").textContent=t;$("notice").className="notice";setTimeout(()=>$("notice").className="notice hidden",4000)}
+function getAuthClient(){if(!supabaseClient&&window.supabase){supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}return supabaseClient;}
+function showLoginDiagnostic(message){const box=$("loginError");if(box)box.textContent=message;console.error("22 DRIVE:",message);}
+!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>22 DRIVE — Área do Motorista</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg:#000;
+  --panel:#050b14;
+  --panel-2:#07111f;
+  --gold:#ffc700;
+  --gold-soft:#f5b000;
+  --green:#00c853;
+  --red:#ff3b30;
+  --white:#fff;
+  --muted:#8e8e93;
+  --line:#2a3444;
+}
+html,body{
+  width:100%;
+  min-height:100%;
+  margin:0;
+  background:var(--bg);
+  color:var(--white);
+  font-family:Inter,Roboto,Arial,sans-serif;
+}
+body{overflow:hidden}
+.wrap{width:100%;max-width:none;margin:0;padding:0;background:var(--bg)}
+#driverMapShell{
+  display:none;
+  width:100%;
+  height:100dvh;
+  min-height:100dvh;
+  background:var(--bg);
+  padding-top:78px;
+  padding-bottom:150px;
+  overflow:hidden;
+}
+#driverMapShell.active{display:block}
+.driver-topbar{
+  pointer-events:auto;
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  width:100%;
+  min-height:78px;
+  padding:10px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  background:#050505;
+  border-bottom:1px solid var(--gold);
+  box-shadow:0 2px 18px #ffc70030;
+  z-index:2000;
+}
+.driver-brand{
+  flex:1 1 0;
+  min-width:0;
+  display:flex;
+  align-items:center;
+}
+.driver-logo{
+  display:block;
+  width:min(100%,260px);
+  height:56px;
+  object-fit:contain;
+  object-position:left center;
+}
+.driver-status{
+  flex:0 0 auto;
+  width:180px;
+  min-height:50px;
+  padding:8px 14px;
+  border:1px solid var(--gold);
+  border-radius:28px;
+  background:#061b19;
+  color:#fff;
+  font-size:14px;
+  font-weight:800;
+  text-align:center;
+  outline:none;
+}
+.driver-menu-button{
+  position:relative;
+  z-index:3001;
+  flex:0 0 54px;
+  width:54px;
+  height:54px;
+  border:1px solid var(--gold);
+  border-radius:50%;
+  background:#050505;
+  color:#fff;
+  font-size:24px;
+  line-height:1;
+  cursor:pointer;
+}
+ .top-menu-panel{z-index:3000;
+  display:none;
+  position:fixed;
+  top:84px;
+  right:16px;
+  width:min(260px,calc(100vw - 32px));
+  padding:8px;
+  background:#050b14;
+  border:1px solid var(--gold);
+  border-radius:16px;
+  box-shadow:0 10px 30px #000b;
+}
+.top-menu-panel.open{display:grid;gap:6px}
+.top-menu-panel button{
+  width:100%;
+  padding:12px 14px;
+  border:1px solid #26364a;
+  border-radius:11px;
+  background:#07111f;
+  color:#fff;
+  text-align:left;
+  font-size:14px;
+}
+.driver-map{
+  position:relative;
+  width:100%;
+  height:calc(100vh - 92px - 170px);
+  min-height:300px;
+  background:#07111f;
+  border-bottom:1px solid var(--gold);
+  overflow:hidden;
+}
+.driver-map .leaflet-container{
+  width:100%;
+  height:100%;
+  background:#07111f;
+}
+.driver-map .leaflet-tile{filter:none}
+.driver-map .leaflet-control-zoom{
+  margin:14px 14px 0 0;
+  position:relative;
+}
+.driver-map .leaflet-control-zoom + .leaflet-control{
+  margin-right:14px;
+}
+.driver-map .leaflet-control-zoom a{
+  width:38px;
+  height:38px;
+  line-height:38px;
+  background:#050b14;
+  color:#fff;
+  border:1px solid var(--gold);
+  font-size:20px;
+}
+.driver-map .leaflet-control-zoom a:first-child{border-radius:16px 16px 0 0}
+.driver-map .leaflet-control-zoom a:last-child{border-top:0;border-radius:0 0 16px 16px}
+.driver-map .leaflet-control-attribution{
+  font-size:8px;
+  background:#050b14cc;
+  color:#9fb0c8;
+}
+.driver-current-location-button{width:100%;min-height:40px;margin:0 0 8px;border:1px solid var(--gold);border-radius:12px;background:#0b1a2b;color:#fff;font-size:13px;font-weight:800;cursor:pointer}.driver-current-location-button:disabled{opacity:.65;cursor:wait}
+.driver-location-button{
+  position:absolute;
+  z-index:500;
+  top:14px;
+  right:62px;
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--gold);
+  border-radius:50%;
+  background:#050b14;
+  color:#fff;
+  font-size:24px;
+  cursor:pointer;
+}
+.driver-car-marker{background:transparent!important;border:0!important}
+.driver-car-marker span{
+  width:48px;
+  height:48px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#1696ff;
+  color:#fff;
+  font-size:24px;
+  border:3px solid #fff;
+  box-shadow:0 0 0 11px #72c8ff45,0 0 28px #1696ff99;
+}
+.driver-bottom-area{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  width:100%;
+  padding:12px 14px 14px;
+  background:var(--bg);
+}
+.driver-sheet{
+  width:100%;
+  max-width:900px;
+  margin:0 auto;
+}
+#mobileNotice{display:none} #mobileRequests{display:block;width:100%;margin-bottom:10px}
+.mobile-ride-card{
+  width:100%;margin:0 0 10px;padding:14px;background:var(--panel);
+  border:1px solid var(--gold);border-radius:16px;box-shadow:0 0 16px #ffc70018;
+}
+.mobile-ride-card .ride-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mobile-ride-card .ride-badge{display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;background:var(--gold);color:#111;font-size:12px;font-weight:900}
+.mobile-ride-card .ride-price{margin:9px 0 3px;color:var(--gold);font-size:30px;font-weight:900}
+.mobile-ride-card .ride-passenger{display:flex;gap:6px;align-items:center;margin:5px 0}
+.mobile-ride-card .passenger-label{color:var(--muted);font-size:12px}
+.mobile-ride-card .ride-passenger strong{font-size:14px}
+.mobile-ride-card .ride-meta{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);color:#cbd5e1;font-size:12px}
+.mobile-ride-card .ride-route{margin:11px 0}
+.mobile-ride-card .route-line{display:flex;gap:9px;position:relative;min-height:48px}
+.mobile-ride-card .route-dot,.mobile-ride-card .route-pin{flex:0 0 16px;width:16px;height:16px;margin-top:2px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px var(--green)}
+.mobile-ride-card .route-pin{background:var(--red);box-shadow:0 0 0 2px var(--red);border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
+.mobile-ride-card .route-label{display:block;color:var(--green);font-size:12px;font-weight:800}
+.mobile-ride-card .route-label.route-dest{color:var(--red)}
+.mobile-ride-card .route-address{font-size:14px;font-weight:800;margin-top:2px}
+.mobile-ride-card .ride-actions{display:flex;gap:8px}
+.mobile-ride-card .ride-actions .btn{flex:1}
+.today-route-item .btn{margin-top:8px}
+.today-routes-card{
+  width:100%;
+  padding:14px 16px;
+  background:var(--panel);
+  border:1px solid var(--gold);
+  border-radius:16px;
+  box-shadow:0 0 18px #ffc70020;
+}
+.today-routes-header{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+.today-routes-icon{
+  flex:0 0 48px;
+  width:48px;
+  height:48px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--gold);
+  border-radius:14px;
+  font-size:25px;
+}
+.today-routes-heading{
+  flex:1 1 auto;
+  min-width:0;
+}
+.today-routes-heading h2{
+  margin:0;
+  color:#fff;
+  font-size:20px;
+  line-height:1.15;
+}
+.today-routes-heading p{
+  margin:4px 0 0;
+  color:#9fb0c8;
+  font-size:13px;
+  line-height:1.25;
+}
+.today-routes-count{color:var(--gold);font-weight:800;font-size:13px}
+.today-routes-divider{
+  height:1px;
+  margin:13px 0 11px;
+  background:var(--line);
+}
+.today-routes-content{width:100%}
+.today-routes-empty{
+  width:100%;
+  min-height:28px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#aeb8c8;
+  font-size:14px;
+  line-height:1.3;
+}
+.today-routes-empty:empty:before{content:"🚗 Nenhuma rota aceita para hoje."}
+/* Aba fixa e recolhível de Corridas de hoje */
+#todayRoutesCard{
+  position:relative;
+  z-index:1400;
+  cursor:pointer;
+}
+#todayRoutesCard .today-routes-header{
+  cursor:pointer;
+  user-select:none;
+}
+#todayRoutesCard .today-routes-header:after{
+  content:"⌃";
+  margin-left:auto;
+  color:var(--gold);
+  font-size:22px;
+  font-weight:900;
+}
+#todayRoutesCard.collapsed .today-routes-header:after{content:"⌄"}
+#todayRoutesCard.collapsed .today-routes-divider,
+#todayRoutesCard.collapsed .today-routes-content{display:none}
+#todayRoutesCard .today-route-item{
+  margin:6px 0;
+  padding:9px 10px;
+  border:1px solid #26364a;
+  border-radius:11px;
+  background:#07111f;
+}
+#todayRoutesCard .today-route-item b{font-size:12px}
+#todayRoutesCard .today-route-item small{font-size:11px;line-height:1.35}
+#todayRoutesCard .today-route-item .btn{
+  font-size:12px;
+  padding:9px 10px;
+  border-radius:9px;
+}
+
+.scheduled-item{padding:9px 0;border-bottom:1px solid var(--line)}
+.scheduled-item:last-child{border-bottom:0}
+.scheduled-item b{display:block;color:#fff;font-size:13px}
+.scheduled-item small{display:block;margin-top:3px;color:#9fb0c8;font-size:12px;line-height:1.4}
+.scheduled-menu-modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  padding:90px 16px 20px;
+  background:#000a;
+}
+.scheduled-menu-modal.open{
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+}
+.scheduled-menu-box{
+  width:min(520px,100%);
+  max-height:80vh;
+  overflow:auto;
+  padding:16px;
+  background:#050b14;
+  border:1px solid var(--gold);
+  border-radius:16px;
+  box-shadow:0 15px 40px #000b;
+}
+.scheduled-menu-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+  color:#fff;
+}
+.scheduled-menu-title button{
+  width:36px;
+  height:36px;
+  border:1px solid var(--gold);
+  border-radius:50%;
+  background:#050505;
+  color:#fff;
+}
+.scheduled-empty{padding:12px 0;color:#9fb0c8;font-size:13px}
+#chargeModal .charge-box{
+  max-width:430px;background:#07111f;color:#fff;border:1px solid var(--gold);
+  border-radius:16px;padding:22px;box-shadow:0 15px 50px #0009;
+}
+#chargeModal .charge-title{font-size:22px;font-weight:900;margin-bottom:6px}
+#chargeModal .charge-sub{color:#b9c8e5;font-size:13px;margin-bottom:18px}
+#chargeModal .charge-method{border:1px solid #29415e;border-radius:14px;padding:14px;margin:10px 0;background:#0b1a2b}
+#chargeModal .charge-method b{display:block;color:var(--gold);font-size:14px}
+#chargeModal .charge-value{font-size:34px;font-weight:900;margin:8px 0 16px}
+#chargeModal .charge-close{width:100%;min-height:50px;border:0;border-radius:14px;background:var(--green);color:#04120d;font-weight:900;font-size:16px}
+#driverChargeModal{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:6000;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:#000c;
+}
+#driverChargeModal.open{display:flex}
+#driverChargeModal .charge-box{
+  width:min(430px,100%);
+  background:#07111f;
+  color:#fff;
+  border:1px solid var(--gold);
+  border-radius:20px;
+  padding:22px;
+  box-shadow:0 20px 60px #000d;
+}
+#driverChargeModal .charge-title{font-size:24px;font-weight:900;margin-bottom:6px}
+#driverChargeModal .charge-sub{color:#b9c8e5;font-size:13px;margin-bottom:16px}
+#driverChargeModal .charge-value{font-size:38px;font-weight:900;color:var(--gold);margin:8px 0 16px}
+#driverChargeModal .charge-method{
+  border:1px solid #29415e;border-radius:14px;padding:14px;background:#0b1a2b;margin-bottom:14px;
+}
+#driverChargeModal .charge-method b{display:block;color:var(--gold);font-size:14px;margin-bottom:4px}
+#driverChargeModal .charge-close{
+  width:100%;min-height:50px;border:0;border-radius:14px;background:var(--green);
+  color:#04120d;font-weight:900;font-size:16px;
+}
+@media(max-width:700px){
+  #driverMapShell{padding-top:74px;padding-bottom:150px}
+  .driver-topbar{min-height:74px;padding:8px 10px;gap:8px}
+  .driver-logo{width:min(100%,190px);height:48px}
+  .driver-status{width:142px;min-height:46px;padding:7px 8px;font-size:15px}
+  .driver-menu-button{flex-basis:50px;width:50px;height:50px;font-size:28px}
+  .driver-map{height:calc(100dvh - 74px - 190px);min-height:0}
+  .driver-map .leaflet-control-zoom{margin-right:10px;margin-bottom:72px}
+  .driver-map .leaflet-control-zoom a{width:40px;height:40px;line-height:40px}
+  .driver-location-button{right:58px;top:10px;width:40px;height:40px;font-size:24px}
+  .driver-bottom-area{padding:10px 10px 12px}
+  .today-routes-card{padding:12px 13px}
+  .today-routes-icon{width:42px;height:42px;flex-basis:42px;font-size:22px}
+  .today-routes-heading h2{font-size:17px}
+  .today-routes-heading p{font-size:12px}
+  .today-routes-empty{font-size:13px}
+}
+@media(max-width:430px){
+  .driver-topbar{gap:6px}
+  .driver-logo{width:min(100%,155px)}
+  .driver-status{width:126px;font-size:14px}
+  .driver-menu-button{flex-basis:48px;width:48px;height:48px}
+  .today-routes-heading h2{font-size:16px}
+}
+ 
+.login-card{max-width:440px;margin:25px auto;padding:20px;background:#050b14;border:1px solid var(--gold);border-radius:16px}
+.password-field{position:relative}
+.password-field .password-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%)}
+.login-error{margin-top:10px}
+.login-logo{display:block;width:min(78%,310px);max-height:220px;object-fit:contain;margin:4px auto 18px}
+.login-brand{text-align:center}
+.login-brand .muted{margin-bottom:18px}
+input,select{width:100%;padding:12px;border:1px solid #334155;border-radius:10px;font-size:15px}
+label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
+.card{background:#050b14;border:1px solid var(--gold);border-radius:16px;padding:17px;margin:0 0 15px}
+.btn{border:0;border-radius:12px;padding:12px 15px;font-weight:800;cursor:pointer}
+.btnblock{width:100%;margin-top:12px}
+.btn.primary{background:var(--green);color:#fff}
+.btn.gray{background:#1b2533;color:#fff}
+.signup-refined{text-align:center;margin-top:14px;color:#9fb0c8;font-size:13px}
+.signup-link{color:var(--gold)}
+.muted{color:var(--muted);font-size:13px}
+.hidden{display:none!important}
+
+/* Tela principal limpa: somente mapa + cabeçalho + rotas aceitas */
+#app{display:none!important}
+#driverMapShell .driver-bottom-area{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:1200;
+  height:auto;
+  max-height:none;
+  overflow:visible;
+  padding:10px 12px 12px;
+  background:transparent;
+  pointer-events:none;
+}
+#driverMapShell .driver-bottom-area > *{pointer-events:auto}
+#driverMapShell .driver-sheet{max-width:900px;margin:0 auto}
+#driverMapShell #mobileRequests{width:100%;max-height:none;overflow:visible}
+#driverMapShell .mobile-ride-card{
+  max-height:none;
+  overflow:visible;
+  position:relative;
+  z-index:1250;
+}
+#mobileRequests{overflow:visible}
+.mobile-ride-card{position:relative;z-index:1250}
+@media(max-width:700px){
+  #driverMapShell{height:100dvh;min-height:100dvh;padding-top:74px;padding-bottom:0}
+  .driver-map{height:calc(100dvh - 74px);min-height:0}
+  #driverMapShell .driver-bottom-area{
+    padding:8px 10px 10px;
+    max-height:none;
+    overflow:visible;
+  }
+  #driverMapShell .today-routes-card{min-height:124px}
+}
+/* Status do motorista: controle exclusivamente no topo */
+#status{display:none!important}
+.status{display:none!important}
+/* Ajuste final de legibilidade: interface 20% mais compacta */
+.driver-topbar{padding:8px 14px;min-height:78px}
+.driver-logo{width:min(100%,220px);height:48px}
+.driver-status{width:155px;min-height:44px;padding:7px 11px;font-size:12px}
+.driver-menu-button{width:48px;height:48px;flex-basis:48px;font-size:24px}
+.driver-status option{font-size:12px}
+.driver-bottom-area{padding:10px 12px 12px}
+.today-routes-card{padding:12px!important;border-radius:16px!important}
+.today-routes-card h2,.today-routes-card .today-title{font-size:18px!important}
+.today-routes-card p,.today-routes-card small{font-size:12px!important}
+.mobile-ride-card{padding:11px;margin-bottom:8px}
+.mobile-ride-card .ride-price{font-size:24px}.mobile-ride-card .ride-address{font-size:13px}.mobile-ride-card .ride-meta,.mobile-ride-card .passenger-label,.mobile-ride-card .route-label{font-size:11px}.mobile-ride-card .ride-actions .btn{font-size:13px;padding:10px}
+.gain-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.gain-summary-grid .scheduled-item{margin:0;text-align:center}.gain-summary-grid small{font-size:15px;font-weight:700;color:#fff}
+</style></style>
+<link rel="manifest" href="manifest-motorista.json">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="driver-mobile-map" aria-hidden="true"></div>
+<main class="wrap">
+<section id="driverMapShell" class="driver-map-shell" aria-label="Área do Motorista">
+  <header class="driver-topbar">
+    <div class="driver-brand">
+      <img class="driver-logo" src="./logo-driver-horizontal.svg" alt="22 DRIVE — Sua viagem, nossa prioridade">
+    </div>
+
+    <select id="statusMobile" class="driver-status" aria-label="Status do motorista" onchange="changeStatusFromMobile()">
+      <option value="available">🟢 Disponível</option>
+      <option value="offline">⚫ Indisponível</option>
+    </select>
+
+    <button class="driver-menu-button" type="button" aria-label="Abrir menu" onclick="toggleTopMenu()">☰</button>
+
+    <div id="topMenuPanel" class="top-menu-panel">
+      <button type="button" onclick="openGainsFromMenu()">💰 Ganhos</button>
+      <button type="button" onclick="openScheduledFromMenu()">📅 Viagens agendadas</button>
+      <button type="button" onclick="openReviewsFromMenu()">⭐ Avaliações</button>
+      <button type="button" onclick="logout()">🚪 Sair</button>
+    </div>
+  </header>
+
+  <div id="driverMap" class="driver-map" aria-label="Mapa da área do motorista">
+    </div>
+
+  <div id="driverContent" class="driver-bottom-area">
+    <div class="driver-sheet" id="driverSheet">
+      <button id="currentLocationButton" class="driver-current-location-button hidden" type="button" onclick="useCurrentDriverLocation()" aria-hidden="true">⌖</button>
+      <div id="mobileNotice" class="sheet-notice hidden"></div>
+      <div id="mobileRequests"></div>
+
+      <section class="today-routes-card" id="todayRoutesCard" aria-labelledby="todayRoutesTitle">
+        <div class="today-routes-header" role="button" tabindex="0" onclick="toggleTodayRoutes()" onkeydown="if(event.key==='Enter'||event.key===' ')toggleTodayRoutes()">
+          <div class="today-routes-icon" aria-hidden="true">🚗</div>
+          <div class="today-routes-heading">
+            <h2 id="todayRoutesTitle">Corridas de hoje</h2>
+            <p>Toque aqui para abrir suas corridas</p>
+          </div>
+          <span class="today-routes-count" id="todayRoutesCount"></span>
+        </div>
+
+        <div class="today-routes-divider"></div>
+
+        <div class="today-routes-content">
+          <div class="today-routes-content-inner" id="todayRoutesPanel"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="driverChargeModal" aria-hidden="true">
+    <div class="charge-box">
+      <div class="charge-title">💳 Cobrança da viagem</div>
+      <div class="charge-sub" id="chargeRidePassenger">Viagem finalizada automaticamente.</div>
+      <div class="charge-value" id="chargeRideValue">R$ 0,00</div>
+      <div class="charge-method">
+        <b id="chargePaymentLabel">Forma de pagamento</b>
+        <span id="chargePaymentValue">Não informado</span>
+      </div>
+      <button class="charge-close" type="button" onclick="closeDriverChargeModal()">Concluir cobrança</button>
+    </div>
+  </div>
+
+  <div id="scheduledMenuModal" class="scheduled-menu-modal" aria-hidden="true">
+    <div class="scheduled-menu-box">
+      <div class="scheduled-menu-title"><b>📅 Viagens agendadas</b><button type="button" onclick="closeScheduledFromMenu()">✕</button></div>
+      <div id="scheduledMenuPanel" class="scheduled-menu-list"></div>
+    </div>
+  </div>
+
+  <div id="reviewsMenuModal" class="scheduled-menu-modal" aria-hidden="true">
+    <div class="scheduled-menu-box">
+      <div class="scheduled-menu-title"><b>⭐ Avaliações dos passageiros</b><button type="button" onclick="closeReviewsFromMenu()">✕</button></div>
+      <div id="reviewsMenuPanel" class="scheduled-menu-list"></div>
+    </div>
+  </div>
+</section>
+<section id="login" class="card login-card">
+<div class="login-brand"><img class="login-logo" src="./logo-login.svg" alt="22 DRIVE — Sua viagem, nossa prioridade"><p class="muted">Área do Motorista</p></div>
+<form id="loginForm" autocomplete="on">
+<label>E-mail</label><input id="loginEmail" name="username" type="email" autocomplete="username" placeholder="seuemail@exemplo.com" required>
+<label>Senha</label>
+<div class="password-field">
+<input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required>
+<button type="button" id="togglePassword" class="password-toggle" aria-label="Mostrar senha" onclick="toggleLoginPassword();return false;">Mostrar</button>
+</div>
+<button class="btn primary btnblock" id="loginButton" type="submit">Entrar</button>
+</form>
+<div id="loginError" class="muted login-error"></div>
+<button class="btn gray btnblock" type="button" onclick="forgotPassword()">🔑 Esqueci minha senha</button>
+<div class="signup-refined">Ainda não tem acesso? <a href="./cadastro.html" id="signupLink" class="signup-link">Criar login</a></div>
+</section>
+
+<section id="app" class="hidden">
+<div id="notice" class="notice hidden"></div>
+<div class="card" id="notificationCard"><h2>🔔 Notificações</h2><p class="muted">Ative as notificações para receber aviso de nova solicitação. O som também será ativado depois do primeiro toque.</p><button class="btn primary btnblock" type="button" onclick="enableDriverNotifications()">🔔 Ativar notificações e som</button><div id="notificationStatus" class="muted" style="margin-top:8px"></div></div>
+<div class="grid">
+<aside>
+<div class="card">
+<h2>Olá, <span id="driverName"></span> 👋</h2><p class="muted" id="driverPhone"></p>
+<div class="status">
+<label>Status do motorista</label>
+<select id="status" onchange="changeStatus()">
+<option value="available">🟢 Disponível</option>
+<option value="offline">⚫ Indisponível</option>
+</select></div>
+</div>
+<div class="card"><h2>Resumo</h2><div class="stats"><div class="stat"><b id="newCount">0</b><span>Novas</span></div><div class="stat"><b id="acceptedCount">0</b><span>Aceitas</span></div><div class="stat"><b id="confirmedCount">0</b><span>Confirmadas</span></div></div></div>
+<div class="card"><button class="btn gray btnblock" onclick="render()">🔄 Atualizar</button><a class="btn gray btnblock" style="display:block;text-align:center;text-decoration:none;color:#111827" href="./">👤 Área do passageiro</a></div>
+</aside>
+
+<section class="card">
+<h2>📋 Solicitações de viagem</h2>
+<p class="muted">Aceite a solicitação e depois confirme o horário da viagem.</p>
+<div id="requests"></div>
+</section>
+</div>
+</section>
+</main>
+
+<div id="gainModal" class="scheduled-menu-modal" aria-hidden="true">
+  <div class="scheduled-menu-box">
+    <div class="scheduled-menu-title">
+      <b>💰 Ganhos</b>
+      <button type="button" onclick="closeGains()">✕</button>
+    </div>
+    <div class="gain-summary-grid">
+      <div class="scheduled-item"><b>📅 Hoje</b><small id="gainTodayTotal">R$ 0,00</small></div>
+      <div class="scheduled-item"><b>📆 Semana</b><small id="gainWeekTotal">R$ 0,00</small></div>
+      <div class="scheduled-item"><b>🗓️ Mês</b><small id="gainMonthTotal">R$ 0,00</small></div>
+    </div>
+    <div class="scheduled-item"><b>💵 Período selecionado: <span id="gainTotal">R$ 0,00</span></b><small id="gainPeriodLabel">Hoje</small></div>
+    <div class="scheduled-item"><b>🚗 Corridas: <span id="gainRides">0</span></b><small>Média por dia: <span id="gainAverage">R$ 0,00</span></small></div>
+    <div class="scheduled-item"><b>🛣️ Pedágios: <span id="gainTolls">R$ 0,00</span></b></div>
+    <div id="gainChart" style="display:flex;align-items:flex-end;gap:4px;min-height:100px;overflow-x:auto;padding:10px 0"></div>
+    <div id="gainStatus" class="muted" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<script>
+const DRIVER_KEY="22drive_driver";
+const REQUESTS_KEY="22drive_requests";
+const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co";
+const SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
+let supabaseClient=null;
+let realtimeChannel=null;
+let remoteReservations=[];
+let realtimeReady=false;
+
+function normalizeReservation(r){
+  return {
+    ...r,
+    id:r.id,
+    createdAt:r.created_at||r.createdAt||new Date().toISOString(),
+    passengerName:r.passenger_name||r.nome||r.p_nome||"Passageiro",
+    passengerPhone:r.passenger_phone||r.whatsapp||r.telefone||r.p_whatsapp||"",
+    passengerEmail:r.passenger_email||r.email||"",
+    date:r.travel_date||r.data_ida||r.data||r.p_data_ida||"",
+    time:r.travel_time||r.hora_ida||r.horario||r.p_hora_ida||"",
+    returnDate:r.return_date||r.data_volta||r.p_data_volta||"",
+    returnTime:r.return_time||r.hora_volta||r.p_hora_volta||"",
+    tripType:r.trip_type||r.tipo_viagem||r.p_tipo_viagem||"ida",
+    distanceKm:r.distance_km??r.distancia_km??r.km??r.p_distancia_km??0,
+    tripValue:r.trip_value??r.valor_viagem??r.valor??r.p_valor??0,
+    tollValue:r.toll_value??r.pedagios??r.pedagio??0,
+    depositValue:r.deposit_value??r.sinal??0,
+    origin:r.origin||r.embarque||r.origem||r.p_embarque||"",
+    destination:r.destination||r.destino||r.p_destino||"",
+    originLat:r.origin_lat??r.origin_latitude??r.embarque_lat??r.origem_lat??null,
+    originLng:r.origin_lng??r.origin_longitude??r.embarque_lng??r.origem_lng??null,
+    destinationLat:r.destination_lat??r.destination_latitude??r.destino_lat??null,
+    destinationLng:r.destination_lng??r.destination_longitude??r.destino_lng??null,
+    payment:r.payment_method||r.forma_pagamento||r.pagamento||r.p_forma_pagamento||"",
+    note:r.observation||r.observacoes||r.observacao||r.p_observacoes||"",
+    passengers:r.passengers||r.passageiros||r.p_passageiros||1,
+    baggage:r.baggage||r.bagagem||r.p_bagagem||"",
+    sound:r.sound_preference||r.som||r.p_som||"",
+    musicStyle:r.music_style||r.estilo_musical||r.p_estilo_musical||"",
+    musicArtist:r.music_artist||r.artista||r.p_artista||"",
+    totalValue:r.total_value??r.trip_value??r.valor??r.p_valor??0,
+    status:r.status||"new",
+    driverName:r.driver_name||"",
+    driverPhone:r.driver_phone||"",
+    confirmedDate:r.confirmed_date||r.confirmedDate||"",
+    confirmedTime:r.confirmed_time||r.confirmedTime||"",
+    confirmNote:r.confirm_note||r.confirmNote||"",
+    driverLat:r.driver_lat??null,
+    driverLng:r.driver_lng??null,
+    driverLocationAt:r.driver_location_at||null,
+    driverArrivedAt:r.driver_arrived_at||null
+  };
+}
+
+async function connectSupabaseRealtime(){
+  if(!window.supabase || realtimeReady)return;
+  try{
+    supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    const {data,error}=await supabaseClient.from("reservas").select("*").order("created_at",{ascending:false}).limit(100);
+    if(error) throw error;
+    remoteReservations=(data||[]).map(normalizeReservation);
+    realtimeReady=true;
+    render();
+    realtimeChannel=supabaseClient.channel("22drive-reservas")
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"reservas"},payload=>{        const r=normalizeReservation(payload.new);
+        if((r.status||"new")!=="new")stopRideAlert(r.id);
+        if(!remoteReservations.some(x=>String(x.id)===String(r.id))){
+          remoteReservations.unshift(r);
+          if((r.status||"new")==="new")showNewRideNotification(r);
+        }
+        render();
+      })
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"reservas"},payload=>{
+        const r=normalizeReservation(payload.new);
+        const i=remoteReservations.findIndex(x=>String(x.id)===String(r.id));
+        if(i>=0)remoteReservations[i]=r;else remoteReservations.unshift(r);
+        render();
+      })
+      .subscribe(status=>{
+        if(status==="SUBSCRIBED") notice("🟢 Conectado à base online. Novas viagens aparecerão automaticamente.");
+        if(status==="CHANNEL_ERROR") notice("⚠️ Não foi possível manter a conexão em tempo real.");
+      });
+  }catch(err){
+    console.error("Supabase Realtime:",err);
+    realtimeReady=false;
+    notice("⚠️ Base online indisponível. O painel continuará funcionando neste aparelho.");
+  }
+}
+
+async function updateRemoteReservation(id,patch){
+  if(!supabaseClient)return false;
+  const {data,error}=await supabaseClient.from("reservas").update(patch).eq("id",id).select("*").single();
+  if(error){console.error("Atualização Supabase:",error);alert("Não foi possível atualizar a viagem na base online: "+error.message);return false;}
+  const r=normalizeReservation(data);
+  const i=remoteReservations.findIndex(x=>String(x.id)===String(id));
+  if(i>=0)remoteReservations[i]=r;else remoteReservations.unshift(r);
+  return true;
+}
+
+let driver=null,selected=null;
+let lastSeenRequestIds=new Set();
+let audioCtx=null;
+const NOTIFY_KEY="22drive_notifications_enabled";
+const VAPID_PUBLIC_KEY="BPv-5ZgA0eonKTtctG8P2Zj1sQKZaqKDvgmzPb3oC9ilScCllIpERnY_SPsmieYZgWEV2nhzqqAo8Og_YEnva8M";
+function unlockDriverSound(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume();}catch(e){}}
+function playNewRideSound(){try{unlockDriverSound();if(!audioCtx)return;const now=audioCtx.currentTime;const tones=[{d:0,f:1250},{d:.16,f:1650},{d:.32,f:1250},{d:.48,f:1850},{d:.64,f:1250}];tones.forEach((t,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=i%2?"square":"sawtooth";o.frequency.setValueAtTime(t.f,now+t.d);g.gain.setValueAtTime(0.0001,now+t.d);g.gain.exponentialRampToValueAtTime(0.65,now+t.d+0.012);g.gain.setValueAtTime(0.65,now+t.d+0.09);g.gain.exponentialRampToValueAtTime(0.0001,now+t.d+0.14);o.connect(g);g.connect(audioCtx.destination);o.start(now+t.d);o.stop(now+t.d+0.16);});if(navigator.vibrate)navigator.vibrate([500,100,500,100,700]);}catch(e){console.log(e)}}
+let activeRideAlertId=null;
+let rideAlertTimer=null;
+function startRideAlert(r){
+  const id=String(r.id);
+  activeRideAlertId=id;
+  if(rideAlertTimer)clearInterval(rideAlertTimer);
+  playNewRideSound();
+  rideAlertTimer=setInterval(()=>{
+    if(activeRideAlertId===id) playNewRideSound();
+  },3000);
+}
+function stopRideAlert(id){
+  if(id!=null && activeRideAlertId!==String(id))return;
+  activeRideAlertId=null;
+  if(rideAlertTimer){clearInterval(rideAlertTimer);rideAlertTimer=null;}
+}
+function urlBase64ToUint8Array(base64String){const padding="=".repeat((4-base64String.length%4)%4),base64=(base64String+padding).replace(/-/g,"+").replace(/_/g,"/"),raw=atob(base64);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
+async function registerDriverPush(){if(!("serviceWorker" in navigator)||!("PushManager" in window))throw new Error("Este navegador não oferece Web Push.");const reg=await navigator.serviceWorker.register("./sw.js",{scope:"./"});await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();if(!sub){sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)});}const json=sub.toJSON();const endpoint=json.endpoint||sub.endpoint;const p256dh=json.keys&&json.keys.p256dh;const auth=json.keys&&json.keys.auth;if(!endpoint||!p256dh||!auth)throw new Error("O navegador não forneceu as chaves da assinatura Push.");const name=driver&&driver.name?driver.name:"Motorista";const phone=driver&&driver.phone?driver.phone:null;const response=await fetch(SUPABASE_URL+"/rest/v1/push_subscriptions?on_conflict=endpoint",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({endpoint,p256dh,auth,driver_name:name,driver_phone:phone,user_agent:navigator.userAgent,updated_at:new Date().toISOString()})});if(!response.ok)throw new Error("Não foi possível salvar a assinatura na base: "+await response.text());return sub;}
+async function enableDriverNotifications(){unlockDriverSound();localStorage.setItem(NOTIFY_KEY,"1");if(!("Notification" in window)){$("notificationStatus").textContent="Este navegador não oferece notificações.";playNewRideSound();return;}try{const p=await Notification.requestPermission();if(p!=="granted"){$("notificationStatus").textContent="⚠️ Permissão de notificação não concedida.";return;}await registerDriverPush();$("notificationStatus").textContent="✅ Notificações ativadas e registradas na base. Agora o celular poderá receber novas viagens mesmo com o painel em segundo plano.";playNewRideSound();}catch(e){console.error("22 DRIVE Web Push:",e);$("notificationStatus").textContent="❌ Não foi possível registrar as notificações: "+(e&&e.message?e.message:"erro desconhecido");}}
+function showNewRideNotification(r){startRideAlert(r);const passenger=r.passengerName||r.nome||"Passageiro";const title="🚨 Nova viagem — 22 DRIVE";const body=passenger+" solicitou uma viagem. Confira origem, destino e horário.";playNewRideSound();if("Notification" in window&&Notification.permission==="granted"){try{new Notification(title,{body,icon:"./icon-192.svg",tag:"22drive-"+r.id});}catch(e){}}notice(body)}
+function monitorNewRequests(){const rs=requests();const active=rs.filter(r=>(r.status||"new")==="new");if(!lastSeenRequestIds.size){active.forEach(r=>lastSeenRequestIds.add(String(r.id)));return;}active.forEach(r=>{const id=String(r.id);if(!lastSeenRequestIds.has(id)){lastSeenRequestIds.add(id);showNewRideNotification(r);}});Array.from(lastSeenRequestIds).forEach(id=>{if(!active.some(r=>String(r.id)===id))lastSeenRequestIds.delete(id)});}
+
+const $=id=>document.getElementById(id);
+function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
+async function pollRemoteReservations(){try{const response=await fetch(SUPABASE_URL+"/rest/v1/reservas?select=*&order=created_at.desc&limit=100",{cache:"no-store",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});if(!response.ok)throw new Error("HTTP "+response.status+" — "+await response.text());const data=await response.json();const normalized=(data||[]).map(normalizeReservation);const old=remoteReservations.slice();const oldIds=new Set(old.map(x=>String(x.id)));remoteReservations=normalized;realtimeReady=true;normalized.filter(r=>(r.status||"new")==="new"&&!oldIds.has(String(r.id))).forEach(showNewRideNotification);render();loadEarnings();if(old.length!==normalized.length){notice("🟢 Painel atualizado: "+normalized.length+" solicitação(ões) na base online.");}}catch(e){console.error("22 DRIVE polling:",e);realtimeReady=false;notice("⚠️ Não consegui ler as viagens online. "+(e&&e.message?e.message:"Erro desconhecido"));}}
+
+function requests(){
+  if(realtimeReady)return remoteReservations.slice();
+  try{let x=JSON.parse(localStorage.getItem(REQUESTS_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return[]}
+}
+function save(x){remoteReservations=x.slice();localStorage.setItem(REQUESTS_KEY,JSON.stringify(x))}
+function notice(t){$("notice").textContent=t;$("notice").className="notice";setTimeout(()=>$("notice").className="notice hidden",4000)}
 function getAuthClient(){if(!supabaseClient&&window.supabase)supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);return supabaseClient;}
 function toggleLoginPassword(){const input=$("loginPassword"),btn=$("togglePassword");if(!input)return;const showing=input.type==="text";input.type=showing?"password":"text";if(btn){btn.textContent=showing?"Mostrar":"Ocultar";btn.setAttribute("aria-label",showing?"Mostrar senha":"Ocultar senha");}}
 async function signupDriver(){
