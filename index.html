@@ -1067,7 +1067,7 @@ function calc(){
   const tolls=calculateTolls();
   const grandTotal=tripTotal+tolls.total;
 
-  $("price").textContent=money(tripTotal);
+  $("price").textContent=money(grandTotal);
   $("detail").textContent=km<=9
     ? `Até 9 km: ${money(rates.base)}${type==="volta"?" • ida e volta":""}`
     : `9 km incluídos + ${(km-9).toFixed(1)} km × ${money(rates.extraPerKm)}/km excedente${type==="volta"?" • ida e volta":""}`;
