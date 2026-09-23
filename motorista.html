@@ -437,8 +437,7 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
   </header>
 
   <div id="driverMap" class="driver-map" aria-label="Mapa da área do motorista">
-    <button class="driver-location-button" type="button" onclick="useCurrentDriverLocation()" aria-label="Usar localização atual">⌖</button>
-  </div>
+    </div>
 
   <div id="driverContent" class="driver-bottom-area">
     <div class="driver-sheet" id="driverSheet">
@@ -1005,7 +1004,6 @@ function scheduleDriverMapReturn(){
 }
 
 function useCurrentDriverLocation(){
-  const mapBtn=document.querySelector(".driver-location-button");
   const fallbackBtn=$("currentLocationButton");
   const btn=mapBtn||fallbackBtn;
   if(!navigator.geolocation){alert("Seu navegador não permite acessar a localização.");return;}
