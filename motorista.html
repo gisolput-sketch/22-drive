@@ -1482,7 +1482,10 @@ function renderTodayAcceptedRoutes(){
       const label=phase==="pickup"?"📍 Rota para embarque":"🚗 Iniciar rota";
       routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">'+label+'</button>';
     }
-    return '<div class="scheduled-item today-route-item"><b>🕐 '+esc(t)+' • '+status+'</b><small>👤 '+esc(passenger)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small>'+routeButton+arrivalButton+'</div>';
+    const value=rideValue(r);
+    const payment=String(r.payment||r.payment_method||r.forma_pagamento||r.pagamento||"Não informado").trim()||"Não informado";
+    const date=String(r.confirmedDate||r.confirmed_date||r.date||r.travel_date||"");
+    return '<div class="scheduled-item today-route-item"><b>🕐 '+esc(t)+' • '+status+'</b><small>👤 '+esc(passenger)+'<br>📅 '+esc(dateBR(date))+' às '+esc(t)+'<br>💰 <strong>'+esc(moneyBR(value))+'</strong><br>💳 '+esc(payment)+'<br>📍 '+esc(origin)+'<br>🏁 '+esc(dest)+'</small>'+routeButton+arrivalButton+'</div>';
   }).join("");
   rows.forEach(r=>{
     const state=getRouteState(r.id);
