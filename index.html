@@ -208,13 +208,13 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <h2>⚙️ Configuração da 22 DRIVE</h2>
 <p class="muted">Regra atual: valor mínimo por trecho + valor por km. O passageiro verá o preço automaticamente.</p>
 <div class="grid">
-<div class="field"><label>Valor mínimo por trecho (R$)</label><input id="base" type="number" step=".01"></div>
-<div class="field"><label>Valor por km (R$)</label><input id="perkm" type="number" step=".01"></div>
+<div class="field"><label>Valor base até 9 km (R$)</label><input id="base" type="number" step=".01"></div>
+<div class="field"><label>Taxa por km após 9 km (R$)</label><input id="perkm" type="number" step=".01"></div>
 </div>
 <button class="btn primary" type="button" onclick="saveRates()">Salvar tarifas</button>
 <hr>
 <p><span class="tag">WhatsApp</span> 21 99969-6851</p>
-<p class="muted">O mapa usa Leaflet + OpenStreetMap e não precisa de chave de API. O formulário calcula a rota, mostra o valor e envia a solicitação pelo WhatsApp.</p>
+<p class="muted">Tarifa atual: até 9 km = valor base de R$ 20,00. Acima de 9 km, acrescenta R$ 2,00 por cada quilômetro excedente. Pedágios são somados separadamente.</p>
 </section>
 </main>
 </div>
@@ -223,7 +223,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 const WA="5521999696851";
 const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co";
 const SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
-const defaults={base:20,perkm:1.5};
+const defaults={base:20,includedKm:9,extraPerKm:2};
 const PROFILE_KEY="22drive_passenger_profile";
 const FAVORITES_KEY="22drive_passenger_favorites";
 
@@ -471,6 +471,10 @@ async function findPassengerProfile(){
   }catch(err){console.error(err);alert("Não foi possível consultar a base agora. Confira se o cadastro no Supabase já foi configurado.");}
 }
 let rates=JSON.parse(localStorage.getItem("22drive_rates")||"null")||defaults;
+if(!rates || rates.includedKm!==9 || rates.extraPerKm===undefined){
+  rates={...defaults};
+  localStorage.setItem("22drive_rates",JSON.stringify(rates));
+}
 const $=id=>document.getElementById(id);
 
 let driveMap=null, fromMarker=null, toMarker=null, routeLine=null, passengerDriverMarker=null;
@@ -550,7 +554,7 @@ async function createReservationInSupabase(){
   const payment=document.querySelector('input[name="payment"]:checked');
   const sound=document.querySelector('input[name="sound"]:checked');
   const km=Number(parseFloat($("km").value)||0);
-  const one=Math.max(Number(rates.base)||0,km*(Number(rates.perkm)||0));
+  const one=calculateTripFare(km);
   const tolls=calculateTolls();
   const tripValue=type==="volta"?one*2:one;
   const tollValue=Number(tolls.total)||0;
@@ -1025,16 +1029,27 @@ function calculateTolls(){
   return {legs,total};
 }
 
+function calculateTripFare(km){
+  const distance=Math.max(0,Number(km)||0);
+  const base=Number(rates.base)||20;
+  const included=9;
+  const extra=Number(rates.extraPerKm)||2;
+  if(distance<=included)return Math.round(base*100)/100;
+  return Math.round((base+(distance-included)*extra)*100)/100;
+}
+
 function calc(){
   const km=parseFloat($("km").value)||0;
   const type=document.querySelector('input[name="type"]:checked').value;
-  const one=Math.max(rates.base,km*rates.perkm);
+  const one=calculateTripFare(km);
   const tripTotal=type==="volta"?one*2:one;
   const tolls=calculateTolls();
   const grandTotal=tripTotal+tolls.total;
 
   $("price").textContent=money(tripTotal);
-  $("detail").textContent=`Mínimo de ${money(rates.base)} • ${km.toFixed(1)} km × ${money(rates.perkm)}/km${type==="volta"?" • ida e volta":""}`;
+  $("detail").textContent=km<=9
+    ? `Até 9 km: ${money(rates.base)}${type==="volta"?" • ida e volta":""}`
+    : `9 km incluídos + ${(km-9).toFixed(1)} km × ${money(rates.extraPerKm)}/km excedente${type==="volta"?" • ida e volta":""}`;
   $("tollDetail").innerHTML=tollBreakdownHtml(tolls.legs).replace(
     money(tolls.total),
     money(tolls.total)
@@ -1107,10 +1122,10 @@ $("date").addEventListener("change",async()=>{
 });
 $("rdate").addEventListener("change",async()=>{ await checkSlot($("rdate").value,$("rtime").value,"availabilityReturnStatus"); });
 function openAdmin(){
- $("admin").classList.toggle("on");$("base").value=rates.base;$("perkm").value=rates.perkm;
+ $("admin").classList.toggle("on");$("base").value=rates.base;$("perkm").value=rates.extraPerKm;
 }
 function saveRates(){
- rates={base:parseFloat($("base").value)||0,perkm:parseFloat($("perkm").value)||0};
+ rates={base:parseFloat($("base").value)||20,includedKm:9,extraPerKm:parseFloat($("perkm").value)||2};
  localStorage.setItem("22drive_rates",JSON.stringify(rates));calc();alert("Tarifas salvas!");
 }
 $("form").addEventListener("submit",e=>{
@@ -1131,7 +1146,7 @@ $("form").addEventListener("submit",e=>{
   }
 
   const km=parseFloat($("km").value)||0;
-  const one=Math.max(rates.base,km*rates.perkm);
+  const one=calculateTripFare(km);
   const tripTotal=type==="volta"?one*2:one;
   const tolls=calculateTolls();
   const grandTotal=tripTotal+tolls.total;
