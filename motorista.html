@@ -1656,7 +1656,16 @@ async function acceptRide(id){
   }
   render();
   renderTodayAcceptedRoutes();
-  notice("Solicitação aceita. A viagem de hoje foi colocada em Rotas aceitas de hoje.");
+  // Depois de aceitar, leva o motorista diretamente para a aba/seção de corridas de hoje.
+  setTimeout(()=>{
+    const todayCard=document.getElementById("todayRoutesCard");
+    if(todayCard){
+      todayCard.scrollIntoView({behavior:"smooth",block:"center"});
+      todayCard.classList.add("today-routes-highlight");
+      setTimeout(()=>todayCard.classList.remove("today-routes-highlight"),1600);
+    }
+  },80);
+  notice("Solicitação aceita. A corrida foi colocada em Corridas de hoje.");
 }
 async function cancelRide(id){stopRideAlert(id);if(!confirm("Deseja recusar/cancelar esta solicitação?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"cancelled",cancelled_at:new Date().toISOString(),cancelled_by:"driver"};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"cancelled",cancelledAt:patch.cancelled_at,cancelledBy:"driver"};save(rs);}render();notice("Solicitação cancelada.")}
 function openModal(id){selected=id;let r=requests().find(x=>String(x.id)===String(id));if(!r)return;let d=new Date(),today=d.toISOString().slice(0,10);$("cdate").value=r.date||r.data||today;$("ctime").value=r.time||r.horario||"";$("cnote").value="";$("modal").classList.add("on")}
