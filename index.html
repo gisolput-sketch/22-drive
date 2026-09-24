@@ -19,7 +19,8 @@ input:focus,select:focus,textarea:focus{border-color:#6b7280}.choices{display:gr
 .price{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:17px;padding:16px}.price small{color:#166534}.price strong{display:block;font-size:29px;margin-top:3px}.notice{background:#fffbeb;border:1px solid #fde68a;padding:12px;border-radius:13px;font-size:12px;line-height:1.5;color:#854d0e}
 .btn{width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:900;cursor:pointer}.primary{background:var(--green);color:#fff}.dark{background:var(--p);color:#fff;margin-top:9px}.muted{font-size:11px;color:var(--muted);line-height:1.5}.availability{font-size:12px;margin-top:6px;line-height:1.4}.availability.ok{color:#15803d}.availability.busy{color:#dc2626;font-weight:800}
 .admin{display:none}.admin.on{display:block}.admin table{width:100%;border-collapse:collapse;font-size:12px}.admin th,.admin td{border-bottom:1px solid var(--line);padding:8px;text-align:left}.admin input{padding:8px}.tag{display:inline-block;padding:5px 8px;border-radius:999px;background:#f3f4f6;font-size:11px}.map{height:280px;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-top:10px}.route-status{font-size:12px;color:var(--muted);margin-top:8px}.place-wrap{margin-bottom:11px}.place-wrap label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}.place-wrap gmp-place-autocomplete{width:100%;--gmpx-color-surface:#fff;--gmpx-color-on-surface:#111827;--gmpx-color-on-surface-variant:#6b7280;--gmpx-color-primary:#16a34a}
-hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none;text-align:center}\n.review-star{border:0;background:#f8fafc;color:#f4c400;font-size:42px;line-height:1;padding:4px;cursor:pointer}.review-star.on{color:#f4c400}.review-star:active{transform:scale(.95)}.success h2{margin-top:5px}.check{font-size:44px}
+hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none;text-align:center}
+.review-star{border:0;background:#f8fafc;color:#f4c400;font-size:42px;line-height:1;padding:4px;cursor:pointer}.review-star.on{color:#f4c400}.review-star:active{transform:scale(.95)}.success h2{margin-top:5px}.check{font-size:44px}
 @media(max-width:400px){.grid{grid-template-columns:1fr}.choices{grid-template-columns:1fr}}
 
 .autocomplete-wrap{position:relative}
@@ -33,14 +34,13 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 .confirm-overlay{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.confirm-box{background:#fff;border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 18px 50px #0005}.confirm-box h3{margin:0 0 12px}.confirm-warning{white-space:pre-line;font-size:14px;line-height:1.5;color:#111827}.confirm-actions{display:flex;gap:10px;margin-top:18px}.confirm-actions button{flex:1}.btn.secondary{background:#e5e7eb;color:#111827}
 </style>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-
- crossorigin=""/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
- crossorigin=""></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin="anonymous"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin="anonymous" onerror="this.onerror=null;this.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'"></script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n<script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
 (async function(){
   const URL="https://mqvumerrkyddootxeziv.supabase.co";
   const KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
@@ -699,43 +699,46 @@ async function createReservationInSupabase(){
 
 function initMap(){
   const mapEl=$("map");
-  if(!mapEl){
-    console.error("22 DRIVE — elemento #map não encontrado.");
-    return;
-  }
+  if(!mapEl){console.error("22 DRIVE — #map não encontrado.");return;}
+  mapEl.style.background="#e5e7eb";
   if(typeof L==="undefined"){
-    mapEl.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-weight:700">🗺️ Carregando mapa...</div>';
-    $("routeStatus").textContent="⏳ O mapa está carregando. Atualize a página se ele não aparecer.";
+    mapEl.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-weight:800">🗺️ Não foi possível carregar o motor do mapa. Recarregue a página.</div>';
+    $("routeStatus").textContent="❌ Biblioteca do mapa não carregou.";
+    console.error("22 DRIVE — Leaflet L não carregou.");
     return;
   }
-  if(driveMap){
-    setTimeout(()=>driveMap.invalidateSize(true),100);
-    return;
+  if(driveMap){setTimeout(()=>driveMap.invalidateSize(true),100);return;}
+  try{
+    driveMap=L.map(mapEl,{zoomControl:true,preferCanvas:false,fadeAnimation:false,zoomAnimation:false}).setView([-22.73,-42.63],10);
+    const tileOptions={maxZoom:19,attribution:'&copy; OpenStreetMap contributors'};
+    let activeLayer=null;
+    let fallbackIndex=0;
+    const layers=[
+      ["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",["a","b","c"]],
+      ["https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",["a","b","c","d"]],
+      ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",[]]
+    ];
+    const addTiles=()=>{
+      if(activeLayer)driveMap.removeLayer(activeLayer);
+      const item=layers[fallbackIndex];
+      activeLayer=L.tileLayer(item[0],{...tileOptions,subdomains:item[1]}).addTo(driveMap);
+      let errors=0;
+      activeLayer.on("tileerror",()=>{
+        errors++;
+        if(errors>=2 && fallbackIndex<layers.length-1){
+          fallbackIndex++;
+          addTiles();
+        }
+      });
+      setTimeout(()=>driveMap.invalidateSize(true),100);
+    };
+    addTiles();
+    setTimeout(()=>driveMap.invalidateSize(true),300);
+    setTimeout(()=>driveMap.invalidateSize(true),1000);
+  }catch(err){
+    console.error("22 DRIVE — erro ao criar mapa:",err);
+    mapEl.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-weight:800">❌ Erro ao iniciar o mapa.</div>';
   }
-  driveMap=L.map(mapEl,{zoomControl:true,preferCanvas:true}).setView([-22.73,-42.63],10);
-  const osmLayer=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
-    maxZoom:19,
-    detectRetina:true,
-    subdomains:["a","b","c"],
-    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  }).addTo(driveMap);
-
-  let fallbackStarted=false;
-  osmLayer.on("tileerror",()=>{
-    if(fallbackStarted)return;
-    fallbackStarted=true;
-    try{
-      driveMap.removeLayer(osmLayer);
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{
-        maxZoom:19,
-        subdomains:["a","b","c","d"],
-        attribution:'&copy; OpenStreetMap contributors &copy; CARTO'
-      }).addTo(driveMap);
-    }catch(err){console.error("Mapa fallback:",err);}
-  });
-
-  setTimeout(()=>driveMap.invalidateSize(true),150);
-  setTimeout(()=>driveMap.invalidateSize(true),600);
 }
 
 window.addEventListener("load",()=>{
@@ -1270,14 +1273,26 @@ $("form").addEventListener("submit",e=>{
   const tolls=calculateTolls();
   const grandTotal=tripTotal+tolls.total;
 
-  let msg=`🚗 22 DRIVE — NOVA SOLICITAÇÃO\n\n`;
-  msg+=`👤 Passageiro: ${$("name").value}\n📱 WhatsApp: ${$("phone").value}\n`;
-  msg+=`🚘 Viagem: ${type==="volta"?"Ida e volta":"Somente ida"}\n`;
-  msg+=`📅 Ida: ${$("date").value.split("-").reverse().join("/")} às ${$("time").value}\n`;
-  if(type==="volta") msg+=`🔄 Volta: ${$("rdate").value.split("-").reverse().join("/")} às ${$("rtime").value}\n`;
+  let msg=`🚗 22 DRIVE — NOVA SOLICITAÇÃO
+
+`;
+  msg+=`👤 Passageiro: ${$("name").value}
+📱 WhatsApp: ${$("phone").value}
+`;
+  msg+=`🚘 Viagem: ${type==="volta"?"Ida e volta":"Somente ida"}
+`;
+  msg+=`📅 Ida: ${$("date").value.split("-").reverse().join("/")} às ${$("time").value}
+`;
+  if(type==="volta") msg+=`🔄 Volta: ${$("rdate").value.split("-").reverse().join("/")} às ${$("rtime").value}
+`;
   const fromMapsUrl="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent($("from").value);
   const toMapsUrl="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent($("to").value);
-  msg+=`📍 Embarque: ${$("from").value}\n🗺️ Endereço Maps: ${fromMapsUrl}\n🏁 Destino: ${$("to").value}\n🗺️ Endereço Maps: ${toMapsUrl}\n📏 Distância: ${km.toFixed(2)} km\n`;
+  msg+=`📍 Embarque: ${$("from").value}
+🗺️ Endereço Maps: ${fromMapsUrl}
+🏁 Destino: ${$("to").value}
+🗺️ Endereço Maps: ${toMapsUrl}
+📏 Distância: ${km.toFixed(2)} km
+`;
   const payment=document.querySelector('input[name="payment"]:checked');
   if(!payment){
     alert("Escolha a forma de pagamento antes de continuar.");
@@ -1294,26 +1309,41 @@ $("form").addEventListener("submit",e=>{
   const sound=document.querySelector('input[name="sound"]:checked');
   if(!sound){alert("Informe se prefere viajar com o som ligado ou sem som.");return;}
   if(sound.value==="Com som" && !$("musicStyle").value){alert("Escolha o estilo de música de sua preferência.");return;}
-  msg+=`👥 Passageiros: ${$("people").value}\n🧳 Bagagem: ${$("bags").value}\n💳 Forma de pagamento: ${payment.value}\n`;
-  if(payment.value==="No amor") msg+=`📅 Data prevista para pagamento: ${noLovePaymentDate.split("-").reverse().join("/")}\n`;
-  msg+=`🎵 Som: ${sound.value}\n`;
+  msg+=`👥 Passageiros: ${$("people").value}
+🧳 Bagagem: ${$("bags").value}
+💳 Forma de pagamento: ${payment.value}
+`;
+  if(payment.value==="No amor") msg+=`📅 Data prevista para pagamento: ${noLovePaymentDate.split("-").reverse().join("/")}
+`;
+  msg+=`🎵 Som: ${sound.value}
+`;
   if(sound.value==="Com som"){
-    msg+=`🎶 Estilo musical: ${$("musicStyle").value}\n`;
-    msg+=`🎤 Cantor(a)/artista de preferência: ${$("musicArtist").value.trim()||"Não informado"}\n`;
+    msg+=`🎶 Estilo musical: ${$("musicStyle").value}
+`;
+    msg+=`🎤 Cantor(a)/artista de preferência: ${$("musicArtist").value.trim()||"Não informado"}
+`;
   }
-  msg+=`\n`;
-  msg+=`🚗 Valor da viagem: ${money(tripTotal)}\n`;
-  msg+=`💳 Sinal de 50% para confirmar: ${money(grandTotal*0.5)}\n`;
-  msg+=`🛣️ Pedágios: ${money(tolls.total)}\n`;
+  msg+=`
+`;
+  msg+=`🚗 Valor da viagem: ${money(tripTotal)}
+`;
+  msg+=`💳 Sinal de 50% para confirmar: ${money(grandTotal*0.5)}
+`;
+  msg+=`🛣️ Pedágios: ${money(tolls.total)}
+`;
 
   tolls.legs.forEach((leg,index)=>{
     leg.items.forEach(item=>{
-      msg+=`• ${item.name} — ${money(item.value)} (${item.period}${tolls.legs.length>1?" • trecho "+(index+1):""})\n`;
+      msg+=`• ${item.name} — ${money(item.value)} (${item.period}${tolls.legs.length>1?" • trecho "+(index+1):""})
+`;
     });
   });
 
-  msg+=`💰 Total: ${money(grandTotal)}\n`;
-  msg+=`📝 Observações: ${$("obs").value||"Nenhuma"}\n\n`;
+  msg+=`💰 Total: ${money(grandTotal)}
+`;
+  msg+=`📝 Observações: ${$("obs").value||"Nenhuma"}
+
+`;
 
   msg+=`Declaro estar ciente das condições de pagamento da reserva.`;
 
@@ -1356,7 +1386,9 @@ document.addEventListener("DOMContentLoaded",()=>{
       }else{
         const detail=err&&err.message?String(err.message):String(err||"Erro desconhecido");
         console.error("22 DRIVE — erro detalhado ao criar reserva:",detail,err);
-        alert("❌ Não foi possível confirmar a reserva.\\n\\nDetalhe técnico: "+detail);
+        alert("❌ Não foi possível confirmar a reserva.\
+\
+Detalhe técnico: "+detail);
       }
       button.disabled=false;
       button.textContent="✅ Enviar solicitação";
@@ -1396,7 +1428,9 @@ checkSlot($("date").value,$("time").value,"availabilityStatus");
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-box">
     <h3>📋 Enviar solicitação de viagem</h3>
-    <div class="confirm-warning">Sua solicitação será enviada para o painel da 22 DRIVE e ficará <b>aguardando confirmação do motorista</b>.\n\nO horário só será bloqueado definitivamente quando a viagem for confirmada no painel.
+    <div class="confirm-warning">Sua solicitação será enviada para o painel da 22 DRIVE e ficará <b>aguardando confirmação do motorista</b>.
+
+O horário só será bloqueado definitivamente quando a viagem for confirmada no painel.
 
 ❗ Cancelamento ou desistência após o pagamento: *não há devolução de do valor do sinal.* *"O valor será destinados à cobertura de custos relacionados à reserva do horário, planejamento e deslocamento*
 ❗ Não comparecimento: também será considerado cancelamento, seguindo a mesma regra acima.
