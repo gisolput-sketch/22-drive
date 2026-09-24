@@ -430,7 +430,13 @@ body.navigation-active .driver-map{overflow:hidden;}
 }
 #driverChargeModal .charge-title{font-size:24px;font-weight:900;margin-bottom:6px}
 #driverChargeModal .charge-sub{color:#b9c8e5;font-size:13px;margin-bottom:16px}
-#driverChargeModal .charge-value{font-size:38px;font-weight:900;color:var(--gold);margin:8px 0 16px}
+#driverChargeModal .charge-value{font-size:38px;font-weight:900;color:var(--gold);margin:8px 0 10px}
+#driverChargeModal .charge-breakdown{border:1px solid #29415e;border-radius:14px;padding:10px 13px;background:#0b1a2b;margin:10px 0 12px}
+#driverChargeModal .charge-line{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #26364a;font-size:13px}
+#driverChargeModal .charge-line:last-child{border-bottom:0}
+#driverChargeModal .charge-line span{color:#cbd5e1}
+#driverChargeModal .charge-line strong{color:#fff;white-space:nowrap}
+#driverChargeModal .charge-total-label{font-size:11px;font-weight:900;color:#b9c8e5;letter-spacing:.08em;text-align:center}
 #driverChargeModal .charge-method{
   border:1px solid #29415e;border-radius:14px;padding:14px;background:#0b1a2b;margin-bottom:14px;
 }
@@ -654,8 +660,10 @@ body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
 
   <div id="driverChargeModal" aria-hidden="true">
     <div class="charge-box">
-      <div class="charge-title">💳 Cobrança da viagem</div>
-      <div class="charge-sub" id="chargeRidePassenger">Viagem finalizada automaticamente.</div>
+      <div class="charge-title">💳 Total para o passageiro</div>
+      <div class="charge-sub" id="chargeRidePassenger">Viagem finalizada.</div>
+      <div class="charge-breakdown" id="chargeBreakdown"></div>
+      <div class="charge-total-label">TOTAL A PAGAR</div>
       <div class="charge-value" id="chargeRideValue">R$ 0,00</div>
       <div class="charge-method">
         <b id="chargePaymentLabel">Forma de pagamento</b>
@@ -1748,7 +1756,8 @@ async function autoFinishAtDestination(r){
     clearRouteState(id);
     render();
     loadEarnings();
-    showDriverChargeModal(r);
+    const finishedRide=requests().find(x=>String(x.id)===id)||{...r,...patch};
+    showDriverChargeModal(finishedRide);
     notice("🏁 Você chegou ao destino. Viagem finalizada e cobrança exibida.");
   }
   destinationAutoFinishing=false;
@@ -2498,10 +2507,24 @@ function showDriverChargeModal(r){
   const modal=$("driverChargeModal");
   if(!modal)return;
   const passenger=String(r.passengerName||r.passenger_name||r.nome||"Passageiro");
-  const value=rideValue(r);
+  const trip=numericMoney(r.tripValue??r.trip_value??r.valor_viagem??r.valor??0);
+  const toll=numericMoney(r.tollValue??r.toll_value??r.pedagios??r.pedagio??0);
+  const stopFee=numericMoney(r.extraStopValue??r.extra_stop_value??0);
+  const waiting=numericMoney(r.waitingValue??r.waiting_value??0);
+  const stopList=Array.isArray(r.extraStops)?r.extraStops:[];
+  const stopCount=stopList.length;
+  const calculatedTotal=Math.round((trip+toll+stopFee+waiting)*100)/100;
+  const total=rideValue(r)>0?rideValue(r):calculatedTotal;
   const payment=String(r.payment||r.payment_method||r.forma_pagamento||r.pagamento||"Não informado").trim();
+  const rows=[
+    ["🚗 Valor da viagem",trip],
+    ["🛣️ Pedágios",toll],
+    ["📍 Paradas extras ("+stopCount+" × R$ 5,00)",stopFee],
+    ["⏱️ Tempo de espera",waiting]
+  ];
   if($("chargeRidePassenger"))$("chargeRidePassenger").textContent="👤 "+passenger+" • viagem finalizada";
-  if($("chargeRideValue"))$("chargeRideValue").textContent=moneyBR(value);
+  if($("chargeBreakdown"))$("chargeBreakdown").innerHTML=rows.map(([label,val])=>'<div class="charge-line"><span>'+esc(label)+'</span><strong>'+moneyBR(val)+'</strong></div>').join("");
+  if($("chargeRideValue"))$("chargeRideValue").textContent=moneyBR(total);
   if($("chargePaymentValue"))$("chargePaymentValue").textContent=payment||"Não informado";
   modal.classList.add("open");
   modal.setAttribute("aria-hidden","false");
@@ -2531,7 +2554,10 @@ async function finishRide(id){
     rs[i]={...rs[i],status:"finished",finishedAt:patch.finished_at};
     save(rs);
   }
+  const finishedRide=requests().find(x=>String(x.id)===String(id))||{...ride,...patch};
   render();
+  loadEarnings();
+  showDriverChargeModal(finishedRide);
 }
 
   // Acesso direto ao painel do motorista — sem senha.
