@@ -18,7 +18,7 @@ label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}input,selec
 input:focus,select:focus,textarea:focus{border-color:#6b7280}.choices{display:grid;grid-template-columns:1fr 1fr;gap:9px}.choices label{margin:0}.choices input{display:none}.choices span{display:block;text-align:center;padding:12px;border:1px solid var(--line);border-radius:12px;cursor:pointer}.choices input:checked+span{background:var(--p);color:#fff;border-color:var(--p)}
 .price{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:17px;padding:16px}.price small{color:#166534}.price strong{display:block;font-size:29px;margin-top:3px}.notice{background:#fffbeb;border:1px solid #fde68a;padding:12px;border-radius:13px;font-size:12px;line-height:1.5;color:#854d0e}
 .btn{width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:900;cursor:pointer}.primary{background:var(--green);color:#fff}.dark{background:var(--p);color:#fff;margin-top:9px}.muted{font-size:11px;color:var(--muted);line-height:1.5}.availability{font-size:12px;margin-top:6px;line-height:1.4}.availability.ok{color:#15803d}.availability.busy{color:#dc2626;font-weight:800}
-.admin{display:none}.admin.on{display:block}.admin table{width:100%;border-collapse:collapse;font-size:12px}.admin th,.admin td{border-bottom:1px solid var(--line);padding:8px;text-align:left}.admin input{padding:8px}.tag{display:inline-block;padding:5px 8px;border-radius:999px;background:#f3f4f6;font-size:11px}.map{height:280px;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-top:10px}.route-status{font-size:12px;color:var(--muted);margin-top:8px}.place-wrap{margin-bottom:11px}.place-wrap label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}.place-wrap gmp-place-autocomplete{width:100%;--gmpx-color-surface:#fff;--gmpx-color-on-surface:#111827;--gmpx-color-on-surface-variant:#6b7280;--gmpx-color-primary:#16a34a}
+.admin{display:none}.admin.on{display:block}.admin table{width:100%;border-collapse:collapse;font-size:12px}.admin th,.admin td{border-bottom:1px solid var(--line);padding:8px;text-align:left}.admin input{padding:8px}.tag{display:inline-block;padding:5px 8px;border-radius:999px;background:#f3f4f6;font-size:11px}.map{height:280px;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-top:10px;background:#e5e7eb;position:relative}.map-fallback{position:absolute;inset:0;border:0;width:100%;height:100%;display:none;background:#e5e7eb}.map-fallback.show{display:block}.route-status{font-size:12px;color:var(--muted);margin-top:8px}.place-wrap{margin-bottom:11px}.place-wrap label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}.place-wrap gmp-place-autocomplete{width:100%;--gmpx-color-surface:#fff;--gmpx-color-on-surface:#111827;--gmpx-color-on-surface-variant:#6b7280;--gmpx-color-primary:#16a34a}
 hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none;text-align:center}
 .review-star{border:0;background:#f8fafc;color:#f4c400;font-size:42px;line-height:1;padding:4px;cursor:pointer}.review-star.on{color:#f4c400}.review-star:active{transform:scale(.95)}.success h2{margin-top:5px}.check{font-size:44px}
 @media(max-width:400px){.grid{grid-template-columns:1fr}.choices{grid-template-columns:1fr}}
@@ -121,7 +121,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <button class="btn dark" type="button" id="useLocationBtn" style="margin-top:-3px">📍 Usar minha localização exata</button>
 <div id="locationStatus" class="route-status"></div>
 <div class="place-wrap"><label>Destino</label><div class="autocomplete-wrap"><div class="search-row"><input id="toPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('toPlace')" aria-label="Buscar destino">🔍</button></div></div></div>
-<div id="map" class="map"></div>
+<div id="map" class="map"><iframe id="mapFallback" class="map-fallback" title="Mapa 22 DRIVE" loading="eager" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
 <div id="routeStatus" class="route-status">Digite o endereço completo e escolha uma das sugestões encontradas. Se não aparecer, tente incluir número, bairro e cidade.</div>
 <input id="from" type="hidden" required>
 <input id="to" type="hidden" required>
@@ -671,23 +671,51 @@ async function createReservationInSupabase(){
 }
 
 
+function showMapFallback(){
+  const frame=document.getElementById("mapFallback");
+  if(!frame)return;
+  frame.src="https://www.openstreetmap.org/export/embed.html?bbox=-42.85%2C-22.90%2C-42.40%2C-22.55&layer=map";
+  frame.classList.add("show");
+}
 function initMap(){
   const el=document.getElementById("map");
   if(!el)return;
+  const frame=document.getElementById("mapFallback");
   if(typeof window.L==="undefined"){
-    el.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-weight:800">🗺️ Carregando mapa...</div>';
-    setTimeout(initMap,500);
+    setTimeout(()=>{
+      if(typeof window.L==="undefined"){
+        showMapFallback();
+      }else{
+        initMap();
+      }
+    },1200);
     return;
   }
-  if(driveMap){setTimeout(()=>driveMap.invalidateSize(),100);return;}
+  if(driveMap){setTimeout(()=>driveMap.invalidateSize(true),100);return;}
   try{
-    driveMap=L.map(el).setView([-22.73,-42.63],11);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(driveMap);
-    setTimeout(()=>driveMap.invalidateSize(),100);
-    setTimeout(()=>driveMap.invalidateSize(),500);
+    driveMap=L.map(el,{zoomControl:true}).setView([-22.73,-42.63],11);
+    const tiles=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
+      maxZoom:19,
+      attribution:"© OpenStreetMap contributors",
+      crossOrigin:true
+    });
+    let tileErrorTimer=null;
+    tiles.on("tileerror",()=>{
+      clearTimeout(tileErrorTimer);
+      tileErrorTimer=setTimeout(()=>{
+        if(!el.querySelector(".leaflet-tile-loaded")) showMapFallback();
+      },800);
+    });
+    tiles.addTo(driveMap);
+    if(frame) frame.classList.remove("show");
+    setTimeout(()=>driveMap.invalidateSize(true),100);
+    setTimeout(()=>driveMap.invalidateSize(true),700);
+    setTimeout(()=>{
+      if(!el.querySelector(".leaflet-tile-loaded")) showMapFallback();
+    },3500);
   }catch(e){
     console.error("Erro mapa 22 DRIVE",e);
-    el.innerHTML='<div style="padding:20px;text-align:center;font-weight:800">❌ Erro ao iniciar o mapa.</div>';
+    showMapFallback();
   }
 }
 
