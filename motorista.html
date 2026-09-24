@@ -1446,6 +1446,7 @@ function startDestinationArrivalWatch(r){
   destinationArrivalWatchId=navigator.geolocation.watchPosition(pos=>{
     const current=[pos.coords.latitude,pos.coords.longitude];
     driverLocation=current;
+    advanceNavigationByLocation(pos);
     const destination=rideCoordinate(r,"dropoff");
     if(destination && distanceMeters(current,destination)<=120){
       autoFinishAtDestination(r);
@@ -1499,6 +1500,7 @@ function startPickupArrivalWatch(r){
   pickupArrivalWatchId=navigator.geolocation.watchPosition(pos=>{
     const current=[pos.coords.latitude,pos.coords.longitude];
     driverLocation=current;
+    advanceNavigationByLocation(pos);
     const pickup=rideCoordinate(r,"pickup");
     if(!pickup)return;
     if(distanceMeters(current,pickup)<=120){
