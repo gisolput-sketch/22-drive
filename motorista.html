@@ -778,6 +778,7 @@ let supabaseClient=null;
 let realtimeChannel=null;
 let remoteReservations=[];
 let realtimeReady=false;
+let newRequestPollTimer=null;
 
 function normalizeReservation(r){
   return {
@@ -829,41 +830,67 @@ function normalizeReservation(r){
   };
 }
 
-async function connectSupabaseRealtime(){
-  if(!window.supabase || realtimeReady)return;
+async function loadNewRequestsFromRpc(showAlerts=true){
   try{
-    supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-    const {data,error}=await supabaseClient.from("reservas").select("*").order("created_at",{ascending:false}).limit(100);
-    if(error) throw error;
-    remoteReservations=(data||[]).map(normalizeReservation);
+    if(!supabaseClient && window.supabase) supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    if(!supabaseClient)throw new Error("Supabase indisponível.");
+    const {data,error}=await supabaseClient.rpc("get_novas_solicitacoes_motorista");
+    if(error)throw error;
+    const incoming=(data||[]).map(normalizeReservation);
+    const oldNewIds=new Set(remoteReservations.filter(r=>(r.status||"new")==="new").map(r=>String(r.id)));
+    const incomingIds=new Set(incoming.map(r=>String(r.id)));
+    const others=remoteReservations.filter(r=>(r.status||"new")!=="new"&&!incomingIds.has(String(r.id)));
+    remoteReservations=[...incoming,...others];
     realtimeReady=true;
+    if(showAlerts) incoming.filter(r=>!oldNewIds.has(String(r.id))).forEach(showNewRideNotification);
     render();
+  }catch(err){
+    console.error("22 DRIVE RPC novas solicitações:",err);
+    if(!remoteReservations.length)realtimeReady=false;
+  }
+}
+function startNewRequestFallback(){
+  if(newRequestPollTimer)clearInterval(newRequestPollTimer);
+  loadNewRequestsFromRpc(true);
+  newRequestPollTimer=setInterval(()=>loadNewRequestsFromRpc(true),2000);
+}
+async function connectSupabaseRealtime(){
+  if(!window.supabase)return;
+  try{
+    if(!supabaseClient) supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    const {data,error}=await supabaseClient.from("reservas").select("*").order("created_at",{ascending:false}).limit(100);
+    if(!error){
+      remoteReservations=(data||[]).map(normalizeReservation);
+      realtimeReady=true;
+      render();
+    }
     realtimeChannel=supabaseClient.channel("22drive-reservas")
-      .on("postgres_changes",{event:"INSERT",schema:"public",table:"reservas"},payload=>{        const r=normalizeReservation(payload.new);
-        if((r.status||"new")!=="new")stopRideAlert(r.id);
-        if(!remoteReservations.some(x=>String(x.id)===String(r.id))){
-          remoteReservations.unshift(r);
-          if((r.status||"new")==="new")showNewRideNotification(r);
-        }
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"reservas"},payload=>{
+        const r=normalizeReservation(payload.new);
+        const i=remoteReservations.findIndex(x=>String(x.id)===String(r.id));
+        if(i>=0)remoteReservations[i]=r;else remoteReservations.unshift(r);
+        if((r.status||"new")==="new")showNewRideNotification(r);else stopRideAlert(r.id);
+        realtimeReady=true;
         render();
       })
       .on("postgres_changes",{event:"UPDATE",schema:"public",table:"reservas"},payload=>{
         const r=normalizeReservation(payload.new);
         const i=remoteReservations.findIndex(x=>String(x.id)===String(r.id));
         if(i>=0)remoteReservations[i]=r;else remoteReservations.unshift(r);
+        if((r.status||"new")!=="new")stopRideAlert(r.id);
+        realtimeReady=true;
         render();
       })
       .subscribe(status=>{
-        if(status==="SUBSCRIBED") notice("🟢 Conectado à base online. Novas viagens aparecerão automaticamente.");
-        if(status==="CHANNEL_ERROR") notice("⚠️ Não foi possível manter a conexão em tempo real.");
+        if(status==="SUBSCRIBED")notice("🟢 Conectado à base online. Novas viagens aparecerão automaticamente.");
+        if(status==="CHANNEL_ERROR")notice("⚠️ Tempo real indisponível; monitoramento automático continua ativo.");
       });
   }catch(err){
     console.error("Supabase Realtime:",err);
     realtimeReady=false;
-    notice("⚠️ Base online indisponível. O painel continuará funcionando neste aparelho.");
+    notice("⚠️ Tempo real indisponível; monitoramento automático continua ativo.");
   }
 }
-
 async function updateRemoteReservation(id,patch){
   if(!supabaseClient)return false;
   const {data,error}=await supabaseClient.from("reservas").update(patch).eq("id",id).select("*").single();
@@ -1055,6 +1082,7 @@ function openApp(){
   render();
   loadEarnings();
   connectSupabaseRealtime();
+  startNewRequestFallback();
 }
 async function logout(){try{const client=getAuthClient();if(client)await client.auth.signOut();}catch(e){console.error("22 DRIVE logout:",e)}localStorage.removeItem(DRIVER_KEY);location.reload()}
 function applyDriverStatus(v,showNotice=true){
