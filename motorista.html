@@ -588,6 +588,7 @@ body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
     <div id="topMenuPanel" class="top-menu-panel">
       <button type="button" onclick="openGainsFromMenu()">💰 Ganhos</button>
       <button type="button" onclick="openScheduledFromMenu()">📅 Viagens agendadas</button>
+      <button type="button" onclick="testDriverSound()">🔊 Testar som</button>
       <button type="button" onclick="openReviewsFromMenu()">⭐ Avaliações</button>
       <button type="button" onclick="logout()">🚪 Sair</button>
     </div>
@@ -881,6 +882,19 @@ function stopRideAlert(id){
 }
 function urlBase64ToUint8Array(base64String){const padding="=".repeat((4-base64String.length%4)%4),base64=(base64String+padding).replace(/-/g,"+").replace(/_/g,"/"),raw=atob(base64);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
 async function registerDriverPush(){if(!("serviceWorker" in navigator)||!("PushManager" in window))throw new Error("Este navegador não oferece Web Push.");const reg=await navigator.serviceWorker.register("./sw.js",{scope:"./"});await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();if(!sub){sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)});}const json=sub.toJSON();const endpoint=json.endpoint||sub.endpoint;const p256dh=json.keys&&json.keys.p256dh;const auth=json.keys&&json.keys.auth;if(!endpoint||!p256dh||!auth)throw new Error("O navegador não forneceu as chaves da assinatura Push.");const name=driver&&driver.name?driver.name:"Motorista";const phone=driver&&driver.phone?driver.phone:null;const response=await fetch(SUPABASE_URL+"/rest/v1/push_subscriptions?on_conflict=endpoint",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({endpoint,p256dh,auth,driver_name:name,driver_phone:phone,user_agent:navigator.userAgent,updated_at:new Date().toISOString()})});if(!response.ok)throw new Error("Não foi possível salvar a assinatura na base: "+await response.text());return sub;}
+async function testDriverSound(){
+  const ready=await unlockDriverSound();
+  if(ready){
+    playNewRideSound();
+    const status=$("notificationStatus");
+    if(status)status.textContent="🔊 Som de nova corrida testado com sucesso.";
+    notice("🔊 Teste de som realizado.");
+  }else{
+    const status=$("notificationStatus");
+    if(status)status.textContent="⚠️ Não foi possível ativar o áudio. Toque novamente no botão e verifique o volume do celular.";
+    notice("⚠️ Não foi possível ativar o áudio.");
+  }
+}
 async function enableDriverNotifications(){unlockDriverSound();localStorage.setItem(NOTIFY_KEY,"1");if(!("Notification" in window)){$("notificationStatus").textContent="Este navegador não oferece notificações.";playNewRideSound();return;}try{const p=await Notification.requestPermission();if(p!=="granted"){$("notificationStatus").textContent="⚠️ Permissão de notificação não concedida.";return;}await registerDriverPush();$("notificationStatus").textContent="✅ Notificações ativadas e registradas na base. Agora o celular poderá receber novas viagens mesmo com o painel em segundo plano.";playNewRideSound();}catch(e){console.error("22 DRIVE Web Push:",e);$("notificationStatus").textContent="❌ Não foi possível registrar as notificações: "+(e&&e.message?e.message:"erro desconhecido");}}
 function showNewRideNotification(r){startRideAlert(r);const passenger=r.passengerName||r.nome||"Passageiro";const title="🚨 Nova viagem — 22 DRIVE";const body=passenger+" solicitou uma viagem. Confira origem, destino e horário.";playNewRideSound();if("Notification" in window&&Notification.permission==="granted"){try{new Notification(title,{body,icon:"./icon-192.svg",tag:"22drive-"+r.id});}catch(e){}}notice(body)}
 function monitorNewRequests(){const rs=requests();const active=rs.filter(r=>(r.status||"new")==="new");if(!lastSeenRequestIds.size){active.forEach(r=>lastSeenRequestIds.add(String(r.id)));return;}active.forEach(r=>{const id=String(r.id);if(!lastSeenRequestIds.has(id)){lastSeenRequestIds.add(id);showNewRideNotification(r);}});Array.from(lastSeenRequestIds).forEach(id=>{if(!active.some(r=>String(r.id)===id))lastSeenRequestIds.delete(id)});}
