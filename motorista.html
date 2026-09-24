@@ -1356,6 +1356,17 @@ function stopDestinationArrivalWatch(){
   destinationArrivalWatchId=null;
   destinationArrivalWatchRideId=null;
 }
+async function manualFinishAtDestination(id){
+  const r=requests().find(x=>String(x.id)===String(id));
+  if(!r)return;
+  const state=getRouteState(id);
+  if(!state||state.phase!=="dropoff"){
+    notice("⚠️ Primeiro inicie o percurso até o destino.");
+    return;
+  }
+  await autoFinishAtDestination(r);
+}
+
 async function autoFinishAtDestination(r){
   if(!r||destinationAutoFinishing)return;
   destinationAutoFinishing=true;
@@ -1648,6 +1659,9 @@ function restoreTodayRoutesPanel(){
     if(phase==="dropoff_ready"){
       routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">🏁 Iniciar percurso</button>';
       arrivalButton='<button class="btn primary btnblock" style="margin-top:8px" type="button" onclick="messageArrivalWhatsApp('+JSON.stringify(String(r.id))+')">📲 Avisar passageiro que cheguei</button>';
+    }else if(phase==="dropoff"){
+      routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">🏁 Rota para destino</button>';
+      arrivalButton='<button class="btn primary btnblock" style="margin-top:8px" type="button" onclick="manualFinishAtDestination('+JSON.stringify(String(r.id))+')">🏁 Finalizar rota</button>';
     }else{
       const label=phase==="pickup"?"📍 Rota para embarque":"🚗 Iniciar rota";
       routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">'+label+'</button>';
