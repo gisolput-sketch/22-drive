@@ -574,6 +574,11 @@ body.navigation-active .driver-navigation-panel .nav-next-text #navInstruction{f
 body.navigation-active .driver-navigation-panel .nav-next-text #navRoad{font-size:13px;color:#e0ffff}
 body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
 @media(max-width:520px){.driver-nav-summary{left:8px;right:8px;bottom:8px;border-radius:22px}.nav-summary-top strong{font-size:20px}body.navigation-active .driver-navigation-panel{top:86px;left:8px;right:8px}}
+
+/* Ajustes mobile do mapa */
+#driverMap{touch-action:none;-webkit-user-select:none;user-select:none}
+#driverMap .driver-location-button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+@media (max-width:600px){#driverMap{min-height:320px}.driver-location-button{width:46px;height:46px;right:12px;top:12px}.driver-map .leaflet-control-zoom a{width:42px!important;height:42px!important;line-height:42px!important}}
 </style></style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -1590,6 +1595,8 @@ function initDriverMap(){
   setTimeout(resizeMap,300);
   setTimeout(resizeMap,800);
   window.addEventListener("resize",resizeMap,{passive:true});
+  window.addEventListener("orientationchange",()=>setTimeout(resizeMap,300),{passive:true});
+  if(window.visualViewport) window.visualViewport.addEventListener("resize",()=>setTimeout(resizeMap,100),{passive:true});
 
   const addOrMoveDriverMarker=()=>{
     if(!driverLocation||!driverMap)return;
