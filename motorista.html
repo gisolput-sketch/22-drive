@@ -1499,30 +1499,23 @@ function startRideRoute(id){
   if(!r)return;
   const state=getRouteState(id);
   if(state&&state.phase==="dropoff_ready"){
-    if(!openNavigationToRidePoint(r,"dropoff")){
-      alert("O endereço de desembarque não foi informado.");
-      return;
-    }
     setRouteState(id,"dropoff");
-    startDestinationArrivalWatch(r);
     renderTodayAcceptedRoutes();
-    notice("🏁 Percurso iniciado. Ao chegar a aproximadamente 120 metros do destino, a viagem será finalizada e a cobrança aparecerá.");
+    updateRideMapForRequest(r);
+    startDestinationArrivalWatch(r);
+    notice("🏁 Percurso para o destino iniciado dentro do mapa do 22 DRIVE. A 120 metros do destino, a viagem será finalizada.");
     return;
   }
   if(state&&state.phase==="pickup"){
-    if(!openNavigationToRidePoint(r,"pickup")){
-      alert("Não foi possível abrir a navegação para o embarque.");
-      return;
-    }
+    updateRideMapForRequest(r);
     startPickupArrivalWatch(r);
+    notice("📍 Navegação para o embarque atualizada no mapa.");
     return;
   }
   if(state&&state.phase==="dropoff"){
-    if(!openNavigationToRidePoint(r,"dropoff")){
-      alert("Não foi possível abrir a navegação para o destino.");
-      return;
-    }
+    updateRideMapForRequest(r);
     startDestinationArrivalWatch(r);
+    notice("🏁 Navegação para o destino atualizada no mapa.");
     return;
   }
   // Primeiro atualizamos a etapa e a interface. Assim, mesmo que o navegador
