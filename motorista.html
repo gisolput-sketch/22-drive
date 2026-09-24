@@ -1828,24 +1828,25 @@ function card(r){
 }
 async function acceptRide(id){
   stopRideAlert(id);
+  const buttons=[...document.querySelectorAll('[data-action="accept"][data-id="'+String(id).replace(/"/g,"\\\"")+'"]')];
+  buttons.forEach(btn=>{btn.disabled=true;btn.textContent="⏳ Aceitando...";btn.style.opacity=".7";});
   let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));
-  if(i<0)return;
+  if(i<0){buttons.forEach(btn=>{btn.disabled=false;btn.textContent="✓ Aceitar";btn.style.opacity="";});return;}
   const patch={status:"accepted",accepted_at:new Date().toISOString(),driver_name:driver.name,driver_phone:driver.phone};
   if(realtimeReady){
-    if(!(await updateRemoteReservation(id,patch)))return;
+    const ok=await updateRemoteReservation(id,patch);
+    if(!ok){
+      render();
+      notice("❌ Não foi possível aceitar a viagem. Tente novamente.");
+      return;
+    }
   }else{
     rs[i]={...rs[i],...patch,acceptedAt:patch.accepted_at,driverName:driver.name,driverPhone:driver.phone};
     save(rs);
   }
+  setRouteState(id,"accepted");
   render();
   renderTodayAcceptedRoutes();
-
-  // Ao aceitar, não abrimos o WhatsApp automaticamente.
-  // O próximo passo é o motorista tocar em “🚗 Iniciar rota”.
-  setRouteState(id,"accepted");
-  renderTodayAcceptedRoutes();
-
-  // Depois de aceitar, leva o motorista diretamente para a aba/seção de corridas de hoje.
   setTimeout(()=>{
     const todayCard=document.getElementById("todayRoutesCard");
     if(todayCard){
@@ -1854,7 +1855,7 @@ async function acceptRide(id){
       setTimeout(()=>todayCard.classList.remove("today-routes-highlight"),1600);
     }
   },80);
-  notice("Solicitação aceita. A corrida foi colocada em Corridas de hoje.");
+  notice("✅ Solicitação aceita. Agora a corrida aparece como “Iniciar rota”.");
 }
 async function cancelRide(id){stopRideAlert(id);if(!confirm("Deseja recusar/cancelar esta solicitação?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"cancelled",cancelled_at:new Date().toISOString(),cancelled_by:"driver"};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"cancelled",cancelledAt:patch.cancelled_at,cancelledBy:"driver"};save(rs);}render();notice("Solicitação cancelada.")}
 function openModal(id){selected=id;let r=requests().find(x=>String(x.id)===String(id));if(!r)return;let d=new Date(),today=d.toISOString().slice(0,10);$("cdate").value=r.date||r.data||today;$("ctime").value=r.time||r.horario||"";$("cnote").value="";$("modal").classList.add("on")}
