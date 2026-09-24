@@ -182,6 +182,11 @@ body{overflow:hidden}
   width:20px;height:20px;border-radius:50%;background:#1683ff;border:3px solid #fff;
   box-shadow:0 0 0 7px #1683ff44,0 2px 8px #0008
 }
+.driver-current-map-marker{background:transparent!important;border:0!important}
+.driver-current-map-marker .blue-dot{
+  width:20px;height:20px;border-radius:50%;background:#1683ff;border:3px solid #fff;
+  box-shadow:0 0 0 7px #1683ff44,0 2px 8px #0008
+}
 .driver-car-marker span{
   width:48px;
   height:48px;
@@ -1201,7 +1206,7 @@ async function loadEarnings(){
 
 
 function dateBR(v){if(!v)return"";let p=String(v).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:v}
-let driverMap=null,driverMarker=null,driverLocation=null,passengerLocationMarker=null;
+let driverMap=null,driverMarker=null,driverLocation=null,driverLocationWatchId=null,passengerLocationMarker=null;
 let rideMapLayer=null;
 let rideMapRequestId=null;
 let rideMapTimer=null;
@@ -1385,12 +1390,27 @@ function resetNavigationBearing(){
   const wrap=driverMarker?.getElement?.()?.querySelector?.(".driver-car-wrap");
   if(wrap)wrap.style.transform="";
 }
+function driverCurrentLocationIcon(){
+  return L.divIcon({
+    className:"driver-current-map-marker",
+    html:"<div class=\"blue-dot\"></div>",
+    iconSize:[20,20],
+    iconAnchor:[10,10]
+  });
+}
+function showDriverCurrentLocation(lat,lng,center=false){
+  if(!driverMap||!Number.isFinite(Number(lat))||!Number.isFinite(Number(lng)))return;
+  const p=[Number(lat),Number(lng)];
+  driverLocation=p;
+  if(driverMarker)driverMarker.setLatLng(p);
+  else driverMarker=L.marker(p,{icon:driverCurrentLocationIcon(),zIndexOffset:1300,interactive:false}).addTo(driverMap);
+  if(center)driverMap.setView(p,15,{animate:true});
+}
 function followDriverOnMap(position){
   if(!driverMap||!position?.coords)return;
   const p=[Number(position.coords.latitude),Number(position.coords.longitude)];
   if(!Number.isFinite(p[0])||!Number.isFinite(p[1]))return;
-  driverLocation=p;
-  if(driverMarker){try{driverMap.removeLayer(driverMarker);}catch(e){} driverMarker=null;}
+  showDriverCurrentLocation(p[0],p[1],false);
   const heading=Number(position.coords.heading);
   if(Number.isFinite(heading)&&heading>=0&&heading<=360)applyNavigationBearing(heading);
   const center=driverMap.getCenter();
@@ -1598,24 +1618,26 @@ function initDriverMap(){
   window.addEventListener("orientationchange",()=>setTimeout(resizeMap,300),{passive:true});
   if(window.visualViewport) window.visualViewport.addEventListener("resize",()=>setTimeout(resizeMap,100),{passive:true});
 
-  const addOrMoveDriverMarker=()=>{
-    if(!driverLocation||!driverMap)return;
-    // A posição do motorista continua sendo usada internamente para rota/navegação,
-    // mas não é mais desenhada como carrinho no mapa.
-    if(driverMarker){try{driverMap.removeLayer(driverMarker);}catch(e){} driverMarker=null;}
-  };
-
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(pos=>{
-      driverLocation=[pos.coords.latitude,pos.coords.longitude];
-      addOrMoveDriverMarker();
-      driverMap.setView(driverLocation,15);
+      showDriverCurrentLocation(pos.coords.latitude,pos.coords.longitude,true);
       updateRideMapFromRequests();
     },err=>console.warn("22 DRIVE localização:",err),{
       enableHighAccuracy:true,
       timeout:10000,
       maximumAge:30000
     });
+    if(!driverLocationWatchId){
+      driverLocationWatchId=navigator.geolocation.watchPosition(pos=>{
+        showDriverCurrentLocation(pos.coords.latitude,pos.coords.longitude,false);
+        const heading=Number(pos.coords.heading);
+        if(Number.isFinite(heading)&&heading>=0&&heading<=360)applyNavigationBearing(heading);
+      },err=>console.warn("22 DRIVE atualização de localização:",err),{
+        enableHighAccuracy:true,
+        timeout:15000,
+        maximumAge:5000
+      });
+    }
   }
 }
 let driverMapReturnTimer=null;
