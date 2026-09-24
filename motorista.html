@@ -1530,6 +1530,7 @@ function startPickupArrivalWatch(r){
   pickupArrivalWatchId=navigator.geolocation.watchPosition(pos=>{
     const current=[pos.coords.latitude,pos.coords.longitude];
     driverLocation=current;
+    followDriverOnMap(pos);
     advanceNavigationByLocation(pos);
     const pickup=rideCoordinate(r,"pickup");
     if(!pickup)return;
