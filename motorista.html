@@ -1198,7 +1198,9 @@ async function updateRideMapForRequest(r){
   const osrmUrl="https://router.project-osrm.org/route/v1/driving/"+routePoints+"?overview=full&geometries=geojson&steps=true";
   fetch(osrmUrl).then(res=>{if(!res.ok)throw new Error("routing");return res.json();}).then(data=>{
     if(rideMapRequestId!==requestId||!rideMapLayer||!data.routes||!data.routes[0])return;
-    const coords=data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+    const route=data.routes[0];
+    setNavigationSteps(route,requestId,rideMapRequestId===requestId?(getRouteState(requestId)?.phase||null):null);
+    const coords=route.geometry.coordinates.map(c=>[c[1],c[0]]);
     if(coords.length>1){
       const roadRoute=L.polyline(coords,{color:"#1683ff",weight:6,opacity:.95,lineCap:"round",lineJoin:"round"});
       rideMapLayer.addLayer(roadRoute);
