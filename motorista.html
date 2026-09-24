@@ -1828,34 +1828,38 @@ function card(r){
 }
 async function acceptRide(id){
   stopRideAlert(id);
-  const buttons=[...document.querySelectorAll('[data-action="accept"][data-id="'+String(id).replace(/"/g,"\\\"")+'"]')];
+  const idText=String(id);
+  const buttons=[...document.querySelectorAll('[data-action="accept"][data-id="'+idText.replace(/"/g,'\\\"')+'"]')];
   buttons.forEach(btn=>{btn.disabled=true;btn.textContent="⏳ Aceitando...";btn.style.opacity=".7";});
-  let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));
-  if(i<0){buttons.forEach(btn=>{btn.disabled=false;btn.textContent="✓ Aceitar";btn.style.opacity="";});return;}
-  const patch={status:"accepted",accepted_at:new Date().toISOString(),driver_name:driver.name,driver_phone:driver.phone};
-  if(realtimeReady){
-    const ok=await updateRemoteReservation(id,patch);
-    if(!ok){
-      render();
-      notice("❌ Não foi possível aceitar a viagem. Tente novamente.");
-      return;
-    }
-  }else{
-    rs[i]={...rs[i],...patch,acceptedAt:patch.accepted_at,driverName:driver.name,driverPhone:driver.phone};
-    save(rs);
+  try{
+    if(!supabaseClient)throw new Error("A conexão com a base online ainda não foi iniciada.");
+    const driverName=String(driver?.name||"").trim();
+    const driverPhone=String(driver?.phone||"").trim();
+    if(!driverName)throw new Error("Motorista não identificado.");
+
+    const {data,error}=await supabaseClient.rpc("aceitar_reserva",{
+      p_reserva_id:Number(id),
+      p_driver_name:driverName,
+      p_driver_phone:driverPhone||null
+    });
+    if(error)throw error;
+    if(!data)throw new Error("A base não retornou a viagem aceita.");
+
+    const accepted=normalizeReservation(data);
+    const idx=remoteReservations.findIndex(r=>String(r.id)===idText);
+    if(idx>=0)remoteReservations[idx]=accepted;
+    else remoteReservations.unshift(accepted);
+
+    setRouteState(id,"accepted");
+    render();
+    renderTodayAcceptedRoutes();
+    notice("✅ Solicitação aceita. Agora a corrida aparece como “Iniciar rota”.");
+  }catch(error){
+    console.error("22 DRIVE aceitar reserva:",error);
+    buttons.forEach(btn=>{btn.disabled=false;btn.textContent="✓ Aceitar";btn.style.opacity="";});
+    alert("❌ Não foi possível aceitar a viagem.\\n\\n"+(error?.message||"Erro desconhecido."));
+    render();
   }
-  setRouteState(id,"accepted");
-  render();
-  renderTodayAcceptedRoutes();
-  setTimeout(()=>{
-    const todayCard=document.getElementById("todayRoutesCard");
-    if(todayCard){
-      todayCard.scrollIntoView({behavior:"smooth",block:"center"});
-      todayCard.classList.add("today-routes-highlight");
-      setTimeout(()=>todayCard.classList.remove("today-routes-highlight"),1600);
-    }
-  },80);
-  notice("✅ Solicitação aceita. Agora a corrida aparece como “Iniciar rota”.");
 }
 async function cancelRide(id){stopRideAlert(id);if(!confirm("Deseja recusar/cancelar esta solicitação?"))return;let rs=requests(),i=rs.findIndex(r=>String(r.id)===String(id));if(i<0)return;const patch={status:"cancelled",cancelled_at:new Date().toISOString(),cancelled_by:"driver"};if(realtimeReady){if(!(await updateRemoteReservation(id,patch)))return;}else{rs[i]={...rs[i],status:"cancelled",cancelledAt:patch.cancelled_at,cancelledBy:"driver"};save(rs);}render();notice("Solicitação cancelada.")}
 function openModal(id){selected=id;let r=requests().find(x=>String(x.id)===String(id));if(!r)return;let d=new Date(),today=d.toISOString().slice(0,10);$("cdate").value=r.date||r.data||today;$("ctime").value=r.time||r.horario||"";$("cnote").value="";$("modal").classList.add("on")}
