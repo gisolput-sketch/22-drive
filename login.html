@@ -26,6 +26,7 @@ function normalized(raw){return String(raw||"").replace(/\D/g,"").replace(/^55/,
 function setStatus(t){$("status").textContent=t}
 function validPhone(raw){const d=normalized(raw);return /^\d{10,11}$/.test(d)?d:""}
 async function finishLogin(){
+  if(location.hash.includes("type=recovery"))return;
   const {data:{session}}=await sb.auth.getSession();
   if(!session)return;
   if(session.user?.email){
