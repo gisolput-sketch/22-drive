@@ -1,4 +1,4 @@
-const CACHE = '22-drive-push-v16';
+const CACHE = '22-drive-push-v17';
 
 self.addEventListener('install', event => {
   event.waitUntil(self.skipWaiting());
@@ -27,9 +27,10 @@ self.addEventListener('fetch', event => {
           const type = response.headers.get('content-type') || '';
           if (!type.includes('text/html')) return response;
           const text = await response.text();
-          if (text.includes('live-location.js')) return new Response(text,{status:response.status,statusText:response.statusText,headers:response.headers});
-          const scriptPath = new URL('./live-location.js', url).pathname;
-          const injected = text.replace(/<\/body>/i, '<script src="'+scriptPath+'"></script></body>');
+          if (text.includes('live-location.js') && text.includes('driver-push.js')) return new Response(text,{status:response.status,statusText:response.statusText,headers:response.headers});
+          let injected = text;
+          if (!text.includes('live-location.js')) injected = injected.replace(/<\/body>/i, '<script src="./live-location.js"></script></body>');
+          if (!injected.includes('driver-push.js')) injected = injected.replace(/<\/body>/i, '<script src="./driver-push.js"></script></body>');
           const headers = new Headers(response.headers);
           headers.set('content-type','text/html; charset=UTF-8');
           return new Response(injected,{status:response.status,statusText:response.statusText,headers});
