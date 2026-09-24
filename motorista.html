@@ -1107,23 +1107,48 @@ let lastRerouteLocation=null;
 const OFF_ROUTE_THRESHOLD_METERS=100;
 const OFF_ROUTE_CONFIRMATIONS=2;
 const REROUTE_COOLDOWN_MS=12000;
-const navigationState={steps:[],index:0,rideId:null,type:null,lastSpokenIndex:-1,voiceEnabled:true};
+const navigationState={steps:[],index:0,rideId:null,type:null,lastSpokenIndex:-1,lastAnnouncedDistance:Infinity,voiceEnabled:true};
 function navText(step){
-  const m=step&&step.maneuver||{}; const type=String(m.type||""); const mod=String(m.modifier||"");
+  const m=step&&step.maneuver||{}; const type=String(m.type||"").toLowerCase(); const mod=String(m.modifier||"").toLowerCase();
   if(type==="arrive")return "Você chegou ao destino";
   if(type==="depart")return "Siga pela rota";
   if(type==="roundabout"||type==="rotary")return "Entre na rotatória";
+  if(type==="merge")return mod==="left"?"Entre à esquerda na via":"Entre na via";
+  if(type==="onramp")return "Pegue a entrada";
+  if(type==="offramp")return "Pegue a saída";
+  if(type==="fork")return mod==="left"?"Mantenha-se à esquerda na bifurcação":"Mantenha-se à direita na bifurcação";
+  if(type==="endofroad")return mod==="left"?"Vire à esquerda no fim da rua":"Vire à direita no fim da rua";
   const map={left:"Vire à esquerda",right:"Vire à direita",slight_left:"Mantenha-se à esquerda",slight_right:"Mantenha-se à direita",uturn:"Faça o retorno",straight:"Siga em frente"};
   return map[mod]||"Continue pela rota";
 }
-function formatNavDistance(m){m=Number(m)||0;return m<1000?Math.round(m)+" m":(m/1000).toFixed(1).replace(".",",")+" km"}
-function speakNavigationInstruction(force=false){
+function formatNavDistance(m){m=Number(m)||0;return m<1000?Math.max(1,Math.round(m))+" metros":(m/1000).toFixed(1).replace(".",",")+" quilômetros"}
+function getNavigationManeuverDistance(position,step){
+  if(!position?.coords||!step?.maneuver?.location)return Number(step?.distance)||0;
+  const loc=step.maneuver.location;
+  if(!Array.isArray(loc)||loc.length<2)return Number(step?.distance)||0;
+  return distanceMeters([Number(position.coords.latitude),Number(position.coords.longitude)],[Number(loc[1]),Number(loc[0])]);
+}
+function navigationVoiceDistance(distance){
+  const d=Number(distance)||0;
+  if(d<=35)return "";
+  if(d<=100)return "em cerca de 80 metros, ";
+  if(d<=250)return "em cerca de 200 metros, ";
+  if(d<=600)return "em cerca de 500 metros, ";
+  return "em "+formatNavDistance(d)+", ";
+}
+function speakNavigationInstruction(force=false,position=null){
   if(!navigationState.voiceEnabled || typeof window==="undefined" || !("speechSynthesis" in window))return;
   const s=navigationState.steps[navigationState.index];
   if(!s)return;
-  if(!force && navigationState.lastSpokenIndex===navigationState.index)return;
+  const distance=getNavigationManeuverDistance(position,s);
+  let threshold=distance>600?500:distance>250?200:distance>100?80:0;
+  if(!force&&threshold>0&&navigationState.lastAnnouncedDistance===threshold)return;
+  if(!force&&threshold===0&&navigationState.lastSpokenIndex===navigationState.index)return;
   navigationState.lastSpokenIndex=navigationState.index;
-  const text=navText(s)+ (s.name?" pela "+String(s.name).trim():"") + (s.distance?" em "+formatNavDistance(s.distance):"");
+  navigationState.lastAnnouncedDistance=threshold;
+  const prefix=distance<=35?"":navigationVoiceDistance(distance);
+  const road=s.name?String(s.name).trim():"";
+  const text=(prefix||"")+navText(s)+(road?" pela "+road:"");
   try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="pt-BR";u.rate=0.95;u.pitch=1;u.volume=1;window.speechSynthesis.speak(u);}catch(e){console.warn("22 DRIVE voz:",e)}
 }
 function toggleNavigationVoice(){
@@ -1148,7 +1173,7 @@ function updateNavigationPanel(){
 function setNavigationSteps(route,rideId,type){
   const steps=[];
   (route?.legs||[]).forEach(leg=>(leg.steps||[]).forEach(s=>steps.push(s)));
-  navigationState.steps=steps; navigationState.index=0; navigationState.rideId=String(rideId||""); navigationState.type=type||null; navigationState.lastSpokenIndex=-1; updateNavigationPanel(); speakNavigationInstruction(true);
+  navigationState.steps=steps; navigationState.index=0; navigationState.rideId=String(rideId||""); navigationState.type=type||null; navigationState.lastSpokenIndex=-1; navigationState.lastAnnouncedDistance=Infinity; updateNavigationPanel(); speakNavigationInstruction(true);
 }
 function followDriverOnMap(position){
   if(!driverMap||!position?.coords)return;
@@ -1215,7 +1240,7 @@ function advanceNavigationByLocation(position){
     if(distanceMeters(p,[Number(loc[1]),Number(loc[0])])<=45)navigationState.index++;else break;
   }
   updateNavigationPanel();
-  speakNavigationInstruction();
+  speakNavigationInstruction(false,position);
 }
 function clearRideMap(){
   if(rideMapTimer){clearTimeout(rideMapTimer);rideMapTimer=null;}
