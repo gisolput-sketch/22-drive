@@ -9,10 +9,11 @@
 </head>
 <body><div class="bg"></div><div class="glow"></div><main class="card">
 <div class="brand"><img class="logo" src="./logo-login.svg" alt="22 DRIVE"><h1>22 DRIVE</h1><p>Seu destino. Seu horário. Sua viagem.</p></div>
-<section id="loginBox"><div style="text-align:center"><span class="badge">🔐 ACESSO DO PASSAGEIRO</span></div><h2>Entrar na sua conta</h2><p class="muted">Use seu WhatsApp e e-mail. Enviaremos um link gratuito de confirmação para o seu e-mail.</p>
+<section id="loginBox"><div style="text-align:center"><span class="badge">🔐 ACESSO DO PASSAGEIRO</span></div><h2>Entrar na sua conta</h2><p class="muted">Entre usando seu WhatsApp e sua senha.</p>
 <label for="phone">WhatsApp</label><input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(21) 99999-9999">
-<label for="email">E-mail</label><input id="email" type="email" autocomplete="email" placeholder="seu@email.com">
-<button class="btn primary" id="sendBtn" type="button">🚪 Entrar</button><div style="margin-top:7px;text-align:center;font-size:11px;color:#888">Você receberá o link de acesso no seu e-mail.</div>
+<label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" placeholder="Sua senha">
+<button class="btn primary" id="sendBtn" type="button">🚪 Entrar</button>
+<button class="btn link" id="forgotBtn" type="button">🔑 Esqueci minha senha</button>
 <button class="btn secondary" id="registerBtn" type="button">📝 Ainda não tenho cadastro</button><div id="status" class="status"></div></section>
 <section id="successBox" style="display:none"><div class="success"><b>📧 Link enviado!</b><br><br>Abra seu e-mail e toque no link de confirmação. Depois você será levado automaticamente para o 22 DRIVE.</div><button class="btn link" id="backBtn" type="button">← Voltar</button></section>
 <div style="margin-top:17px;text-align:center;font-size:11px;color:#777;line-height:1.5">🔒 A confirmação é feita pelo e-mail. Seu WhatsApp continua sendo usado para o atendimento e as viagens.</div>
@@ -25,30 +26,42 @@ function setStatus(t){$("status").textContent=t}
 function validPhone(raw){const d=normalized(raw);return /^\d{10,11}$/.test(d)?d:""}
 async function finishLogin(){
   const {data:{session}}=await sb.auth.getSession();
-  if(!session||!session.user?.email)return;
-  const pending=JSON.parse(localStorage.getItem("22drive_pending_login")||"null");
-  if(!pending||pending.email.toLowerCase()!==String(session.user.email).toLowerCase())return;
-  const phone=normalized(pending.phone);
-  const {data:profile,error}=await sb.from("passageiros").select("id,nome,whatsapp,email,favoritos").eq("email",session.user.email.toLowerCase()).eq("whatsapp",phone).maybeSingle();
-  if(error){setStatus("❌ Não foi possível localizar seu cadastro.");return}
-  if(!profile){localStorage.removeItem("22drive_pending_login");location.href="./cadastro-passageiro.html?phone="+encodeURIComponent(phone)+"&email="+encodeURIComponent(session.user.email);return}
-  localStorage.removeItem("22drive_pending_login");
-  localStorage.setItem("22drive_passenger_profile",JSON.stringify({name:profile.nome||"",phone:profile.whatsapp||phone,email:profile.email||session.user.email,favorites:profile.favoritos||[]}));
-  location.href="./index.html?v=20260923k";
+  if(!session)return;
+  if(session.user?.email){
+    const {data:profile}=await sb.from("passageiros").select("id,nome,whatsapp,email,favoritos").eq("email",String(session.user.email).toLowerCase()).maybeSingle();
+    if(profile){
+      localStorage.setItem("22drive_passenger_profile",JSON.stringify({name:profile.nome||"",phone:profile.whatsapp||"",email:profile.email||session.user.email,favorites:profile.favoritos||[]}));
+      location.href="./index.html?v=20260924a";
+    }
+  }
 }
 async function sendLink(){
-  const phone=validPhone($("phone").value),email=$("email").value.trim().toLowerCase();
+  const phone=validPhone($("phone").value),password=$("password").value;
   if(!phone){setStatus("Informe um WhatsApp brasileiro válido.");return}
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setStatus("Informe um e-mail válido.");return}
+  if(!password){setStatus("Informe sua senha.");return}
   $("sendBtn").disabled=true;setStatus("");
   try{
-    const {data,error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:"https://gisolput-sketch.github.io/22-drive/"}});
+    const {error}=await sb.auth.signInWithPassword({phone:"+55"+phone,password});
     if(error)throw error;
-    localStorage.setItem("22drive_pending_login",JSON.stringify({phone,email}));
-    $("loginBox").style.display="none";$("successBox").style.display="block";
-  }catch(e){console.error(e);setStatus("❌ "+(e.message||"Não foi possível enviar o link. Se você ainda não tem cadastro, toque em Cadastrar."))}
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session){setStatus("❌ Não foi possível iniciar a sessão.");return}
+    const {data:profile,error:pe}=await sb.from("passageiros").select("id,nome,whatsapp,email,favoritos").eq("email",String(session.user.email||"").toLowerCase()).maybeSingle();
+    if(pe)throw pe;
+    if(!profile)throw new Error("Cadastro do passageiro não encontrado.");
+    localStorage.setItem("22drive_passenger_profile",JSON.stringify({name:profile.nome||"",phone:profile.whatsapp||phone,email:profile.email||session.user.email,favorites:profile.favoritos||[]}));
+    location.href="./index.html?v=20260924a";
+  }catch(e){console.error(e);setStatus("❌ WhatsApp ou senha incorretos.");}
   finally{$("sendBtn").disabled=false}
 }
-$("sendBtn").onclick=sendLink;$("registerBtn").onclick=()=>location.href="./cadastro-passageiro.html";$("backBtn").onclick=()=>location.reload();
+async function forgotPassword(){
+  const email=prompt("Digite o e-mail usado no cadastro para receber o link de redefinição:");
+  if(!email)return;
+  const clean=email.trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)){setStatus("Informe um e-mail válido.");return}
+  const {error}=await sb.auth.resetPasswordForEmail(clean,{redirectTo:"https://gisolput-sketch.github.io/22-drive/login.html"});
+  if(error){setStatus("❌ Não foi possível enviar a recuperação.");return}
+  setStatus("📧 Enviamos o link de recuperação para seu e-mail.");
+}
+$("sendBtn").onclick=sendLink;$("registerBtn").onclick=()=>location.href="./cadastro-passageiro.html";$("forgotBtn").onclick=forgotPassword;$("backBtn").onclick=()=>location.reload();
 finishLogin();
 </script></body></html>
