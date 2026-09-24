@@ -535,6 +535,24 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 .trip-progress-head strong{color:#fff}
 .trip-progress-track{height:7px;margin:7px 0;border-radius:99px;background:rgba(255,255,255,.16);overflow:hidden}
 .trip-progress-bar{height:100%;width:0;border-radius:99px;background:#d4af37;transition:width .35s ease}
+.driver-nav-summary{position:fixed;left:10px;right:10px;bottom:10px;z-index:1950;padding:14px 16px 12px;border-radius:24px;background:rgba(255,255,255,.96);color:#18212b;box-shadow:0 8px 30px rgba(0,0,0,.28);border:1px solid rgba(0,0,0,.08)}
+.driver-nav-summary.hidden{display:none}
+.nav-summary-top{display:grid;grid-template-columns:1.25fr 1fr .7fr;gap:10px;align-items:end}
+.nav-summary-top>div{display:flex;flex-direction:column}
+.nav-summary-top strong{font-size:22px;line-height:1.05;font-weight:900}
+.nav-summary-top span{font-size:11px;color:#68727d;margin-top:3px}
+.nav-summary-progress{height:7px;margin:12px 0 8px;border-radius:99px;background:#e2e6ea;overflow:hidden}
+.nav-summary-progress div{height:100%;width:0;border-radius:99px;background:#2455ff;transition:width .4s ease}
+.nav-summary-bottom{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:800;color:#56616d}
+body.navigation-active .driver-map{height:calc(100vh - 92px);min-height:calc(100vh - 92px);border-bottom:0}
+body.navigation-active .driver-bottom-area{display:none}
+body.navigation-active .driver-trip-progress{display:none}
+body.navigation-active .driver-navigation-panel{top:96px;left:12px;right:12px;padding:14px 14px;border:0;border-radius:22px;background:#08716e;box-shadow:0 7px 22px rgba(0,0,0,.25)}
+body.navigation-active .driver-navigation-panel .nav-next-icon{width:58px;height:58px;background:transparent;font-size:42px}
+body.navigation-active .driver-navigation-panel .nav-next-text #navInstruction{font-size:19px}
+body.navigation-active .driver-navigation-panel .nav-next-text #navRoad{font-size:13px;color:#e0ffff}
+body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
+@media(max-width:520px){.driver-nav-summary{left:8px;right:8px;bottom:8px;border-radius:22px}.nav-summary-top strong{font-size:20px}body.navigation-active .driver-navigation-panel{top:86px;left:8px;right:8px}}
 </style></style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -580,6 +598,19 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
     <div class="trip-progress-head"><span id="tripProgressLabel">Progresso da viagem</span><strong id="tripProgressPercent">0%</strong></div>
     <div class="trip-progress-track"><div id="tripProgressBar" class="trip-progress-bar"></div></div>
     <div class="trip-progress-foot"><span id="tripProgressDone">0 km</span><span id="tripProgressRemaining">— km restantes</span></div>
+  </div>
+
+  <div id="driverNavSummary" class="driver-nav-summary hidden" aria-live="polite">
+    <div class="nav-summary-top">
+      <div><strong id="navEta">—</strong><span id="navEtaLabel"> chegada</span></div>
+      <div><strong id="navTimeLeft">—</strong><span> restantes</span></div>
+      <div><strong id="navSpeed">0</strong><span> km/h</span></div>
+    </div>
+    <div class="nav-summary-progress"><div id="navSummaryBar"></div></div>
+    <div class="nav-summary-bottom">
+      <span id="navSummaryDistance">— km restantes</span>
+      <span id="navSummaryStage">Até o destino</span>
+    </div>
   </div>
 
   <div id="driverContent" class="driver-bottom-area">
@@ -1119,7 +1150,7 @@ let lastRerouteLocation=null;
 const OFF_ROUTE_THRESHOLD_METERS=100;
 const OFF_ROUTE_CONFIRMATIONS=2;
 const REROUTE_COOLDOWN_MS=12000;
-const navigationState={steps:[],index:0,rideId:null,type:null,lastSpokenIndex:-1,lastAnnouncedDistance:Infinity,voiceEnabled:true,routeDistance:0};
+const navigationState={steps:[],index:0,rideId:null,type:null,lastSpokenIndex:-1,lastAnnouncedDistance:Infinity,voiceEnabled:true,routeDistance:0,routeDuration:0,currentSpeed:0};
 function navText(step){
   const m=step&&step.maneuver||{}; const type=String(m.type||"").toLowerCase(); const mod=String(m.modifier||"").toLowerCase();
   if(type==="arrive")return "Você chegou ao destino";
@@ -1200,7 +1231,24 @@ function updateTripProgress(){
 function setNavigationSteps(route,rideId,type){
   const steps=[];
   (route?.legs||[]).forEach(leg=>(leg.steps||[]).forEach(s=>steps.push(s)));
-  navigationState.steps=steps; navigationState.index=0; navigationState.rideId=String(rideId||""); navigationState.type=type||null; navigationState.lastSpokenIndex=-1; navigationState.lastAnnouncedDistance=Infinity; navigationState.routeDistance=Number(route?.distance)||steps.reduce((a,s)=>a+(Number(s.distance)||0),0); updateNavigationPanel(); updateTripProgress(); speakNavigationInstruction(true);
+  navigationState.steps=steps; navigationState.index=0; navigationState.rideId=String(rideId||""); navigationState.type=type||null; navigationState.lastSpokenIndex=-1; navigationState.lastAnnouncedDistance=Infinity; navigationState.routeDistance=Number(route?.distance)||steps.reduce((a,s)=>a+(Number(s.distance)||0),0); navigationState.routeDuration=Number(route?.duration)||steps.reduce((a,s)=>a+(Number(s.duration)||0),0); document.body.classList.add("navigation-active"); updateNavigationPanel(); updateTripProgress(); updateNavigationSummary(); speakNavigationInstruction(true);
+}
+function updateNavigationSummary(){
+  const box=$("driverNavSummary");if(!box)return;
+  if(!navigationState.rideId||!navigationState.steps.length){box.classList.add("hidden");return;}
+  box.classList.remove("hidden");
+  const phase=getRouteState(navigationState.rideId)?.phase||navigationState.type;
+  const remaining=Math.max(0,navigationState.steps.slice(navigationState.index).reduce((a,s)=>a+(Number(s.distance)||0),0));
+  const duration=Math.max(0,navigationState.steps.slice(navigationState.index).reduce((a,s)=>a+(Number(s.duration)||0),0));
+  const eta=new Date(Date.now()+duration*1000);
+  $("navEta").textContent=eta.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+  $("navTimeLeft").textContent=Math.max(1,Math.round(duration/60))+" min";
+  $("navSpeed").textContent=Math.round(navigationState.currentSpeed*3.6);
+  $("navSummaryDistance").textContent=(remaining/1000).toFixed(1).replace(".",",")+" km restantes";
+  $("navSummaryStage").textContent=phase==="pickup"?"Até o embarque":"Até o destino";
+  const total=Number(navigationState.routeDistance)||0;
+  const pct=total?Math.min(100,Math.max(0,(1-remaining/total)*100)):0;
+  $("navSummaryBar").style.width=pct.toFixed(1)+"%";
 }
 function followDriverOnMap(position){
   if(!driverMap||!position?.coords)return;
@@ -1260,6 +1308,8 @@ function checkOffRouteAndReroute(r,phase){
 }
 function advanceNavigationByLocation(position){
   if(!navigationState.steps.length)return;
+  navigationState.currentSpeed=Number(position?.coords?.speed);
+  if(!Number.isFinite(navigationState.currentSpeed)||navigationState.currentSpeed<0)navigationState.currentSpeed=0;
   const p=[position.coords.latitude,position.coords.longitude];
   while(navigationState.index<navigationState.steps.length-1){
     const loc=navigationState.steps[navigationState.index+1]?.maneuver?.location;
@@ -1268,6 +1318,7 @@ function advanceNavigationByLocation(position){
   }
   updateNavigationPanel();
   updateTripProgress();
+  updateNavigationSummary();
   speakNavigationInstruction(false,position);
 }
 function clearRideMap(){
@@ -1275,6 +1326,8 @@ function clearRideMap(){
   rideMapRequestId=null;
   rideMapRouteCoords=[];
   resetOffRouteState();
+  document.body.classList.remove("navigation-active");
+  const navSummary=$("driverNavSummary");if(navSummary)navSummary.classList.add("hidden");
   if(rideMapLayer&&driverMap){driverMap.removeLayer(rideMapLayer);}
   rideMapLayer=null;
 }
