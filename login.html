@@ -16,6 +16,7 @@
 <button class="btn link" id="forgotBtn" type="button">🔑 Esqueci minha senha</button>
 <button class="btn secondary" id="registerBtn" type="button">📝 Ainda não tenho cadastro</button><div id="status" class="status"></div></section>
 <section id="successBox" style="display:none"><div class="success"><b>📧 Link enviado!</b><br><br>Abra seu e-mail e toque no link de confirmação. Depois você será levado automaticamente para o 22 DRIVE.</div><button class="btn link" id="backBtn" type="button">← Voltar</button></section>
+<section id="recoveryBox" style="display:none"><div style="text-align:center"><span class="badge">🔑 NOVA SENHA</span></div><h2>Redefinir senha</h2><p class="muted">Digite sua nova senha para voltar a acessar com WhatsApp + senha.</p><label for="newPassword">Nova senha</label><input id="newPassword" type="password" autocomplete="new-password" placeholder="Nova senha (mín. 6 caracteres)"><label for="newPassword2">Confirmar nova senha</label><input id="newPassword2" type="password" autocomplete="new-password" placeholder="Repita a nova senha"><button class="btn primary" id="savePasswordBtn" type="button">💾 Salvar nova senha</button><div id="recoveryStatus" class="status"></div></section>
 <div style="margin-top:17px;text-align:center;font-size:11px;color:#777;line-height:1.5">🔒 A confirmação é feita pelo e-mail. Seu WhatsApp continua sendo usado para o atendimento e as viagens.</div>
 </main>
 <script>
@@ -53,6 +54,21 @@ async function sendLink(){
   }catch(e){console.error(e);setStatus("❌ WhatsApp ou senha incorretos.");}
   finally{$("sendBtn").disabled=false}
 }
+async function finishRecovery(){
+  if(!location.hash.includes("type=recovery"))return;
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session)return;
+  $("loginBox").style.display="none";$("successBox").style.display="none";$("recoveryBox").style.display="block";
+}
+async function saveNewPassword(){
+  const p=$("newPassword").value,p2=$("newPassword2").value;
+  if(p.length<6){$("recoveryStatus").textContent="Informe uma senha com pelo menos 6 caracteres.";return}
+  if(p!==p2){$("recoveryStatus").textContent="As senhas não conferem.";return}
+  const {error}=await sb.auth.updateUser({password:p});
+  if(error){$("recoveryStatus").textContent="❌ "+(error.message||"Não foi possível alterar a senha.");return}
+  $("recoveryStatus").textContent="✅ Senha alterada. Agora você pode entrar com WhatsApp e senha.";
+  setTimeout(()=>location.href="./login.html?v=20260924b",1200);
+}
 async function forgotPassword(){
   const email=prompt("Digite o e-mail usado no cadastro para receber o link de redefinição:");
   if(!email)return;
@@ -62,6 +78,6 @@ async function forgotPassword(){
   if(error){setStatus("❌ Não foi possível enviar a recuperação.");return}
   setStatus("📧 Enviamos o link de recuperação para seu e-mail.");
 }
-$("sendBtn").onclick=sendLink;$("registerBtn").onclick=()=>location.href="./cadastro-passageiro.html";$("forgotBtn").onclick=forgotPassword;$("backBtn").onclick=()=>location.reload();
-finishLogin();
+$("sendBtn").onclick=sendLink;$("registerBtn").onclick=()=>location.href="./cadastro-passageiro.html";$("forgotBtn").onclick=forgotPassword;$("backBtn").onclick=()=>location.reload();$("savePasswordBtn").onclick=saveNewPassword;
+finishRecovery();finishLogin();
 </script></body></html>
