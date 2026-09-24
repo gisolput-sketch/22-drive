@@ -70,8 +70,20 @@
     const wrap=(name,handler)=>{const original=window[name];if(typeof original!=='function'||original.__liveWrapped)return false;const fn=function(...args){const result=original.apply(this,args);try{handler(args,result);}catch(e){console.warn('22 DRIVE live wrapper',name,e);}return result;};fn.__liveWrapped=true;window[name]=fn;return true;};
     wrap('startRideRoute',(args)=>startSharing(args[0],true));
     wrap('markDriverArrived',async(args)=>{const id=args[0];if(sharingRideId!==String(id))await updateReservation(id,{driver_lat:null,driver_lng:null,driver_location_at:null});});
-    wrap('finishRide',(args)=>stopSharing(true));
-    wrap('autoFinishAtDestination',(args)=>{const ride=args[0];if(ride&&ride.id!=null)stopSharing(true);});
+    {
+      const originalFinish=window.finishRide;
+      if(typeof originalFinish==='function'&&!originalFinish.__liveWrapped){
+        const fixedFinish=async function(...args){
+          const result=await originalFinish.apply(this,args);
+          const id=args[0];
+          setTimeout(()=>{try{const ride=getRide(id);if(ride&&String(ride.status).toLowerCase()==='finished')stopSharing(true);}catch(_){}},900);
+          return result;
+        };
+        fixedFinish.__liveWrapped=true;
+        window.finishRide=fixedFinish;
+      }
+    }
+    wrap('autoFinishAtDestination',(args)=>{const ride=args[0];const id=ride&&ride.id;if(id!=null)stopSharing(true);});
     wrap('logout',()=>stopSharing(true));
   }
   function buildPassengerTrackingCard(){
@@ -85,7 +97,7 @@
     if(!isPassenger||!r)return;buildPassengerTrackingCard();const card=$('liveTrackingCard'),status=$('liveTrackingStatus'),center=$('liveTrackingCenter');
     const lat=Number(r.driver_lat),lng=Number(r.driver_lng),sharing=Number.isFinite(lat)&&Number.isFinite(lng)&&String(r.status||'').toLowerCase()!=='finished';
     if(!card||!status)return;card.style.display=(r.status==='accepted'||r.status==='confirmed'||sharing)?'block':'none';
-    if(!sharing){status.textContent='⏳ O motorista ainda não iniciou a rota. Assim que ele tocar em “Iniciar percurso”, a localização aparecerá aqui.';if(center)center.style.display='none';return;}
+    if(!sharing){status.textContent='⏳ O motorista ainda não iniciou a rota. Assim que ele tocar em “Iniciar percurso”, a localização aparecerá aqui.';if(center)center.style.display='none';try{if(typeof passengerDriverMarker!=='undefined'&&passengerDriverMarker&&typeof driveMap!=='undefined'&&driveMap){driveMap.removeLayer(passengerDriverMarker);passengerDriverMarker=null;}}catch(_){}return;}
     status.innerHTML='🟢 <b>Motorista em rota</b><br>📍 A localização está sendo atualizada em tempo real.';if(center)center.style.display='block';
     if(typeof window.updatePassengerDriverMap==='function'){try{window.updatePassengerDriverMap(r);}catch(_) {}}
   }
@@ -103,6 +115,7 @@
     fetch(`${SUPABASE_URL}/rest/v1/reservas?public_token=eq.${encodeURIComponent(token)}&select=id,status,passenger_name,origin,destination,driver_name,driver_lat,driver_lng,driver_location_at,driver_arrived_at&limit=1`,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY},cache:'no-store'}).then(r=>r.json()).then(rows=>{if(!rows||!rows[0])throw new Error('notfound');$('trackingPassenger').textContent=rows[0].passenger_name||'Passageiro';$('trackingRoute').textContent=(rows[0].origin||'')+' → '+(rows[0].destination||'');update(rows[0]);sb.channel('22drive-public-track-'+token).on('postgres_changes',{event:'UPDATE',schema:'public',table:'reservas',filter:'public_token=eq.'+token},payload=>update(payload.new)).subscribe();}).catch(()=>showTrackingError('Não foi possível localizar esta viagem. Verifique se o link ainda é válido.'));
   }
   function showTrackingError(msg){const el=$('trackingStatus');if(el)el.textContent='❌ '+msg;}
+  window.__22DriveLiveStop = stopSharing;
   function boot(){
     if(isDriver){const timer=setInterval(()=>{if(typeof window.startRideRoute==='function'){clearInterval(timer);ensureDriverWrappers();}},100);setTimeout(()=>clearInterval(timer),15000);}
     if(isPassenger){buildPassengerTrackingCard();const timer=setInterval(()=>{if(typeof window.showTripStatus==='function'){clearInterval(timer);const original=window.showTripStatus;if(!original.__liveWrapped){const wrapped=function(r){const result=original.apply(this,arguments);try{updatePassengerTracking(r);}catch(_){}return result;};wrapped.__liveWrapped=true;window.showTripStatus=wrapped;}watchPassengerReservation();}},100);setTimeout(()=>clearInterval(timer),15000);}
