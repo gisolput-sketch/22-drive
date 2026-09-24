@@ -1545,6 +1545,17 @@ function startRideRoute(id){
     return;
   }
 }
+function advancePickupManually(id){
+  const r=requests().find(x=>String(x.id)===String(id));
+  if(!r)return;
+  const state=getRouteState(id);
+  if(state&&state.phase!=="pickup")return;
+  setRouteState(id,"dropoff_ready");
+  stopPickupArrivalWatch();
+  renderTodayAcceptedRoutes();
+  notice("📍 Embarque confirmado manualmente. Próxima etapa: iniciar o percurso até o destino.");
+}
+
 function messageArrivalWhatsApp(id){
   const r=requests().find(x=>String(x.id)===String(id));
   if(!r)return;
@@ -1640,6 +1651,9 @@ function restoreTodayRoutesPanel(){
     }else{
       const label=phase==="pickup"?"📍 Rota para embarque":"🚗 Iniciar rota";
       routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">'+label+'</button>';
+      if(phase==="pickup"){
+        routeButton+='<button class="btn primary btnblock" style="margin-top:8px" type="button" onclick="advancePickupManually('+JSON.stringify(String(r.id))+')">➡️ Cheguei ao embarque — próxima etapa</button>';
+      }
     }
     const value=rideValue(r);
     const payment=String(r.payment||r.payment_method||r.forma_pagamento||r.pagamento||"Não informado").trim()||"Não informado";
