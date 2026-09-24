@@ -340,6 +340,12 @@ body{overflow:hidden}
 #gainModal #gainChart .bar{width:34px;min-height:3px;border-radius:7px 7px 2px 2px;background:linear-gradient(180deg,#f5c542,#d79b16);box-shadow:0 2px 8px #0006;}
 #gainModal #gainChart .bar-value{font-size:10px;color:#fff;font-weight:800;white-space:nowrap;margin-bottom:5px;}
 #gainModal #gainChart .bar-label{font-size:12px;color:#cbd5e1;font-weight:900;margin-top:6px;}
+#gainModal .payment-chart{display:flex;flex-direction:column;gap:9px;margin-top:8px}
+#gainModal .payment-row{display:grid;grid-template-columns:minmax(110px,150px) 1fr 42px;align-items:center;gap:8px}
+#gainModal .payment-name{font-size:12px;color:#fff;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#gainModal .payment-track{height:16px;border-radius:999px;background:#142235;overflow:hidden;border:1px solid #26364a}
+#gainModal .payment-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#f5c542,#d79b16)}
+#gainModal .payment-count{font-size:12px;color:#fff;font-weight:900;text-align:right}
 @media(max-width:520px){
   #gainModal{padding:78px 8px 10px;}
   #gainModal .scheduled-menu-box{max-height:calc(100dvh - 88px);padding:14px;}
@@ -662,6 +668,9 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
     <div style="font-weight:900;color:#fff;margin:14px 0 2px">📊 Ganhos por dia — segunda a domingo</div>
     <div class="muted" style="font-size:11px;margin-bottom:4px">Comparação dos ganhos de cada dia da semana atual</div>
     <div id="gainChart" style="display:flex;align-items:flex-end;gap:6px;min-height:245px;overflow-x:auto;padding:10px 0 4px"></div>
+    <div style="font-weight:900;color:#fff;margin:18px 0 2px">💳 Formas de pagamento</div>
+    <div class="muted" style="font-size:11px;margin-bottom:4px">Quantidade de corridas finalizadas por forma de pagamento</div>
+    <div id="paymentChart" class="payment-chart"></div>
     <div id="gainStatus" class="muted" style="margin-top:8px"></div>
   </div>
 </div>
@@ -930,7 +939,7 @@ function moneyBR(v){return (Number(v)||0).toLocaleString("pt-BR",{style:"currenc
 function localDateStart(y,m,d){return new Date(y,m,d,0,0,0,0)}
 async function getFinishedRides(){
   if(!driver||!driver.name)return [];
-  const url=SUPABASE_URL+"/rest/v1/reservas?select=id,passenger_name,total_value,trip_value,valor,toll_value,finished_at,status,driver_name&status=eq.finished&driver_name=eq."+encodeURIComponent(driver.name)+"&finished_at=not.is.null&order=finished_at.asc&limit=2000";
+  const url=SUPABASE_URL+"/rest/v1/reservas?select=id,passenger_name,total_value,trip_value,valor,toll_value,finished_at,status,driver_name,payment_method,forma_pagamento&status=eq.finished&driver_name=eq."+encodeURIComponent(driver.name)+"&finished_at=not.is.null&order=finished_at.asc&limit=2000";
   const response=await fetch(url,{cache:"no-store",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});
   if(!response.ok)throw new Error("HTTP "+response.status);
   const rows=await response.json();
@@ -1009,9 +1018,25 @@ function renderFinancialChart(){
     const h=weekly[k]>0?Math.max(8,(weekly[k]/weekMax)*205):3;
     return '<div class="bar-col" style="min-width:54px;flex:1;text-align:center"><div class="bar-value">'+moneyBR(weekly[k])+'</div><div class="bar" style="height:'+h+'px"></div><div class="bar-label">'+weekDays[i]+'</div></div>';
   }).join("");
-  const total=values.reduce((a,b)=>a+b,0), days=keys.length, rides=gainRows.filter(r=>{const k=localKey(new Date(r.finished_at));return Object.prototype.hasOwnProperty.call(map,k)}).length;
-  const tolls=gainRows.filter(r=>{const k=localKey(new Date(r.finished_at));return Object.prototype.hasOwnProperty.call(map,k)}).reduce((a,r)=>a+(Number(r.toll_value)||0),0);
-  $("gainTotal").textContent=moneyBR(total); $("gainRides").textContent=rides; $("gainAverage").textContent=moneyBR(days?total/days:0); $("gainTolls").textContent=moneyBR(tolls);
+  const p=periodDates();
+  const periodRows=gainRows.filter(r=>{const d=new Date(r.finished_at);const day=new Date(d.getFullYear(),d.getMonth(),d.getDate());return day>=p.start&&day<=p.end;});
+  const total=periodRows.reduce((a,r)=>a+rideValue(r),0);
+  const rides=periodRows.length;
+  const days=Math.max(1,Math.round((p.end-p.start)/86400000)+1);
+  const tolls=periodRows.reduce((a,r)=>a+numericMoney(r.toll_value),0);
+  $("gainTotal").textContent=moneyBR(total); $("gainRides").textContent=rides; $("gainAverage").textContent=moneyBR(total/days); $("gainTolls").textContent=moneyBR(tolls);
+
+  const paymentCounts={};
+  periodRows.forEach(r=>{
+    const raw=String(r.payment_method||r.forma_pagamento||"").trim();
+    const label=raw||"Não informado";
+    paymentCounts[label]=(paymentCounts[label]||0)+1;
+  });
+  const paymentEntries=Object.entries(paymentCounts).sort((a,b)=>b[1]-a[1]);
+  const paymentMax=Math.max(...paymentEntries.map(x=>x[1]),1);
+  $("paymentChart").innerHTML=paymentEntries.length
+    ? paymentEntries.map(([name,count])=>'<div class="payment-row"><div class="payment-name">'+esc(name)+'</div><div class="payment-track"><div class="payment-fill" style="width:'+Math.max(4,(count/paymentMax)*100)+'%"></div></div><div class="payment-count">'+count+'</div></div>').join("")
+    : '<div class="muted">Nenhuma corrida finalizada no período selecionado.</div>';
   $("gainPeriodLabel").textContent=gainPeriod==="today"?"Hoje":gainPeriod==="week"?"Semana atual":"Mês atual";
 }
 async function loadFinancialChart(){
