@@ -1529,14 +1529,21 @@ function startRideRoute(id){
     startDestinationArrivalWatch(r);
     return;
   }
+  // Primeiro atualizamos a etapa e a interface. Assim, mesmo que o navegador
+  // entregue a navegação ao Google Maps em outra tela/aba, ao voltar para o 22 DRIVE
+  // o botão já estará na próxima etapa.
+  setRouteState(id,"pickup");
+  renderTodayAcceptedRoutes();
+  startPickupArrivalWatch(r);
+  notice("🚗 Rota iniciada. Próxima etapa: chegar ao embarque.");
   if(!openNavigationToRidePoint(r,"pickup")){
-    alert("O endereço de embarque não foi informado.");
+    // Se não foi possível abrir a navegação, desfazemos a etapa para evitar
+    // deixar a corrida marcada como iniciada sem GPS.
+    setRouteState(id,"accepted");
+    renderTodayAcceptedRoutes();
+    alert("O endereço de embarque não foi informado ou não foi possível abrir o GPS.");
     return;
   }
-  setRouteState(id,"pickup");
-  startPickupArrivalWatch(r);
-  renderTodayAcceptedRoutes();
-  notice("🚗 Rota para o embarque iniciada. Ao chegar, o botão mudará para “🏁 Iniciar percurso”.");
 }
 function messageArrivalWhatsApp(id){
   const r=requests().find(x=>String(x.id)===String(id));
