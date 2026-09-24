@@ -1545,16 +1545,9 @@ function startRideRoute(id){
   // o botão já estará na próxima etapa.
   setRouteState(id,"pickup");
   renderTodayAcceptedRoutes();
+  updateRideMapForRequest(r);
   startPickupArrivalWatch(r);
-  notice("🚗 Rota iniciada. Próxima etapa: chegar ao embarque.");
-  if(!openNavigationToRidePoint(r,"pickup")){
-    // Se não foi possível abrir a navegação, desfazemos a etapa para evitar
-    // deixar a corrida marcada como iniciada sem GPS.
-    setRouteState(id,"accepted");
-    renderTodayAcceptedRoutes();
-    alert("O endereço de embarque não foi informado ou não foi possível abrir o GPS.");
-    return;
-  }
+  notice("🚗 Percurso iniciado dentro do mapa do 22 DRIVE. A rota para o embarque está sendo exibida.");
 }
 function advancePickupManually(id){
   const r=requests().find(x=>String(x.id)===String(id));
