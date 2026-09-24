@@ -67,17 +67,6 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <main>
 
 
-<section class="card" id="favoriteAddressesCard">
-<h2>⭐ Meus endereços favoritos</h2>
-<p class="muted">Salve Casa, Trabalho ou outro endereço para preencher a rota rapidamente nas próximas viagens.</p>
-<div class="grid">
-<div class="field"><label>Nome do favorito</label><select id="favoriteLabel"><option>🏠 Casa</option><option>💼 Trabalho</option><option>⭐ Outro favorito</option></select></div>
-<div class="field"><label>Endereço</label><input id="favoriteAddress" placeholder="Rua, número, bairro e cidade"></div>
-</div>
-<button class="btn primary" type="button" id="saveFavoriteBtn">⭐ Salvar endereço favorito</button>
-<div id="favoriteList" style="margin-top:12px"></div>
-</section>
-
 <section class="card" id="tripStatusCard" style="display:none">
 <h2>📲 Status da sua viagem</h2>
 <div id="tripStatusBox" class="notice"></div>
@@ -127,36 +116,6 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <input id="to" type="hidden" required>
 <input id="km" type="hidden" value="0" required>
 <p class="muted">O site calcula a distância real pelas ruas automaticamente. Tarifa: até 9 km, R$ 20,00. Após 9 km, acrescenta R$ 2,00 por km.</p>
-</section>
-
-<input id="name" type="hidden" value="">
-<input id="phone" type="hidden" value="">
-<section class="card">
-<h2>👥 Detalhes da viagem</h2>
-<div class="grid">
-<div class="field"><label>Passageiros</label><select id="people"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-<div class="field"><label>Bagagem</label><select id="bags"><option>Nenhuma</option><option>1 pequena</option><option>2 pequenas</option><option>Bagagem grande</option></select></div>
-</div>
-<div class="field"><label>Observações</label><textarea id="obs" rows="2" placeholder="Ponto de referência ou informação importante"></textarea></div>
-<p class="muted">Seu nome, WhatsApp e cadastro são reconhecidos automaticamente pelo acesso à sua conta.</p>
-</section>
-
-<section class="card">
-<h2>💳 Forma de pagamento</h2>
-<div class="choices">
-<label><input type="radio" name="payment" value="Cartão de débito" required><span>💳 Cartão de débito</span></label>
-<label><input type="radio" name="payment" value="Cartão de crédito"><span>💰 Cartão de crédito</span></label>
-<label><input type="radio" name="payment" value="Dinheiro"><span>💵 Dinheiro</span></label>
-<label><input type="radio" name="payment" value="Pix"><span>🟢 Pix</span></label>
-<label><input type="radio" name="payment" value="No amor"><span>❤️ No amor <strong>(somente para passageiros elegíveis)</strong></span></label>
-</div>
-<div id="noLovePaymentBox" style="display:none;margin-top:12px">
-<div class="field">
-<label>📅 Data prevista para pagamento</label><input id="noLovePaymentDate" type="date">
-<div id="noLovePaymentHint" class="muted" style="margin-top:5px">Escolha uma data de pagamento dentro de 5 dias úteis a partir da data da viagem.</div>
-</div>
-</div>
-<p class="muted" style="margin:10px 0 0">Escolha como pretende pagar a reserva.</p>
 </section>
 
 <section class="card">
