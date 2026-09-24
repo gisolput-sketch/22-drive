@@ -1192,10 +1192,16 @@ function navigationVoiceDistance(distance){
   if(d<=600)return "em cerca de 500 metros, ";
   return "em "+formatNavDistance(d)+", ";
 }
+document.addEventListener("pointerdown",()=>{
+  if(typeof window!=="undefined"&&"speechSynthesis" in window){
+    try{window.speechSynthesis.resume();}catch(e){}
+  }
+},{passive:true});
 function speakNavigationInstruction(force=false,position=null){
   if(!navigationState.voiceEnabled || typeof window==="undefined" || !("speechSynthesis" in window))return;
   const s=navigationState.steps[navigationState.index];
   if(!s)return;
+  const synth=window.speechSynthesis;
   const distance=getNavigationManeuverDistance(position,s);
   let threshold=distance>600?500:distance>250?200:distance>100?80:0;
   if(!force&&threshold>0&&navigationState.lastAnnouncedDistance===threshold)return;
@@ -1205,7 +1211,22 @@ function speakNavigationInstruction(force=false,position=null){
   const prefix=distance<=35?"":navigationVoiceDistance(distance);
   const road=s.name?String(s.name).trim():"";
   const text=(prefix||"")+navText(s)+(road?" pela "+road:"");
-  try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="pt-BR";u.rate=0.95;u.pitch=1;u.volume=1;window.speechSynthesis.speak(u);}catch(e){console.warn("22 DRIVE voz:",e)}
+  try{
+    synth.cancel();
+    if(typeof synth.resume==="function")synth.resume();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang="pt-BR";
+    u.rate=0.92;
+    u.pitch=1;
+    u.volume=1;
+    const voices=synth.getVoices?synth.getVoices():[];
+    const voice=voices.find(v=>String(v.lang||"").toLowerCase()==="pt-br")||voices.find(v=>String(v.lang||"").toLowerCase().startsWith("pt"));
+    if(voice)u.voice=voice;
+    u.onend=()=>{try{if(synth.paused)synth.resume();}catch(e){}};
+    u.onerror=()=>{try{if(synth.paused)synth.resume();}catch(e){}};
+    synth.speak(u);
+    setTimeout(()=>{try{if(synth.paused)synth.resume();}catch(e){}},250);
+  }catch(e){console.warn("22 DRIVE voz:",e)}
 }
 function toggleNavigationVoice(){
   navigationState.voiceEnabled=!navigationState.voiceEnabled;
