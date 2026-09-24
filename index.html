@@ -30,6 +30,17 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 .suggestion{display:block;width:100%;padding:11px 12px;border:0;background:#fff;text-align:left;font:inherit;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line)}
 .suggestion:last-child{border-bottom:0}.suggestion:hover{background:#f3f4f6}
 .leaflet-container{font:inherit}.leaflet-control-attribution{font-size:10px}
+.map-location-button{
+  position:absolute;z-index:900;right:12px;top:12px;width:44px;height:44px;
+  border:2px solid #fff;border-radius:50%;background:#050b14;color:#fff;
+  box-shadow:0 3px 12px #0008;font-size:22px;cursor:pointer;display:grid;place-items:center
+}
+.map-location-button:active{transform:scale(.95)}
+.passenger-location-marker{background:transparent!important;border:0!important}
+.passenger-location-marker .blue-dot{
+  width:20px;height:20px;border-radius:50%;background:#1683ff;border:3px solid #fff;
+  box-shadow:0 0 0 7px #1683ff44,0 2px 8px #0008
+}
 
 .confirm-overlay{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.confirm-box{background:#fff;border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 18px 50px #0005}.confirm-box h3{margin:0 0 12px}.confirm-warning{white-space:pre-line;font-size:14px;line-height:1.5;color:#111827}.confirm-actions{display:flex;gap:10px;margin-top:18px}.confirm-actions button{flex:1}.btn.secondary{background:#e5e7eb;color:#111827}
 
@@ -115,7 +126,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <div class="stops-list" id="stopsList"></div>
 <button class="add-stop-btn" type="button" id="addStopBtn">➕ Adicionar parada extra</button>
 <p class="muted" style="margin-top:8px">Você pode adicionar até 3 paradas. Ex.: Rio Bonito → Tanguá → São Gonçalo → Rio de Janeiro.</p>
-<div id="map" class="map"><iframe id="mapFallback" class="map-fallback" title="Mapa 22 DRIVE" loading="eager" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+<div id="map" class="map"><button id="passengerMapLocationBtn" class="map-location-button" type="button" aria-label="Mostrar minha localização no mapa" title="Minha localização">📍</button><iframe id="mapFallback" class="map-fallback" title="Mapa 22 DRIVE" loading="eager" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
 <div id="routeStatus" class="route-status">Digite o endereço completo e escolha uma das sugestões encontradas. Se não aparecer, tente incluir número, bairro e cidade.</div>
 <input id="from" type="hidden" required>
 <input id="to" type="hidden" required>
@@ -479,7 +490,7 @@ if(!rates || rates.includedKm!==10 || rates.extraPerKm!==2){
 }
 const $=id=>document.getElementById(id);
 
-let driveMap=null, fromMarker=null, toMarker=null, routeLine=null, passengerDriverMarker=null;
+let driveMap=null, fromMarker=null, toMarker=null, routeLine=null, passengerDriverMarker=null, passengerLocationMarker=null;
 let fromResult=null, toResult=null;
 let stopResults=[];
 let stopMarkers=[];
@@ -697,6 +708,28 @@ function initMap(){
   }
 }
 
+function passengerBlueDotIcon(){
+  return L.divIcon({className:"passenger-location-marker",html:"<div class=\"blue-dot\"></div>",iconSize:[20,20],iconAnchor:[10,10]});
+}
+function showPassengerLocationOnMap(lat,lon,center){
+  if(!driveMap || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return;
+  const p=[Number(lat),Number(lon)];
+  if(passengerLocationMarker) passengerLocationMarker.setLatLng(p);
+  else passengerLocationMarker=L.marker(p,{icon:passengerBlueDotIcon(),zIndexOffset:1200,interactive:false}).addTo(driveMap);
+  if(center) driveMap.setView(p,16,{animate:true});
+}
+function focusPassengerLocation(){
+  if(passengerLocationMarker && driveMap){driveMap.setView(passengerLocationMarker.getLatLng(),16,{animate:true});return;}
+  if(fromResult?.lat && fromResult?.lon){showPassengerLocationOnMap(Number(fromResult.lat),Number(fromResult.lon),true);return;}
+  useCurrentLocation();
+}
+function locatePassengerAutomatically(){
+  if(!navigator.geolocation || !driveMap) return;
+  navigator.geolocation.getCurrentPosition(pos=>{
+    showPassengerLocationOnMap(pos.coords.latitude,pos.coords.longitude,false);
+  },()=>{}, {enableHighAccuracy:true,timeout:10000,maximumAge:30000});
+}
+
 window.addEventListener("load",()=>{
   if(driveMap) setTimeout(()=>driveMap.invalidateSize(true),150);
 });
@@ -755,7 +788,8 @@ function setBoardingFromCoordinates(lat,lon,address){
   $("fromPlace").value=label;
   $("from").value=label;
   if(fromMarker && driveMap) driveMap.removeLayer(fromMarker);
-  fromMarker=L.marker([lat,lon]).addTo(driveMap).bindPopup("📍 Embarque — localização exata").openPopup();
+  fromMarker=L.marker([lat,lon],{icon:passengerBlueDotIcon(),zIndexOffset:900}).addTo(driveMap).bindPopup("📍 Sua localização exata").openPopup();
+  showPassengerLocationOnMap(lat,lon,true);
   if(toResult) computeDriveRoute();
 }
 
@@ -951,7 +985,8 @@ async function computeDriveRoute(){
     stopMarkers.forEach(m=>{try{driveMap.removeLayer(m)}catch(e){}}); stopMarkers=[];
     if(routeLine) driveMap.removeLayer(routeLine);
     const fromLat=parseFloat(fromResult.lat),fromLon=parseFloat(fromResult.lon),toLat=parseFloat(toResult.lat),toLon=parseFloat(toResult.lon);
-    fromMarker=L.marker([fromLat,fromLon]).addTo(driveMap).bindPopup("Embarque");
+    fromMarker=L.marker([fromLat,fromLon],{icon:passengerBlueDotIcon(),zIndexOffset:900}).addTo(driveMap).bindPopup("📍 Local do passageiro");
+    showPassengerLocationOnMap(fromLat,fromLon,false);
     validStops.forEach((stop,i)=>{
       const marker=L.marker([parseFloat(stop.lat),parseFloat(stop.lon)]).addTo(driveMap).bindPopup("Parada "+(i+1));
       stopMarkers.push(marker);
@@ -1020,6 +1055,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   setupAutocomplete("fromPlace");
   setupAutocomplete("toPlace");
   const locationBtn=$("useLocationBtn"); if(locationBtn) locationBtn.addEventListener("click",useCurrentLocation);
+  const mapLocationBtn=$("passengerMapLocationBtn"); if(mapLocationBtn) mapLocationBtn.addEventListener("click",focusPassengerLocation);
+  setTimeout(locatePassengerAutomatically,600);
 });
 
 
