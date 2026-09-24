@@ -44,7 +44,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 
 .confirm-overlay{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.confirm-box{background:#fff;border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 18px 50px #0005}.confirm-box h3{margin:0 0 12px}.confirm-warning{white-space:pre-line;font-size:14px;line-height:1.5;color:#111827}.confirm-actions{display:flex;gap:10px;margin-top:18px}.confirm-actions button{flex:1}.btn.secondary{background:#e5e7eb;color:#111827}
 
-.stop-row{display:flex;gap:8px;align-items:center;margin-top:8px}.stop-row .autocomplete-wrap{flex:1}.remove-stop-btn{width:42px;min-width:42px;height:42px;border:0;border-radius:12px;background:#fee2e2;color:#991b1b;font-size:18px;font-weight:800;cursor:pointer}.add-stop-btn{margin-top:10px;width:100%;border:1px dashed #94a3b8;background:#f8fafc;color:#0f172a;padding:11px;border-radius:12px;font-weight:800;cursor:pointer}.stops-list{margin-top:4px}.stop-number{font-size:12px;font-weight:800;color:#64748b;margin:8px 0 3px}
+.stop-row{display:flex;gap:8px;align-items:center;margin-top:9px;padding:10px;border:1px solid #2a3444;border-radius:14px;background:#07111f}.stop-row.dragging{opacity:.55;transform:scale(.99)}.stop-row .autocomplete-wrap{flex:1;min-width:0}.stop-number{font-size:12px;font-weight:800;color:#ffc700;margin:0 0 5px}.stop-drag-handle{width:42px;min-width:42px;height:42px;border:1px solid #475569;border-radius:12px;background:#050505;color:#ffc700;font-size:21px;font-weight:900;cursor:grab;display:grid;place-items:center;touch-action:none;user-select:none}.stop-drag-handle:active{cursor:grabbing}.remove-stop-btn{width:42px;min-width:42px;height:42px;border:0;border-radius:12px;background:#fee2e2;color:#991b1b;font-size:18px;font-weight:800;cursor:pointer}.add-stop-btn{margin-top:10px;width:100%;border:1px dashed #ffc700;background:#07111f;color:#ffc700;padding:12px;border-radius:12px;font-weight:900;cursor:pointer}.stops-list{margin-top:4px}.stops-hint{font-size:11px;color:#9fb0c8;margin:7px 0 0;line-height:1.4}
 
 /* Ajustes mobile do mapa */
 #map{touch-action:none;-webkit-user-select:none;user-select:none}
@@ -130,7 +130,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <div class="place-wrap"><label>Destino</label><div class="autocomplete-wrap"><div class="search-row"><input id="toPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('toPlace')" aria-label="Buscar destino">🔍</button></div></div></div>
 <div class="stops-list" id="stopsList"></div>
 <button class="add-stop-btn" type="button" id="addStopBtn">➕ Adicionar parada extra</button>
-<p class="muted" style="margin-top:8px">Você pode adicionar até 3 paradas. Ex.: Rio Bonito → Tanguá → São Gonçalo → Rio de Janeiro.</p>
+<p class="stops-hint">🔎 Ao tocar no botão, uma nova pesquisa de endereço é aberta. Depois de adicionar as paradas, arraste pelo ícone ☷ para colocá-las na ordem desejada.</p>
 <div id="map" class="map"><button id="passengerMapLocationBtn" class="map-location-button" type="button" aria-label="Mostrar minha localização no mapa" title="Minha localização">📍</button><iframe id="mapFallback" class="map-fallback" title="Mapa 22 DRIVE" loading="eager" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
 <div id="routeStatus" class="route-status">Digite o endereço completo e escolha uma das sugestões encontradas. Se não aparecer, tente incluir número, bairro e cidade.</div>
 <input id="from" type="hidden" required>
@@ -758,8 +758,17 @@ function showSuggestions(inputId,results){
     b.textContent=r.display_name;
     b.addEventListener("click",()=>{
       input.value=r.display_name;
-      if(inputId==="fromPlace"){ fromResult=r; $("from").value=r.display_name; }
-      else { toResult=r; $("to").value=r.display_name; }
+      const stopMatch=inputId.match(/^stopPlace-(\\d+)$/);
+      if(inputId==="fromPlace"){
+        fromResult=r; $("from").value=r.display_name;
+      }else if(stopMatch){
+        const index=Number(stopMatch[1]);
+        stopResults[index]=r;
+        const hidden=$("stopHidden-"+index);
+        if(hidden) hidden.value=r.display_name;
+      }else{
+        toResult=r; $("to").value=r.display_name;
+      }
       clearSuggestions(inputId);
       computeDriveRoute();
     });
@@ -868,18 +877,32 @@ async function searchAddress(inputId){
 }
 
 function setupAutocomplete(inputId){
-  $(inputId).addEventListener("input",()=>{
-    if(inputId==="fromPlace"){ fromResult=null; $("from").value=""; if($("locationStatus")) $("locationStatus").textContent=""; } else { toResult=null; $("to").value=""; }
+  const input=$(inputId);
+  if(!input || input.dataset.autocompleteReady==="1") return;
+  input.dataset.autocompleteReady="1";
+  input.addEventListener("input",()=>{
+    const stopMatch=inputId.match(/^stopPlace-(\\d+)$/);
+    if(inputId==="fromPlace"){
+      fromResult=null; $("from").value="";
+      if($("locationStatus")) $("locationStatus").textContent="";
+    }else if(stopMatch){
+      const index=Number(stopMatch[1]);
+      stopResults[index]=null;
+      const hidden=$("stopHidden-"+index);
+      if(hidden) hidden.value="";
+    }else{
+      toResult=null; $("to").value="";
+    }
     clearSuggestions(inputId);
   });
-  $(inputId).addEventListener("keydown",e=>{
+  input.addEventListener("keydown",e=>{
     if(e.key==="Enter"){
       e.preventDefault();
       searchAddress(inputId);
     }
     if(e.key==="Escape") clearSuggestions(inputId);
   });
-  $(inputId).addEventListener("blur",()=>{
+  input.addEventListener("blur",()=>{
     setTimeout(()=>searchAddress(inputId),150);
   });
 }
@@ -1009,34 +1032,91 @@ async function computeDriveRoute(){
   }
 }
 
+function renderStops(){
+  const list=$("stopsList");
+  if(!list) return;
+  list.innerHTML="";
+  stopResults.forEach((result,index)=>{
+    const row=document.createElement("div");
+    row.className="stop-row";
+    row.id="stopRow-"+index;
+    row.dataset.stopIndex=String(index);
+    row.innerHTML=`<button class="stop-drag-handle" type="button" aria-label="Arrastar para mudar a ordem" title="Arraste para reorganizar">☷</button>
+      <div class="autocomplete-wrap">
+        <div class="stop-number">Parada ${index+1}</div>
+        <div class="search-row">
+          <input id="stopPlace-${index}" autocomplete="off" placeholder="Pesquise o endereço da parada ${index+1}" value="${result?.display_name||""}">
+          <button class="search-btn" type="button" onclick="searchAddress('stopPlace-${index}')" aria-label="Pesquisar endereço da parada">🔍</button>
+        </div>
+        <input id="stopHidden-${index}" type="hidden" value="${result?.display_name||""}">
+      </div>
+      <button class="remove-stop-btn" type="button" onclick="removeExtraStop(${index})" aria-label="Remover parada">×</button>`;
+    list.appendChild(row);
+    setupAutocomplete("stopPlace-"+index);
+    setupStopDrag(row);
+  });
+}
 function addExtraStop(){
   if(stopResults.length>=3){alert("Você pode adicionar no máximo 3 paradas extras.");return;}
-  const index=stopResults.length; stopResults.push(null);
-  const list=$("stopsList");
-  const row=document.createElement("div"); row.className="stop-row"; row.id="stopRow-"+index;
-  row.innerHTML=`<div class="autocomplete-wrap"><div class="stop-number">Parada ${index+1}</div><div class="search-row"><input id="stopPlace-${index}" autocomplete="off" placeholder="Digite o endereço da parada"><button class="search-btn" type="button" onclick="searchAddress('stopPlace-${index}')" aria-label="Buscar parada">🔍</button></div><input id="stopHidden-${index}" type="hidden"></div><button class="remove-stop-btn" type="button" onclick="removeExtraStop(${index})" aria-label="Remover parada">×</button>`;
-  list.appendChild(row); setupAutocomplete("stopPlace-"+index);
+  stopResults.push(null);
+  renderStops();
+  const index=stopResults.length-1;
+  const input=$("stopPlace-"+index);
+  if(input){
+    input.focus();
+    input.scrollIntoView({behavior:"smooth",block:"center"});
+  }
 }
 function removeExtraStop(index){
-  const row=$("stopRow-"+index); if(row) row.remove();
-  stopResults[index]=null;
-  stopResults=stopResults.filter(Boolean);
-  const rows=[...document.querySelectorAll("#stopsList .stop-row")];
-  rows.forEach((row,i)=>{
-    const old=row.id.split("-")[1]; row.id="stopRow-"+i;
-    const input=row.querySelector("input[id^='stopPlace-']"), hidden=row.querySelector("input[id^='stopHidden-']"), btn=row.querySelector("button.remove-stop-btn"), label=row.querySelector(".stop-number");
-    if(input){input.id="stopPlace-"+i; input.setAttribute("onkeydown",""); input.replaceWith(input.cloneNode(true)); setupAutocomplete("stopPlace-"+i);}
-    if(hidden) hidden.id="stopHidden-"+i;
-    if(btn) btn.setAttribute("onclick","removeExtraStop("+i+")");
-    if(label) label.textContent="Parada "+(i+1);
-  });
+  if(index<0 || index>=stopResults.length)return;
+  stopResults.splice(index,1);
+  renderStops();
   computeDriveRoute();
+}
+function reorderStopResultsFromDom(){
+  const rows=[...document.querySelectorAll("#stopsList .stop-row")];
+  const order=rows.map(row=>Number(row.dataset.stopIndex)).filter(Number.isInteger);
+  if(order.length!==stopResults.length)return;
+  stopResults=order.map(i=>stopResults[i]);
+  renderStops();
+  computeDriveRoute();
+}
+function setupStopDrag(row){
+  const handle=row.querySelector(".stop-drag-handle");
+  if(!handle || handle.dataset.dragReady==="1")return;
+  handle.dataset.dragReady="1";
+  let dragging=false, pointerId=null;
+  handle.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    dragging=true; pointerId=e.pointerId;
+    row.classList.add("dragging");
+    try{handle.setPointerCapture(pointerId)}catch(_){}
+  });
+  handle.addEventListener("pointermove",e=>{
+    if(!dragging)return;
+    const rows=[...document.querySelectorAll("#stopsList .stop-row")].filter(r=>r!==row);
+    const target=rows.find(r=>{
+      const rect=r.getBoundingClientRect();
+      return e.clientY < rect.top + rect.height/2;
+    });
+    const list=$("stopsList");
+    if(!list)return;
+    if(target) list.insertBefore(row,target);
+    else list.appendChild(row);
+  });
+  const finishDrag=()=>{
+    if(!dragging)return;
+    dragging=false;
+    row.classList.remove("dragging");
+    reorderStopResultsFromDom();
+  };
+  handle.addEventListener("pointerup",finishDrag);
+  handle.addEventListener("pointercancel",finishDrag);
 }
 
 document.addEventListener("click",e=>{
   if(!e.target.closest(".autocomplete-wrap")){
-    clearSuggestions("fromPlace");
-    clearSuggestions("toPlace");
+    document.querySelectorAll(".suggestions").forEach(box=>box.remove());
   }
 });
 
@@ -1059,6 +1139,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   });
   setupAutocomplete("fromPlace");
   setupAutocomplete("toPlace");
+  const addStopBtn=$("addStopBtn");
+  if(addStopBtn) addStopBtn.addEventListener("click",addExtraStop);
   const locationBtn=$("useLocationBtn"); if(locationBtn) locationBtn.addEventListener("click",useCurrentLocation);
   const mapLocationBtn=$("passengerMapLocationBtn"); if(mapLocationBtn) mapLocationBtn.addEventListener("click",focusPassengerLocation);
   setTimeout(locatePassengerAutomatically,600);
@@ -1427,6 +1509,7 @@ $("rdate").min=$("date").value;
 updateReturnFields();
 updateNoLovePaymentDate();
 calc();
+renderStops();
 checkSlot($("date").value,$("time").value,"availabilityStatus");
 </script>
 
