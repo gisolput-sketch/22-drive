@@ -1099,6 +1099,14 @@ let driverMap=null,driverMarker=null,driverLocation=null;
 let rideMapLayer=null;
 let rideMapRequestId=null;
 let rideMapTimer=null;
+let rideMapRouteCoords=[];
+let offRouteCount=0;
+let rerouteInProgress=false;
+let lastRerouteAt=0;
+let lastRerouteLocation=null;
+const OFF_ROUTE_THRESHOLD_METERS=100;
+const OFF_ROUTE_CONFIRMATIONS=2;
+const REROUTE_COOLDOWN_MS=12000;
 const navigationState={steps:[],index:0,rideId:null,type:null,lastSpokenIndex:-1,voiceEnabled:true};
 function navText(step){
   const m=step&&step.maneuver||{}; const type=String(m.type||""); const mod=String(m.modifier||"");
