@@ -34,9 +34,8 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 .confirm-overlay{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.confirm-box{background:#fff;border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 18px 50px #0005}.confirm-box h3{margin:0 0 12px}.confirm-warning{white-space:pre-line;font-size:14px;line-height:1.5;color:#111827}.confirm-actions{display:flex;gap:10px;margin-top:18px}.confirm-actions button{flex:1}.btn.secondary{background:#e5e7eb;color:#111827}
 </style>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin="anonymous"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin="anonymous" onerror="this.onerror=null;this.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.svg">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -698,46 +697,22 @@ async function createReservationInSupabase(){
 
 
 function initMap(){
-  const mapEl=$("map");
-  if(!mapEl){console.error("22 DRIVE — #map não encontrado.");return;}
-  mapEl.style.background="#e5e7eb";
-  if(typeof L==="undefined"){
-    mapEl.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-weight:800">🗺️ Não foi possível carregar o motor do mapa. Recarregue a página.</div>';
-    $("routeStatus").textContent="❌ Biblioteca do mapa não carregou.";
-    console.error("22 DRIVE — Leaflet L não carregou.");
+  const el=document.getElementById("map");
+  if(!el)return;
+  if(typeof window.L==="undefined"){
+    el.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-weight:800">🗺️ Carregando mapa...</div>';
+    setTimeout(initMap,500);
     return;
   }
-  if(driveMap){setTimeout(()=>driveMap.invalidateSize(true),100);return;}
+  if(driveMap){setTimeout(()=>driveMap.invalidateSize(),100);return;}
   try{
-    driveMap=L.map(mapEl,{zoomControl:true,preferCanvas:false,fadeAnimation:false,zoomAnimation:false}).setView([-22.73,-42.63],10);
-    const tileOptions={maxZoom:19,attribution:'&copy; OpenStreetMap contributors'};
-    let activeLayer=null;
-    let fallbackIndex=0;
-    const layers=[
-      ["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",["a","b","c"]],
-      ["https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",["a","b","c","d"]],
-      ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",[]]
-    ];
-    const addTiles=()=>{
-      if(activeLayer)driveMap.removeLayer(activeLayer);
-      const item=layers[fallbackIndex];
-      activeLayer=L.tileLayer(item[0],{...tileOptions,subdomains:item[1]}).addTo(driveMap);
-      let errors=0;
-      activeLayer.on("tileerror",()=>{
-        errors++;
-        if(errors>=2 && fallbackIndex<layers.length-1){
-          fallbackIndex++;
-          addTiles();
-        }
-      });
-      setTimeout(()=>driveMap.invalidateSize(true),100);
-    };
-    addTiles();
-    setTimeout(()=>driveMap.invalidateSize(true),300);
-    setTimeout(()=>driveMap.invalidateSize(true),1000);
-  }catch(err){
-    console.error("22 DRIVE — erro ao criar mapa:",err);
-    mapEl.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-weight:800">❌ Erro ao iniciar o mapa.</div>';
+    driveMap=L.map(el).setView([-22.73,-42.63],11);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(driveMap);
+    setTimeout(()=>driveMap.invalidateSize(),100);
+    setTimeout(()=>driveMap.invalidateSize(),500);
+  }catch(e){
+    console.error("Erro mapa 22 DRIVE",e);
+    el.innerHTML='<div style="padding:20px;text-align:center;font-weight:800">❌ Erro ao iniciar o mapa.</div>';
   }
 }
 
