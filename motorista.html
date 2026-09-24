@@ -515,7 +515,9 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 /* Ajuste final de legibilidade: interface 20% mais compacta */
 .driver-topbar{padding:8px 14px;min-height:78px}
 .driver-logo{width:min(100%,220px);height:48px}
-.driver-status{width:155px;min-height:44px;padding:7px 11px;font-size:12px}
+.driver-status{width:155px;min-height:44px;padding:7px 11px;font-size:12px;border:1px solid #00c853;border-radius:12px;background:#07111f;color:#fff;font-weight:900;cursor:pointer}
+.status-toggle.available{border-color:#00c853;color:#8affb2}
+.status-toggle.offline{border-color:#ef4444;color:#ff9b9b;background:#160b0b}
 .driver-menu-button{width:48px;height:48px;flex-basis:48px;font-size:24px}
 .driver-status option{font-size:12px}
 .driver-bottom-area{padding:10px 12px 12px}
@@ -542,10 +544,7 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
       <img class="driver-logo" src="./logo-driver-horizontal.svg" alt="22 DRIVE — Sua viagem, nossa prioridade">
     </div>
 
-    <select id="statusMobile" class="driver-status" aria-label="Status do motorista" onchange="changeStatusFromMobile()">
-      <option value="available">🟢 Disponível</option>
-      <option value="offline">⚫ Indisponível</option>
-    </select>
+    <button id="statusMobile" class="driver-status status-toggle available" type="button" aria-label="Status do motorista" onclick="toggleDriverAvailability()"><span>🟢</span> Disponível</button>
 
     <button class="driver-menu-button" type="button" aria-label="Abrir menu" onclick="toggleTopMenu()">☰</button>
 
@@ -929,14 +928,30 @@ function openApp(){
   const normalizedStatus=driver.status==="available"?"available":"offline";
   driver.status=normalizedStatus;
   if($("status"))$("status").value=normalizedStatus;
-  if($("statusMobile"))$("statusMobile").value=normalizedStatus;
+  applyDriverStatus(normalizedStatus,false);
   initDriverMap();
   render();
   loadEarnings();
   connectSupabaseRealtime();
 }
 async function logout(){try{const client=getAuthClient();if(client)await client.auth.signOut();}catch(e){console.error("22 DRIVE logout:",e)}localStorage.removeItem(DRIVER_KEY);location.reload()}
-function changeStatus(){const v=$("status").value==="available"?"available":"offline";driver.status=v;localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));if($("statusMobile"))$("statusMobile").value=v;notice(v==="available"?"🟢 Motorista disponível.":"⚫ Motorista indisponível.");updateMapStatus();}
+function applyDriverStatus(v,showNotice=true){
+  v=v==="available"?"available":"offline";
+  driver.status=v;
+  localStorage.setItem(DRIVER_KEY,JSON.stringify(driver));
+  const mobile=$("statusMobile");
+  if(mobile){
+    mobile.classList.toggle("available",v==="available");
+    mobile.classList.toggle("offline",v==="offline");
+    mobile.innerHTML=v==="available"?"<span>🟢</span> Disponível":"<span>⚫</span> Indisponível";
+    mobile.setAttribute("aria-label",v==="available"?"Motorista disponível — toque para ficar indisponível":"Motorista indisponível — toque para ficar disponível");
+  }
+  const legacy=$("status"); if(legacy)legacy.value=v;
+  if(showNotice)notice(v==="available"?"🟢 Motorista disponível.":"⚫ Motorista indisponível.");
+  updateMapStatus();
+}
+function toggleDriverAvailability(){applyDriverStatus(driver.status==="available"?"offline":"available",true);}
+function changeStatus(){const v=$("status").value==="available"?"available":"offline";applyDriverStatus(v,true);}
 function focusRequests(){document.querySelector(".grid>section.card")?.scrollIntoView({behavior:"smooth",block:"start"});}
 function focusStatus(){alert("Status atual: "+($("status")?.selectedOptions?.[0]?.textContent||"Não informado"));}
 function moneyBR(v){return (Number(v)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
