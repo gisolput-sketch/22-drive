@@ -561,8 +561,9 @@ async function createReservationInSupabase(){
     passengerSupabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   }
 
-  const passengerName=$("name").value.trim();
-  const passengerPhone=$("phone").value.trim();
+  const passengerProfile=loadPassengerProfile()||{};
+  const passengerName=String(passengerProfile.name||"").trim();
+  const passengerPhone=String(passengerProfile.phone||"").trim();
   const originAddress=$("from").value;
   const destinationAddress=$("to").value;
   const travelDate=$("date").value;
@@ -598,11 +599,11 @@ async function createReservationInSupabase(){
     destination_lat:toResult&&toResult.lat?Number(toResult.lat):null,
     destination_lng:toResult&&toResult.lon?Number(toResult.lon):null,
     distance_km:Number(km.toFixed(2)),
-    passengers:parseInt($("people").value,10)||1,
-    baggage:$("bags").value||null,
-    observation:$("obs").value.trim()||null,
-    payment_method:payment?payment.value:null,
-    payment_date:payment&&payment.value==="No amor"?$("noLovePaymentDate").value||null:null,
+    passengers:1,
+    baggage:null,
+    observation:null,
+    payment_method:null,
+    payment_date:null,
     sound_preference:null,
     music_style:null,
     music_artist:null,
@@ -1219,27 +1220,6 @@ $("form").addEventListener("submit",e=>{
 🏁 Destino: ${$("to").value}
 🗺️ Endereço Maps: ${toMapsUrl}
 📏 Distância: ${km.toFixed(2)} km
-`;
-  const payment=document.querySelector('input[name="payment"]:checked');
-  if(!payment){
-    alert("Escolha a forma de pagamento antes de continuar.");
-    return;
-  }
-  let noLovePaymentDate="";
-  if(payment.value==="No amor"){
-    noLovePaymentDate=$("noLovePaymentDate").value;
-    const min=$("date").value;
-    const max=addBusinessDays(min,5);
-    if(!noLovePaymentDate){alert("Escolha a data prevista para o pagamento.");return;}
-    if(noLovePaymentDate<min || noLovePaymentDate>max){alert("A data de pagamento deve ficar dentro de 5 dias úteis a partir da data da viagem.");return;}
-  }
-  msg+=`👥 Passageiros: ${$("people").value}
-🧳 Bagagem: ${$("bags").value}
-💳 Forma de pagamento: ${payment.value}
-`;
-  if(payment.value==="No amor") msg+=`📅 Data prevista para pagamento: ${noLovePaymentDate.split("-").reverse().join("/")}
-`;
-  msg+=`
 `;
   msg+=`🚗 Valor da viagem: ${money(tripTotal)}
 `;
