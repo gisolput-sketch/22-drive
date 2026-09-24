@@ -25,6 +25,14 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 
 .autocomplete-wrap{position:relative}
 .search-row{display:flex;gap:7px;align-items:center}.search-row input{flex:1}.search-btn{width:48px;height:46px;border:1px solid var(--line);border-radius:12px;background:var(--p);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}.search-btn:active{transform:scale(.97)}
+.map-pick-btn{width:48px;height:46px;border:1px solid #ffc700;border-radius:12px;background:#07111f;color:#ffc700;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}.map-pick-btn:active{transform:scale(.97)}
+.map-picker-overlay{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;padding:10px;z-index:10050}
+.map-picker-box{width:min(760px,100%);height:min(92vh,760px);background:#07111f;border:1px solid #ffc700;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px #0008}
+.map-picker-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #2a3444}.map-picker-head h3{margin:0;color:#fff;font-size:17px}.map-picker-close{border:0;background:#26364a;color:#fff;border-radius:10px;padding:9px 12px;font-weight:900;cursor:pointer}
+.map-picker-map{position:relative;flex:1;min-height:320px;background:#0b1726}.map-picker-map .leaflet-container{height:100%;width:100%}
+.map-picker-center-pin{position:absolute;left:50%;top:50%;z-index:900;transform:translate(-50%,-100%);font-size:42px;line-height:1;filter:drop-shadow(0 4px 4px #0008);pointer-events:none}
+.map-picker-info{padding:10px 14px;font-size:12px;color:#cbd5e1;border-top:1px solid #2a3444}.map-picker-actions{display:flex;gap:8px;padding:10px 14px 14px}.map-picker-actions button{flex:1}
+@media(max-width:600px){.map-picker-overlay{padding:0}.map-picker-box{width:100%;height:100%;border-radius:0}.map-picker-map{min-height:0}.map-picker-actions{padding-bottom:max(14px,env(safe-area-inset-bottom))}}
 .location-btn{margin-top:7px!important}.location-status{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
 .suggestions{position:absolute;left:0;right:0;top:100%;z-index:1000;background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;box-shadow:0 8px 20px #11182718;overflow:hidden}
 .suggestion{display:block;width:100%;padding:11px 12px;border:0;background:#fff;text-align:left;font:inherit;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line)}
@@ -124,13 +132,13 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 
 <section class="card">
 <h2>📍 Rota</h2>
-<div class="place-wrap"><label>Local de embarque</label><div class="autocomplete-wrap"><div class="search-row"><input id="fromPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('fromPlace')" aria-label="Buscar local de embarque">🔍</button></div></div></div>
+<div class="place-wrap"><label>Local de embarque</label><div class="autocomplete-wrap"><div class="search-row"><input id="fromPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('fromPlace')" aria-label="Buscar local de embarque">🔍</button><button class="map-pick-btn" type="button" onclick="openMapPicker('from')" aria-label="Escolher embarque no mapa" title="Escolher no mapa">📍</button></div></div></div>
 <button class="btn dark" type="button" id="useLocationBtn" style="margin-top:-3px">📍 Usar minha localização exata</button>
 <div id="locationStatus" class="route-status"></div>
-<div class="place-wrap"><label>Destino</label><div class="autocomplete-wrap"><div class="search-row"><input id="toPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('toPlace')" aria-label="Buscar destino">🔍</button></div></div></div>
+<div class="place-wrap"><label>Destino</label><div class="autocomplete-wrap"><div class="search-row"><input id="toPlace" autocomplete="off" placeholder="Digite o endereço"><button class="search-btn" type="button" onclick="searchAddress('toPlace')" aria-label="Buscar destino">🔍</button><button class="map-pick-btn" type="button" onclick="openMapPicker('to')" aria-label="Escolher destino no mapa" title="Escolher no mapa">📍</button></div></div></div>
 <div class="stops-list" id="stopsList"></div>
 <button class="add-stop-btn" type="button" id="addStopBtn">➕ Adicionar parada extra</button>
-<p class="stops-hint">🔎 Ao tocar no botão, uma nova pesquisa de endereço é aberta. Depois de adicionar as paradas, arraste pelo ícone ☷ para colocá-las na ordem desejada.</p>
+<p class="stops-hint">🔎 Pesquise o endereço ou use 📍 para escolher diretamente no mapa. Depois, arraste pelo ícone ☷ para colocar as paradas na ordem desejada.</p>
 <div id="map" class="map"><button id="passengerMapLocationBtn" class="map-location-button" type="button" aria-label="Mostrar minha localização no mapa" title="Minha localização">📍</button><iframe id="mapFallback" class="map-fallback" title="Mapa 22 DRIVE" loading="eager" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
 <div id="routeStatus" class="route-status">Digite o endereço completo e escolha uma das sugestões encontradas. Se não aparecer, tente incluir número, bairro e cidade.</div>
 <input id="from" type="hidden" required>
@@ -716,6 +724,102 @@ function initMap(){
 function passengerBlueDotIcon(){
   return L.divIcon({className:"passenger-location-marker",html:"<div class=\"blue-dot\"></div>",iconSize:[20,20],iconAnchor:[10,10]});
 }
+let mapPickerMap=null;
+let mapPickerMarker=null;
+let mapPickerTarget="from";
+let mapPickerStopIndex=null;
+
+function initMapPicker(){
+  const el=$("mapPickerMap");
+  if(!el || typeof window.L==="undefined") return false;
+  if(mapPickerMap){setTimeout(()=>mapPickerMap.invalidateSize(true),100);return true;}
+  mapPickerMap=L.map(el,{zoomControl:true}).setView([-22.73,-42.63],13);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(mapPickerMap);
+  mapPickerMap.on("click",e=>setMapPickerPosition(e.latlng.lat,e.latlng.lng,true));
+  return true;
+}
+function setMapPickerPosition(lat,lng,center){
+  if(!mapPickerMap || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)))return;
+  const p=[Number(lat),Number(lng)];
+  if(mapPickerMarker) mapPickerMarker.setLatLng(p);
+  else mapPickerMarker=L.marker(p,{draggable:true,zIndexOffset:2000}).addTo(mapPickerMap);
+  if(mapPickerMarker.dragging && !mapPickerMarker.__pickerReady){
+    mapPickerMarker.__pickerReady=true;
+    mapPickerMarker.on("dragend",()=>{
+      const p=mapPickerMarker.getLatLng();
+      updateMapPickerInfo(p.lat,p.lng);
+    });
+  }
+  if(center)mapPickerMap.setView(p,16,{animate:true});
+  updateMapPickerInfo(p[0],p[1]);
+}
+function updateMapPickerInfo(lat,lng){
+  const info=$("mapPickerInfo");
+  if(info)info.textContent="📍 Ponto selecionado: "+Number(lat).toFixed(6)+", "+Number(lng).toFixed(6)+" • Toque em outro ponto ou arraste o pino.";
+}
+function openMapPicker(target,stopIndex=null){
+  mapPickerTarget=target||"from";
+  mapPickerStopIndex=target==="stop"?Number(stopIndex):null;
+  const overlay=$("mapPickerOverlay");
+  if(!overlay)return;
+  const title=$("mapPickerTitle");
+  if(title)title.textContent=target==="from"?"📍 Escolher embarque no mapa":target==="to"?"🏁 Escolher destino no mapa":"🛑 Escolher parada no mapa";
+  overlay.style.display="flex";
+  overlay.setAttribute("aria-hidden","false");
+  setTimeout(()=>{
+    if(!initMapPicker())return;
+    mapPickerMap.invalidateSize(true);
+    let r=null;
+    if(target==="from")r=fromResult;
+    else if(target==="to")r=toResult;
+    else r=stopResults[Number(stopIndex)]||null;
+    if(r&&Number.isFinite(Number(r.lat))&&Number.isFinite(Number(r.lon))){
+      setMapPickerPosition(Number(r.lat),Number(r.lon),true);
+      return;
+    }
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(pos=>setMapPickerPosition(pos.coords.latitude,pos.coords.longitude,true),()=>{
+        const center=mapPickerMap.getCenter();setMapPickerPosition(center.lat,center.lng,false);
+      },{enableHighAccuracy:true,timeout:8000,maximumAge:30000});
+    }else{
+      const center=mapPickerMap.getCenter();setMapPickerPosition(center.lat,center.lng,false);
+    }
+  },80);
+}
+function closeMapPicker(){
+  const overlay=$("mapPickerOverlay");
+  if(overlay){overlay.style.display="none";overlay.setAttribute("aria-hidden","true");}
+}
+async function confirmMapPicker(){
+  if(!mapPickerMarker){alert("Escolha um ponto no mapa.");return;}
+  const p=mapPickerMarker.getLatLng();
+  const button=$("mapPickerConfirmBtn");
+  if(button){button.disabled=true;button.textContent="⏳ Obtendo endereço...";}
+  let address="";
+  try{
+    const result=await reverseGeocodeLocation(p.lat,p.lng);
+    address=result.display_name||"";
+  }catch(err){console.warn("Reverse geocode do ponto escolhido:",err);}
+  const result={lat:String(p.lat),lon:String(p.lng),display_name:address||("Ponto escolhido no mapa: "+p.lat.toFixed(6)+", "+p.lng.toFixed(6)),address:{}};
+  if(mapPickerTarget==="from"){
+    fromResult=result;$("fromPlace").value=result.display_name;$("from").value=result.display_name;
+    if($("locationStatus"))$("locationStatus").textContent="📍 Embarque escolhido diretamente no mapa.";
+    showPassengerLocationOnMap(p.lat,p.lng,true);
+  }else if(mapPickerTarget==="to"){
+    toResult=result;$("toPlace").value=result.display_name;$("to").value=result.display_name;
+  }else{
+    const i=mapPickerStopIndex;
+    if(Number.isInteger(i)){
+      stopResults[i]=result;
+      const hidden=$("stopHidden-"+i);if(hidden)hidden.value=result.display_name;
+      const input=$("stopPlace-"+i);if(input)input.value=result.display_name;
+    }
+  }
+  closeMapPicker();
+  if(button){button.disabled=false;button.textContent="✅ Confirmar este local";}
+  if(fromResult&&toResult)computeDriveRoute();
+}
+
 function showPassengerLocationOnMap(lat,lon,center){
   if(!driveMap || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return;
   const p=[Number(lat),Number(lon)];
@@ -1047,6 +1151,7 @@ function renderStops(){
         <div class="search-row">
           <input id="stopPlace-${index}" autocomplete="off" placeholder="Pesquise o endereço da parada ${index+1}" value="${result?.display_name||""}">
           <button class="search-btn" type="button" onclick="searchAddress('stopPlace-${index}')" aria-label="Pesquisar endereço da parada">🔍</button>
+          <button class="map-pick-btn" type="button" onclick="openMapPicker('stop',${index})" aria-label="Escolher parada no mapa" title="Escolher no mapa">📍</button>
         </div>
         <input id="stopHidden-${index}" type="hidden" value="${result?.display_name||""}">
       </div>
@@ -1143,6 +1248,15 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(addStopBtn) addStopBtn.addEventListener("click",addExtraStop);
   const locationBtn=$("useLocationBtn"); if(locationBtn) locationBtn.addEventListener("click",useCurrentLocation);
   const mapLocationBtn=$("passengerMapLocationBtn"); if(mapLocationBtn) mapLocationBtn.addEventListener("click",focusPassengerLocation);
+  const mapPickerConfirmBtn=$("mapPickerConfirmBtn"); if(mapPickerConfirmBtn) mapPickerConfirmBtn.addEventListener("click",confirmMapPicker);
+  const mapPickerLocateBtn=$("mapPickerLocateBtn"); if(mapPickerLocateBtn) mapPickerLocateBtn.addEventListener("click",()=>{
+    if(!navigator.geolocation)return;
+    mapPickerLocateBtn.disabled=true;
+    navigator.geolocation.getCurrentPosition(pos=>{
+      setMapPickerPosition(pos.coords.latitude,pos.coords.longitude,true);
+      mapPickerLocateBtn.disabled=false;
+    },()=>{mapPickerLocateBtn.disabled=false;alert("Não foi possível obter sua localização.");},{enableHighAccuracy:true,timeout:10000,maximumAge:0});
+  });
   setTimeout(locatePassengerAutomatically,600);
 });
 
@@ -1512,6 +1626,23 @@ calc();
 renderStops();
 checkSlot($("date").value,$("time").value,"availabilityStatus");
 </script>
+
+<div class="map-picker-overlay" id="mapPickerOverlay" aria-hidden="true">
+  <div class="map-picker-box">
+    <div class="map-picker-head">
+      <h3 id="mapPickerTitle">📍 Escolher local no mapa</h3>
+      <button class="map-picker-close" type="button" onclick="closeMapPicker()">✕ Fechar</button>
+    </div>
+    <div class="map-picker-map" id="mapPickerMap">
+      <div class="map-picker-center-pin">📍</div>
+    </div>
+    <div class="map-picker-info" id="mapPickerInfo">Mova o mapa ou toque em outro ponto para escolher o local.</div>
+    <div class="map-picker-actions">
+      <button class="btn secondary" type="button" id="mapPickerLocateBtn">📍 Minha localização</button>
+      <button class="btn primary" type="button" id="mapPickerConfirmBtn">✅ Confirmar este local</button>
+    </div>
+  </div>
+</div>
 
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-box">
