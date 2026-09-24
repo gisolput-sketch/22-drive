@@ -1244,8 +1244,10 @@ function rideLabelIcon(text){
     iconAnchor:[0,35]
   });
 }
-async function updateRideMapForRequest(r){
+async async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOverride=null){
   if(!driverMap)return;
+  rideMapRouteCoords=[];
+  const rerouteMode=Array.isArray(routeStartOverride)&&Array.isArray(routeTargetOverride);
   const pickup=rideCoordinate(r,"pickup");
   const dropoff=rideCoordinate(r,"dropoff");
   const id=String(r&&r.id||"");
@@ -1275,23 +1277,24 @@ async function updateRideMapForRequest(r){
   pickupMarker.openPopup();
 
   const requestId=id;
-  const routePoints=(driverLocation?[driverLocation,pickup,dropoff]:[pickup,dropoff])
+  const routePoints=(rerouteMode?[routeStartOverride,routeTargetOverride]:(driverLocation?[driverLocation,pickup,dropoff]:[pickup,dropoff]))
     .map(p=>Number(p[1])+","+Number(p[0])).join(";");
   const osrmUrl="https://router.project-osrm.org/route/v1/driving/"+routePoints+"?overview=full&geometries=geojson&steps=true";
-  fetch(osrmUrl).then(res=>{if(!res.ok)throw new Error("routing");return res.json();}).then(data=>{
-    if(rideMapRequestId!==requestId||!rideMapLayer||!data.routes||!data.routes[0])return;
-    const route=data.routes[0];
-    setNavigationSteps(route,requestId,rideMapRequestId===requestId?(getRouteState(requestId)?.phase||null):null);
-    const coords=route.geometry.coordinates.map(c=>[c[1],c[0]]);
-    if(coords.length>1){
-      const roadRoute=L.polyline(coords,{color:"#1683ff",weight:6,opacity:.95,lineCap:"round",lineJoin:"round"});
-      rideMapLayer.addLayer(roadRoute);
-      const fitPoints=coords.slice();
-      if(driverLocation)fitPoints.push(driverLocation);
-      driverMap.fitBounds(L.latLngBounds(fitPoints),{padding:[35,35],maxZoom:15,animate:true});
-    }
-  }).catch(()=>{});
-
+  const response=await fetch(osrmUrl);
+  if(!response.ok)throw new Error("routing");
+  const data=await response.json();
+  if(rideMapRequestId!==requestId||!rideMapLayer||!data.routes||!data.routes[0])throw new Error("route-stale");
+  const route=data.routes[0];
+  setNavigationSteps(route,requestId,getRouteState(requestId)?.phase||null);
+  const coords=route.geometry.coordinates.map(c=>[c[1],c[0]]);
+  rideMapRouteCoords=coords;
+  if(coords.length>1){
+    const roadRoute=L.polyline(coords,{color:"#1683ff",weight:6,opacity:.95,lineCap:"round",lineJoin:"round"});
+    rideMapLayer.addLayer(roadRoute);
+    const fitPoints=rerouteMode?[driverLocation,...coords]:coords.slice();
+    if(!rerouteMode&&driverLocation)fitPoints.push(driverLocation);
+    driverMap.fitBounds(L.latLngBounds(fitPoints),{padding:[35,35],maxZoom:15,animate:true});
+  }
   if(rideMapTimer)clearTimeout(rideMapTimer);
   rideMapTimer=setTimeout(()=>{rideMapTimer=null;},1500);
 }
