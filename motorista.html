@@ -1161,6 +1161,51 @@ function followDriverOnMap(position){
   const drift=distanceMeters([center.lat,center.lng],p);
   if(drift>80)driverMap.panTo(p,{animate:true,duration:0.5});
 }
+function distancePointToSegmentMeters(p,a,b){
+  const latScale=111320;
+  const lonScale=111320*Math.cos(Number(p[0])*Math.PI/180);
+  const px=Number(p[1])*lonScale,py=Number(p[0])*latScale;
+  const ax=Number(a[1])*lonScale,ay=Number(a[0])*latScale;
+  const bx=Number(b[1])*lonScale,by=Number(b[0])*latScale;
+  const dx=bx-ax,dy=by-ay;
+  const len2=dx*dx+dy*dy;
+  let t=len2?((px-ax)*dx+(py-ay)*dy)/len2:0;
+  t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
+}
+function distanceToCurrentRouteMeters(p){
+  if(!Array.isArray(rideMapRouteCoords)||rideMapRouteCoords.length<2)return Infinity;
+  let best=Infinity;
+  for(let i=0;i<rideMapRouteCoords.length-1;i++)best=Math.min(best,distancePointToSegmentMeters(p,rideMapRouteCoords[i],rideMapRouteCoords[i+1]));
+  return best;
+}
+function resetOffRouteState(){
+  offRouteCount=0;rerouteInProgress=false;lastRerouteAt=0;lastRerouteLocation=null;
+}
+function speakRerouteNotice(){
+  if(!navigationState.voiceEnabled||typeof window==="undefined"||!("speechSynthesis" in window))return;
+  try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance("Você saiu da rota. Recalculando o percurso.");u.lang="pt-BR";u.rate=.95;u.pitch=1;u.volume=1;window.speechSynthesis.speak(u);}catch(e){}
+}
+async function rerouteFromCurrentLocation(r,phase){
+  if(!r||!driverLocation||rerouteInProgress)return false;
+  const now=Date.now();
+  if(now-lastRerouteAt<REROUTE_COOLDOWN_MS)return false;
+  const target=phase==="pickup"?rideCoordinate(r,"pickup"):rideCoordinate(r,"dropoff");
+  if(!target)return false;
+  if(lastRerouteLocation&&distanceMeters(driverLocation,lastRerouteLocation)<60)return false;
+  rerouteInProgress=true;lastRerouteAt=now;lastRerouteLocation=driverLocation.slice();
+  speakRerouteNotice();notice("🔄 Você saiu da rota. Recalculando o percurso...");
+  try{await updateRideMapForRequest(r,driverLocation.slice(),target);offRouteCount=0;return true;}
+  catch(e){console.warn("22 DRIVE recálculo de rota:",e);return false;}
+  finally{rerouteInProgress=false;}
+}
+function checkOffRouteAndReroute(r,phase){
+  if(!r||!driverLocation||rideMapRouteCoords.length<2||rerouteInProgress)return;
+  const distance=distanceToCurrentRouteMeters(driverLocation);
+  if(distance<=OFF_ROUTE_THRESHOLD_METERS){offRouteCount=0;return;}
+  offRouteCount++;
+  if(offRouteCount>=OFF_ROUTE_CONFIRMATIONS)rerouteFromCurrentLocation(r,phase);
+}
 function advanceNavigationByLocation(position){
   if(!navigationState.steps.length)return;
   const p=[position.coords.latitude,position.coords.longitude];
