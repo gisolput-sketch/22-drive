@@ -156,7 +156,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 const WA="5521999696851";
 const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co";
 const SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
-const defaults={base:20,includedKm:10,extraPerKm:1.5};
+const defaults={base:20,includedKm:9,extraPerKm:2};
 const PROFILE_KEY="22drive_passenger_profile";
 const FAVORITES_KEY="22drive_passenger_favorites";
 
@@ -465,7 +465,7 @@ async function findPassengerProfile(){
   }catch(err){console.error(err);alert("Não foi possível consultar a base agora. Confira se o cadastro no Supabase já foi configurado.");}
 }
 let rates=JSON.parse(localStorage.getItem("22drive_rates")||"null")||defaults;
-if(!rates || rates.includedKm!==10 || rates.extraPerKm!==1.5){
+if(!rates || rates.includedKm!==9 || rates.extraPerKm!==2){
   rates={...defaults};
   localStorage.setItem("22drive_rates",JSON.stringify(rates));
 }
@@ -1085,8 +1085,8 @@ function calculateTolls(){
 function calculateTripFare(km){
   const distance=Math.max(0,Number(km)||0);
   const base=Number(rates.base)||20;
-  const included=10;
-  const extra=Number(rates.extraPerKm)||1.5;
+  const included=9;
+  const extra=Number(rates.extraPerKm)||2;
   if(distance<=included)return Math.round(base*100)/100;
   return Math.round((base+(distance-included)*extra)*100)/100;
 }
@@ -1101,8 +1101,8 @@ function calc(){
 
   $("price").textContent=money(grandTotal);
   $("detail").textContent=km<=9
-    ? `Até 10 km: ${money(rates.base)}${type==="volta"?" • ida e volta":""}`
-    : `10 km incluídos + ${(km-10).toFixed(1)} km × ${money(rates.extraPerKm)}/km excedente${type==="volta"?" • ida e volta":""}`;
+    ? `Até 9 km: ${money(rates.base)}${type==="volta"?" • ida e volta":""}`
+    : `9 km incluídos + ${(km-9).toFixed(1)} km × ${money(rates.extraPerKm)}/km excedente${type==="volta"?" • ida e volta":""}`;
   $("tollDetail").innerHTML=tollBreakdownHtml(tolls.legs).replace(
     money(tolls.total),
     money(tolls.total)
