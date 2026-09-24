@@ -1282,7 +1282,6 @@ $("form").addEventListener("submit",e=>{
   msg+=`📍 Embarque: ${$("from").value}
 🗺️ Endereço Maps: ${fromMapsUrl}
 `;
-  const selectedStops=stopResults.filter(Boolean);
   selectedStops.forEach((s,i)=>{ const u="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(s.display_name); msg+=`🛑 Parada ${i+1}: ${s.display_name}
 🗺️ Endereço Maps: ${u}
 `; });
