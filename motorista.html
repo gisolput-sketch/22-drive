@@ -192,7 +192,10 @@ body{overflow:hidden}
 }
 .driver-map{perspective:1000px;perspective-origin:50% 58%;}
 .driver-map .leaflet-map-pane{will-change:transform;transition:transform .18s linear;transform-style:preserve-3d;}
-.driver-car-marker span{transition:transform .18s linear;transform-style:preserve-3d;}
+.driver-car-marker span{transition:transform .18s linear;transform-style:preserve-3d;}.driver-car-wrap{position:relative;width:92px;height:92px;display:grid;place-items:center;transform-origin:50% 50%;transition:transform .18s linear;transform-style:preserve-3d;}
+.driver-car-circle{position:relative;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:#1696ff;color:#fff;font-size:24px;border:3px solid #fff;box-shadow:0 0 0 11px #72c8ff45,0 0 28px #1696ff99;z-index:2;}
+.driver-heading-cone{position:absolute;left:50%;top:2px;width:0;height:0;transform:translateX(-50%);border-left:13px solid transparent;border-right:13px solid transparent;border-bottom:34px solid rgba(25,132,255,.34);filter:drop-shadow(0 0 5px rgba(25,132,255,.42));z-index:1;}
+
 .nav-compass-button{position:fixed;top:190px;right:14px;z-index:2100;width:50px;height:50px;border:0;border-radius:50%;background:rgba(255,255,255,.96);color:#17212b;box-shadow:0 5px 18px rgba(0,0,0,.28);font-size:25px;display:grid;place-items:center;cursor:pointer;}
 .nav-compass-button.hidden{display:none;}
 .nav-compass-button:active{transform:scale(.94);}
@@ -1277,8 +1280,8 @@ function applyNavigationBearing(heading){
     .replace(/\sscale\([^)]*\)/g,"").trim();
   mapPane.style.transform=(base?base+" ":"")+"perspective(900px) rotateX("+NAV_PITCH_DEG+"deg) rotate("+(-visualHeading).toFixed(1)+"deg) scale("+NAV_MAP_SCALE+")";
   mapPane.style.transformOrigin="50% 62%";
-  const car=driverMarker?.getElement?.()?.querySelector?.(".driver-car-marker span");
-  if(car)car.style.transform="rotate("+navigationState.heading.toFixed(1)+"deg)";
+  const wrap=driverMarker?.getElement?.()?.querySelector?.(".driver-car-wrap");
+  if(wrap)wrap.style.transform="rotate("+navigationState.heading.toFixed(1)+"deg)";
 }
 function toggleNavigationOrientation(){
   navigationState.orientation=navigationState.orientation==="heading"?"north":"heading";
@@ -1305,15 +1308,15 @@ function resetNavigationBearing(){
       .replace(/\sscale\([^)]*\)/g,"").trim();
     mapPane.style.transformOrigin="";
   }
-  const car=driverMarker?.getElement?.()?.querySelector?.(".driver-car-marker span");
-  if(car)car.style.transform="";
+  const wrap=driverMarker?.getElement?.()?.querySelector?.(".driver-car-wrap");
+  if(wrap)wrap.style.transform="";
 }
 function followDriverOnMap(position){
   if(!driverMap||!position?.coords)return;
   const p=[Number(position.coords.latitude),Number(position.coords.longitude)];
   if(!Number.isFinite(p[0])||!Number.isFinite(p[1]))return;
   driverLocation=p;
-  const icon=L.divIcon({className:"driver-car-marker",html:"<span>🚗</span>",iconSize:[52,52],iconAnchor:[26,26]});
+  const icon=L.divIcon({className:"driver-car-marker",html:"<div class=\"driver-car-wrap\"><span class=\"driver-heading-cone\"></span><span class=\"driver-car-circle\">🚗</span></div>",iconSize:[92,92],iconAnchor:[46,46]});
   if(driverMarker)driverMarker.setLatLng(p);else driverMarker=L.marker(p,{icon,zIndexOffset:1000}).addTo(driverMap);
   const heading=Number(position.coords.heading);
   if(Number.isFinite(heading)&&heading>=0&&heading<=360)applyNavigationBearing(heading);
@@ -1559,7 +1562,7 @@ function useCurrentDriverLocation(){
     driverLocation=[pos.coords.latitude,pos.coords.longitude];
     if(driverMap){
       driverMap.invalidateSize({pan:false});
-      const icon=L.divIcon({className:"driver-car-marker",html:"<span>🚗</span>",iconSize:[52,52],iconAnchor:[26,26]});
+      const icon=L.divIcon({className:"driver-car-marker",html:"<div class=\"driver-car-wrap\"><span class=\"driver-heading-cone\"></span><span class=\"driver-car-circle\">🚗</span></div>",iconSize:[92,92],iconAnchor:[46,46]});
       if(driverMarker)driverMarker.setLatLng(driverLocation);
       else driverMarker=L.marker(driverLocation,{icon,zIndexOffset:1000}).addTo(driverMap);
       driverMap.setView(driverLocation,16,{animate:true});
