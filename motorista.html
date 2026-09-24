@@ -1771,14 +1771,20 @@ async function updateWaitingCharge(r,state){
   const elapsed=Math.max(0,Date.now()-new Date(state.arrivedAt).getTime());
   const minutes=Math.floor(elapsed/60000);
   const chargeBlocks=Math.floor(minutes/3);
-  const waitingValue=chargeBlocks*3;
+  const currentStopWaiting=chargeBlocks*3;
+  const previousWaiting=Number(state.waitingTotalValue)||0;
+  const waitingValue=previousWaiting+currentStopWaiting;
+  const previousMinutes=Number(state.waitingTotalMinutes)||0;
+  const totalMinutes=previousMinutes+minutes;
   const patch={
-    waiting_minutes:minutes,
+    waiting_minutes:totalMinutes,
     waiting_value:Number(waitingValue.toFixed(2)),
     total_value:Number((Number(r.tripValue||r.trip_value||0)+Number(r.tollValue||r.toll_value||0)+Number(r.extraStopValue||r.extra_stop_value||0)+waitingValue).toFixed(2))
   };
   state.waitingMinutes=minutes;
-  state.waitingValue=waitingValue;
+  state.waitingValue=currentStopWaiting;
+  state.waitingTotalValue=waitingValue;
+  state.waitingTotalMinutes=totalMinutes;
   try{
     const all=JSON.parse(localStorage.getItem(ROUTE_STATE_KEY)||"{}");
     all[String(r.id)]=state;
@@ -1792,12 +1798,15 @@ function startExtraStopWaiting(r,index){
   if(!r||!Array.isArray(r.extraStops)||!r.extraStops[index])return;
   stopDestinationArrivalWatch();
   stopExtraStopWaitTimer();
+  const previous=getRouteState(r.id);
   const state={
     phase:"stop_waiting",
     stopIndex:index,
     arrivedAt:new Date().toISOString(),
     waitingMinutes:0,
     waitingValue:0,
+    waitingTotalValue:Number(previous?.waitingTotalValue)||0,
+    waitingTotalMinutes:Number(previous?.waitingTotalMinutes)||0,
     updatedAt:new Date().toISOString()
   };
   setRouteState(r.id,"stop_waiting",state);
@@ -1823,7 +1832,13 @@ function continueAfterExtraStop(id){
     setRouteState(id,"dropoff");
     try{
       const all=JSON.parse(localStorage.getItem(ROUTE_STATE_KEY)||"{}");
-      all[String(id)]={phase:"dropoff",stopIndex:nextIndex,updatedAt:new Date().toISOString()};
+      all[String(id)]={
+        phase:"dropoff",
+        stopIndex:nextIndex,
+        waitingTotalValue:Number(state.waitingTotalValue)||0,
+        waitingTotalMinutes:Number(state.waitingTotalMinutes)||0,
+        updatedAt:new Date().toISOString()
+      };
       localStorage.setItem(ROUTE_STATE_KEY,JSON.stringify(all));
     }catch(e){}
     renderTodayAcceptedRoutes();
@@ -1831,7 +1846,18 @@ function continueAfterExtraStop(id){
     startDestinationArrivalWatch(r);
     notice("🚗 Parada concluída. Próxima parada: "+(nextIndex+1)+".");
   }else{
-    setRouteState(id,"dropoff");
+    const finalState={
+      phase:"dropoff",
+      stopIndex:null,
+      waitingTotalValue:Number(state.waitingTotalValue)||0,
+      waitingTotalMinutes:Number(state.waitingTotalMinutes)||0,
+      updatedAt:new Date().toISOString()
+    };
+    try{
+      const all=JSON.parse(localStorage.getItem(ROUTE_STATE_KEY)||"{}");
+      all[String(id)]=finalState;
+      localStorage.setItem(ROUTE_STATE_KEY,JSON.stringify(all));
+    }catch(e){}
     renderTodayAcceptedRoutes();
     updateRideMapForRequest(r);
     startDestinationArrivalWatch(r);
