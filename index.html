@@ -758,7 +758,7 @@ function showSuggestions(inputId,results){
     b.textContent=r.display_name;
     b.addEventListener("click",()=>{
       input.value=r.display_name;
-      const stopMatch=inputId.match(/^stopPlace-(\\d+)$/);
+      const stopMatch=inputId.match(/^stopPlace-(\d+)$/);
       if(inputId==="fromPlace"){
         fromResult=r; $("from").value=r.display_name;
       }else if(stopMatch){
@@ -881,7 +881,7 @@ function setupAutocomplete(inputId){
   if(!input || input.dataset.autocompleteReady==="1") return;
   input.dataset.autocompleteReady="1";
   input.addEventListener("input",()=>{
-    const stopMatch=inputId.match(/^stopPlace-(\\d+)$/);
+    const stopMatch=inputId.match(/^stopPlace-(\d+)$/);
     if(inputId==="fromPlace"){
       fromResult=null; $("from").value="";
       if($("locationStatus")) $("locationStatus").textContent="";
