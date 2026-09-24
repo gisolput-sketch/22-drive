@@ -528,7 +528,7 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 .mobile-ride-card .ride-price{font-size:24px}.mobile-ride-card .ride-address{font-size:13px}.mobile-ride-card .ride-meta,.mobile-ride-card .passenger-label,.mobile-ride-card .route-label{font-size:11px}.mobile-ride-card .ride-actions .btn{font-size:13px;padding:10px}
 .gain-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.gain-summary-grid .scheduled-item{margin:0;text-align:center}.gain-summary-grid small{font-size:15px;font-weight:700;color:#fff}
 
-.driver-navigation-panel{position:fixed;top:88px;left:12px;right:12px;z-index:1900;display:flex;align-items:center;gap:10px;padding:10px 12px;background:#07101c;border:1px solid #ffc700;border-radius:14px;box-shadow:0 6px 24px #0009;color:#fff}.driver-navigation-panel.hidden{display:none}.nav-next-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:12px;background:#1683ff;color:#fff;font-size:27px;font-weight:900;flex:none}.nav-next-text{min-width:0;flex:1}.nav-next-text #navInstruction{font-size:16px;font-weight:900;line-height:1.15}.nav-next-text #navRoad{font-size:11px;color:#b9c7d8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nav-distance{font-size:13px;font-weight:900;white-space:nowrap}.driver-navigation-panel.arrived .nav-next-icon{background:#16a34a}@media(max-width:520px){.driver-navigation-panel{top:86px;left:8px;right:8px}.nav-next-text #navInstruction{font-size:14px}.nav-distance{font-size:12px}}
+.driver-navigation-panel{position:fixed;top:88px;left:12px;right:12px;z-index:1900;display:flex;align-items:center;gap:10px;padding:10px 12px;background:#07101c;border:1px solid #ffc700;border-radius:14px;box-shadow:0 6px 24px #0009;color:#fff}.driver-navigation-panel.hidden{display:none}.nav-next-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:12px;background:#1683ff;color:#fff;font-size:27px;font-weight:900;flex:none}.nav-next-text{min-width:0;flex:1}.nav-next-text #navInstruction{font-size:16px;font-weight:900;line-height:1.15}.nav-next-text #navRoad{font-size:11px;color:#b9c7d8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nav-distance{font-size:13px;font-weight:900;white-space:nowrap}.driver-navigation-panel.arrived .nav-next-icon{background:#16a34a}.nav-voice-button{width:42px;height:42px;flex:none;border:1px solid #ffc700;border-radius:12px;background:#0b1a2b;color:#fff;font-size:20px;cursor:pointer}.nav-voice-button.muted{opacity:.65}@media(max-width:520px){.nav-voice-button{width:38px;height:38px;font-size:18px}}@media(max-width:520px){.driver-navigation-panel{top:86px;left:8px;right:8px}.nav-next-text #navInstruction{font-size:14px}.nav-distance{font-size:12px}}
 </style></style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -567,7 +567,7 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
       <div id="navInstruction">Siga em frente</div>
       <div id="navRoad"></div>
     </div>
-    <div class="nav-distance" id="navDistance">—</div>
+    <div class="nav-distance" id="navDistance">—</div><button type="button" class="nav-voice-button" id="navVoiceButton" onclick="toggleNavigationVoice()" aria-label="Ativar ou silenciar voz">🔊</button>
   </div>
 
   <div id="driverContent" class="driver-bottom-area">
@@ -1099,7 +1099,7 @@ let driverMap=null,driverMarker=null,driverLocation=null;
 let rideMapLayer=null;
 let rideMapRequestId=null;
 let rideMapTimer=null;
-const navigationState={steps:[],index:0,rideId:null,type:null};
+const navigationState={steps:[],index:0,rideId:null,type:null,lastSpokenIndex:-1,voiceEnabled:true};
 function navText(step){
   const m=step&&step.maneuver||{}; const type=String(m.type||""); const mod=String(m.modifier||"");
   if(type==="arrive")return "Você chegou ao destino";
@@ -1109,6 +1109,22 @@ function navText(step){
   return map[mod]||"Continue pela rota";
 }
 function formatNavDistance(m){m=Number(m)||0;return m<1000?Math.round(m)+" m":(m/1000).toFixed(1).replace(".",",")+" km"}
+function speakNavigationInstruction(force=false){
+  if(!navigationState.voiceEnabled || typeof window==="undefined" || !("speechSynthesis" in window))return;
+  const s=navigationState.steps[navigationState.index];
+  if(!s)return;
+  if(!force && navigationState.lastSpokenIndex===navigationState.index)return;
+  navigationState.lastSpokenIndex=navigationState.index;
+  const text=navText(s)+ (s.name?" pela "+String(s.name).trim():"") + (s.distance?" em "+formatNavDistance(s.distance):"");
+  try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="pt-BR";u.rate=0.95;u.pitch=1;u.volume=1;window.speechSynthesis.speak(u);}catch(e){console.warn("22 DRIVE voz:",e)}
+}
+function toggleNavigationVoice(){
+  navigationState.voiceEnabled=!navigationState.voiceEnabled;
+  if(!navigationState.voiceEnabled && "speechSynthesis" in window)window.speechSynthesis.cancel();
+  const b=$("navVoiceButton");
+  if(b){b.textContent=navigationState.voiceEnabled?"🔊":"🔇";b.classList.toggle("muted",!navigationState.voiceEnabled);b.setAttribute("aria-label",navigationState.voiceEnabled?"Silenciar voz":"Ativar voz");}
+  if(navigationState.voiceEnabled)speakNavigationInstruction(true);
+}
 function updateNavigationPanel(){
   const p=$("driverNavigationPanel"); if(!p)return;
   const s=navigationState.steps[navigationState.index];
@@ -1119,11 +1135,12 @@ function updateNavigationPanel(){
   $("navDistance").textContent=formatNavDistance(s.distance);
   const mod=String(s.maneuver?.modifier||"");
   $("navNextIcon").textContent=mod==="left"?"←":mod==="right"?"→":mod==="slight_left"?"↖":mod==="slight_right"?"↗":mod==="uturn"?"↶":mod==="straight"?"↑":"➤";
+  const b=$("navVoiceButton");if(b){b.textContent=navigationState.voiceEnabled?"🔊":"🔇";b.classList.toggle("muted",!navigationState.voiceEnabled);}
 }
 function setNavigationSteps(route,rideId,type){
   const steps=[];
   (route?.legs||[]).forEach(leg=>(leg.steps||[]).forEach(s=>steps.push(s)));
-  navigationState.steps=steps; navigationState.index=0; navigationState.rideId=String(rideId||""); navigationState.type=type||null; updateNavigationPanel();
+  navigationState.steps=steps; navigationState.index=0; navigationState.rideId=String(rideId||""); navigationState.type=type||null; navigationState.lastSpokenIndex=-1; updateNavigationPanel(); speakNavigationInstruction(true);
 }
 function advanceNavigationByLocation(position){
   if(!navigationState.steps.length)return;
@@ -1134,6 +1151,7 @@ function advanceNavigationByLocation(position){
     if(distanceMeters(p,[Number(loc[1]),Number(loc[0])])<=45)navigationState.index++;else break;
   }
   updateNavigationPanel();
+  speakNavigationInstruction();
 }
 function clearRideMap(){
   if(rideMapTimer){clearTimeout(rideMapTimer);rideMapTimer=null;}
