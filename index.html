@@ -129,41 +129,17 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <p class="muted">O site calcula a distância real pelas ruas automaticamente. Tarifa: até 9 km, R$ 20,00. Após 9 km, acrescenta R$ 2,00 por km.</p>
 </section>
 
+<input id="name" type="hidden" value="">
+<input id="phone" type="hidden" value="">
 <section class="card">
-<h2>👤 Passageiro</h2>
-<div class="grid">
-<div class="field"><label>Nome</label><input id="name" required></div>
-<div class="field"><label>WhatsApp</label><input id="phone" type="tel" required placeholder="(21) 99999-9999"></div>
-</div>
+<h2>👥 Detalhes da viagem</h2>
 <div class="grid">
 <div class="field"><label>Passageiros</label><select id="people"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
 <div class="field"><label>Bagagem</label><select id="bags"><option>Nenhuma</option><option>1 pequena</option><option>2 pequenas</option><option>Bagagem grande</option></select></div>
 </div>
 <div class="field"><label>Observações</label><textarea id="obs" rows="2" placeholder="Ponto de referência ou informação importante"></textarea></div>
+<p class="muted">Seu nome, WhatsApp e cadastro são reconhecidos automaticamente pelo acesso à sua conta.</p>
 </section>
-
-<section class="card">
-<h2>🎵 Preferência de som</h2>
-<div class="choices">
-<label><input type="radio" name="sound" value="Com som" required><span>🔊 Com som</span></label>
-<label><input type="radio" name="sound" value="Sem som"><span>🔇 Sem som</span></label>
-</div>
-<div id="musicBox" style="display:none;margin-top:12px">
-<div class="field">
-<label>🎶 Qual estilo de música você prefere?</label>
-<select id="musicStyle">
-<option value="">Escolha um estilo</option><option>MPB</option><option>Samba</option><option>Pagode</option><option>Samba-enredo</option><option>Funk</option><option>Funk carioca</option><option>Funk melody</option><option>Rap</option><option>Hip-hop</option><option>Trap</option><option>R&B</option><option>Reggae</option><option>Sertanejo</option><option>Sertanejo universitário</option><option>Forró</option><option>Forró eletrônico</option><option>Piseiro</option><option>Arrocha</option><option>Axé</option><option>Frevo</option><option>Maracatu</option><option>Bossa nova</option><option>Rock</option><option>Pop</option><option>Pop rock</option><option>Indie</option><option>Alternativo</option><option>Heavy metal</option><option>Metal</option><option>Hard rock</option><option>Punk rock</option><option>Blues</option><option>Jazz</option><option>Soul</option><option>Disco</option><option>Folk</option><option>Country</option><option>Eletrônica</option><option>House</option><option>Techno</option><option>EDM</option><option>Dance</option><option>Lo-fi</option><option>Clássica</option><option>Instrumental</option><option>Gospel</option><option>Católica</option><option>Internacional</option><option>Latina</option><option>Reggaeton</option><option>K-pop</option><option>J-pop</option><option>Outro</option>
-</select>
-</div>
-<div class="field">
-<label>🎤 Cantor(a), banda ou artista de preferência <span class="muted">(opcional)</span></label>
-<input id="musicArtist" placeholder="Ex.: seu cantor ou banda preferida">
-</div>
-</div>
-<p class="muted" style="margin:10px 0 0">Escolha se prefere viajar com o som ligado ou sem som. Se escolher com som, informe o estilo e, se quiser, o artista.</p>
-</section>
-
-
 
 <section class="card">
 <h2>💳 Forma de pagamento</h2>
@@ -674,9 +650,9 @@ async function createReservationInSupabase(){
     observation:$("obs").value.trim()||null,
     payment_method:payment?payment.value:null,
     payment_date:payment&&payment.value==="No amor"?$("noLovePaymentDate").value||null:null,
-    sound_preference:sound?sound.value:null,
-    music_style:sound&&sound.value==="Com som"?$("musicStyle").value||null:null,
-    music_artist:sound&&sound.value==="Com som"?$("musicArtist").value.trim()||null:null,
+    sound_preference:null,
+    music_style:null,
+    music_artist:null,
     trip_value:Number(tripValue.toFixed(2)),
     toll_value:Number(tollValue.toFixed(2)),
     total_value:Number(grandTotal.toFixed(2)),
@@ -1015,6 +991,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       $("name").value=p.name||$("name").value;
     }
   });
+  const p=loadPassengerProfile(); if(p) showPassengerProfile(p);
   initMap();
   setupAutocomplete("fromPlace");
   setupAutocomplete("toPlace");
@@ -1200,12 +1177,6 @@ document.querySelectorAll('input[name="type"]').forEach(x=>x.addEventListener("c
 
 document.querySelectorAll('input[name="payment"]').forEach(x=>x.addEventListener("change",updateNoLovePaymentDate));
 
-document.querySelectorAll('input[name="sound"]').forEach(x=>x.addEventListener("change",()=>{
-  const withSound=x.value==="Com som" && x.checked;
-  $("musicBox").style.display=withSound?"block":"none";
-  $("musicStyle").required=withSound;
-  if(!withSound){$("musicStyle").value="";$("musicArtist").value="";}
-}));
 $("time").addEventListener("change",async()=>{calc();await checkSlot($("date").value,$("time").value,"availabilityStatus");});
 $("rdate").addEventListener("change",calc);
 $("rtime").addEventListener("change",async()=>{calc();await checkSlot($("rdate").value,$("rtime").value,"availabilityReturnStatus");});
@@ -1281,9 +1252,6 @@ $("form").addEventListener("submit",e=>{
     if(!noLovePaymentDate){alert("Escolha a data prevista para o pagamento.");return;}
     if(noLovePaymentDate<min || noLovePaymentDate>max){alert("A data de pagamento deve ficar dentro de 5 dias úteis a partir da data da viagem.");return;}
   }
-  const sound=document.querySelector('input[name="sound"]:checked');
-  if(!sound){alert("Informe se prefere viajar com o som ligado ou sem som.");return;}
-  if(sound.value==="Com som" && !$("musicStyle").value){alert("Escolha o estilo de música de sua preferência.");return;}
   msg+=`👥 Passageiros: ${$("people").value}
 🧳 Bagagem: ${$("bags").value}
 💳 Forma de pagamento: ${payment.value}
@@ -1377,11 +1345,6 @@ $("reset").onclick=()=>{
  if(savedProfile){ $("name").value=savedProfile.name||""; $("phone").value=savedProfile.phone||""; }
   renderFavorites();
  document.querySelectorAll('input[name="payment"]').forEach(x=>x.checked=false);
- document.querySelectorAll('input[name="sound"]').forEach(x=>x.checked=false);
- $("musicBox").style.display="none";
- $("musicStyle").value="";
- $("musicStyle").required=false;
- $("musicArtist").value="";
  $("noLovePaymentDate").value="";
  updateNoLovePaymentDate();
  fromResult=null;toResult=null;
