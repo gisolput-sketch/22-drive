@@ -39,7 +39,7 @@ body{overflow:hidden}
   padding-bottom:150px;
   overflow:hidden;
 }
-#driverMapShell.active{display:block!important}
+#driverMapShell.active{display:block}
 .driver-topbar{
   pointer-events:auto;
   position:fixed;
@@ -564,18 +564,12 @@ body.navigation-active .driver-navigation-panel .nav-next-text #navInstruction{f
 body.navigation-active .driver-navigation-panel .nav-next-text #navRoad{font-size:13px;color:#e0ffff}
 body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
 @media(max-width:520px){.driver-nav-summary{left:8px;right:8px;bottom:8px;border-radius:22px}.nav-summary-top strong{font-size:20px}body.navigation-active .driver-navigation-panel{top:86px;left:8px;right:8px}}
-
+</style></style>
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="apple-touch-icon" href="icon-192.svg">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style id="driver-visibility-fix">
-/* Correção de emergência: o painel do motorista deve permanecer visível. */
-#driverMapShell{display:block!important;visibility:visible!important;opacity:1!important}
-#driverMap{display:block!important;visibility:visible!important;opacity:1!important}
-#login,#app{display:none!important}
-</style>
 </head>
 <body>
 
@@ -865,7 +859,7 @@ async function unlockDriverSound(){
     return audioCtx.state==="running";
   }catch(e){console.warn("22 DRIVE áudio:",e);return false;}
 }
-async function playNewRideSound(){
+async async function playNewRideSound(){
   try{
     const ready=await unlockDriverSound();
     if(!ready||!audioCtx)return;
@@ -902,8 +896,8 @@ async function testDriverSound(){
   }
 }
 async function enableDriverNotifications(){unlockDriverSound();localStorage.setItem(NOTIFY_KEY,"1");if(!("Notification" in window)){$("notificationStatus").textContent="Este navegador não oferece notificações.";playNewRideSound();return;}try{const p=await Notification.requestPermission();if(p!=="granted"){$("notificationStatus").textContent="⚠️ Permissão de notificação não concedida.";return;}await registerDriverPush();$("notificationStatus").textContent="✅ Notificações ativadas e registradas na base. Agora o celular poderá receber novas viagens mesmo com o painel em segundo plano.";playNewRideSound();}catch(e){console.error("22 DRIVE Web Push:",e);$("notificationStatus").textContent="❌ Não foi possível registrar as notificações: "+(e&&e.message?e.message:"erro desconhecido");}}
-function showNewRideNotification(r){startRideAlert(r);const passenger=r.passengerName||r.nome||"Passageiro";const title="🚨 Nova viagem — 22 DRIVE";const body=passenger+" solicitou uma nova corrida. O som continuará tocando até o motorista aceitar.";const overlay=$("newRideAlertOverlay");const sub=$("newRideAlertPassenger");if(sub)sub.textContent=passenger+" solicitou uma nova corrida.";if(overlay)overlay.classList.remove("show");if("Notification" in window&&Notification.permission==="granted"){try{new Notification(title,{body,icon:"./icon-192.svg",tag:"22drive-"+r.id});}catch(e){}}notice(body)}
-function closeNewRideAlert(){const overlay=$("newRideAlertOverlay");if(overlay)overlay.classList.remove("show");}\nfunction monitorNewRequests(){const rs=requests();const active=rs.filter(r=>(r.status||"new")==="new");if(!lastSeenRequestIds.size){active.forEach(r=>lastSeenRequestIds.add(String(r.id)));return;}active.forEach(r=>{const id=String(r.id);if(!lastSeenRequestIds.has(id)){lastSeenRequestIds.add(id);showNewRideNotification(r);}});Array.from(lastSeenRequestIds).forEach(id=>{if(!active.some(r=>String(r.id)===id))lastSeenRequestIds.delete(id)});}
+function showNewRideNotification(r){startRideAlert(r);const passenger=r.passengerName||r.nome||"Passageiro";const title="🚨 Nova viagem — 22 DRIVE";const body=passenger+" solicitou uma viagem. Confira origem, destino e horário.";playNewRideSound();if("Notification" in window&&Notification.permission==="granted"){try{new Notification(title,{body,icon:"./icon-192.svg",tag:"22drive-"+r.id});}catch(e){}}notice(body)}
+function monitorNewRequests(){const rs=requests();const active=rs.filter(r=>(r.status||"new")==="new");if(!lastSeenRequestIds.size){active.forEach(r=>lastSeenRequestIds.add(String(r.id)));return;}active.forEach(r=>{const id=String(r.id);if(!lastSeenRequestIds.has(id)){lastSeenRequestIds.add(id);showNewRideNotification(r);}});Array.from(lastSeenRequestIds).forEach(id=>{if(!active.some(r=>String(r.id)===id))lastSeenRequestIds.delete(id)});}
 
 const $=id=>document.getElementById(id);
 function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
