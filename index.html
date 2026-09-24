@@ -415,14 +415,9 @@ function loadPassengerProfile(){
 
 function showPassengerProfile(profile){
   if(!profile) return;
-  $("profilePhone").value=profile.phone||"";
-  $("profileName").value=profile.name||"";
-  $("profileEmail").value=profile.email||"";
-  $("name").value=profile.name||"";
-  $("phone").value=profile.phone||"";
-  $("profileLoginBox").style.display="none";
-  $("profileSavedBox").style.display="block";
-  $("profileSavedText").innerHTML="✅ Cadastro encontrado para <b>"+(profile.name||"passageiro")+"</b>.<br>Seus dados já foram preenchidos. Você pode alterá-los a qualquer momento.";
+  const nameEl=$("name"), phoneEl=$("phone");
+  if(nameEl) nameEl.value=profile.name||"";
+  if(phoneEl) phoneEl.value=profile.phone||"";
 }
 
 async function savePassengerProfile(){
@@ -1001,28 +996,25 @@ document.addEventListener("click",e=>{
 });
 
 document.addEventListener("DOMContentLoaded",()=>{
+  // Inicializa o mapa primeiro para que nenhum bloco opcional impeça sua execução.
+  initMap();
   document.querySelectorAll(".review-star").forEach(b=>b.addEventListener("click",()=>{selectedReviewRating=Number(b.dataset.star);updateReviewStars();}));
-  $("sendReviewBtn").addEventListener("click",submitPassengerReview);
+  const reviewBtn=$("sendReviewBtn"); if(reviewBtn) reviewBtn.addEventListener("click",submitPassengerReview);
   connectPassengerRealtime();
   const savedProfile=loadPassengerProfile();
   if(savedProfile) showPassengerProfile(savedProfile);
   renderFavorites();
-  $("saveProfileBtn").addEventListener("click",savePassengerProfile);
-  $("editProfileBtn").addEventListener("click",editPassengerProfile);
-  $("findProfileBtn").addEventListener("click",findPassengerProfile);
-  $("saveFavoriteBtn").addEventListener("click",saveFavorite);
-  renderFavorites();
-  $("phone").addEventListener("change",()=>{
+  const saveFavoriteBtn=$("saveFavoriteBtn"); if(saveFavoriteBtn) saveFavoriteBtn.addEventListener("click",saveFavorite);
+  const phoneEl=$("phone");
+  if(phoneEl) phoneEl.addEventListener("change",()=>{
     const p=loadPassengerProfile();
-    if(p && normalizePhone(p.phone)===normalizePhone($("phone").value)){
-      $("name").value=p.name||$("name").value;
+    if(p && normalizePhone(p.phone)===normalizePhone(phoneEl.value)){
+      const nameEl=$("name"); if(nameEl) nameEl.value=p.name||nameEl.value;
     }
   });
-  const p=loadPassengerProfile(); if(p) showPassengerProfile(p);
-  initMap();
   setupAutocomplete("fromPlace");
   setupAutocomplete("toPlace");
-  $("useLocationBtn").addEventListener("click",useCurrentLocation);
+  const locationBtn=$("useLocationBtn"); if(locationBtn) locationBtn.addEventListener("click",useCurrentLocation);
 });
 
 
