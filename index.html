@@ -698,16 +698,33 @@ async function createReservationInSupabase(){
 
 
 function initMap(){
-  if(typeof L==="undefined"){
-    $("routeStatus").textContent="❌ O mapa não carregou. Verifique sua conexão com a internet.";
+  const mapEl=$("map");
+  if(!mapEl){
+    console.error("22 DRIVE — elemento #map não encontrado.");
     return;
   }
-  driveMap=L.map("map",{zoomControl:true}).setView([-22.73,-42.63],10);
+  if(typeof L==="undefined"){
+    mapEl.innerHTML='<div style="height:100%;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-weight:700">🗺️ Carregando mapa...</div>';
+    $("routeStatus").textContent="⏳ O mapa está carregando. Atualize a página se ele não aparecer.";
+    return;
+  }
+  if(driveMap){
+    setTimeout(()=>driveMap.invalidateSize(true),100);
+    return;
+  }
+  driveMap=L.map(mapEl,{zoomControl:true,preferCanvas:true}).setView([-22.73,-42.63],10);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
     maxZoom:19,
+    detectRetina:true,
     attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(driveMap);
+  setTimeout(()=>driveMap.invalidateSize(true),150);
+  setTimeout(()=>driveMap.invalidateSize(true),600);
 }
+
+window.addEventListener("load",()=>{
+  if(driveMap) setTimeout(()=>driveMap.invalidateSize(true),150);
+});
 
 function clearSuggestions(inputId){
   const wrap=$(inputId).closest(".autocomplete-wrap");
