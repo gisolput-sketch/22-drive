@@ -1,1 +1,1 @@
-Restauração do motorista.html completa. Commit-base: 5baac016906733decd46cc1d7fec411edd74a2d6.
+Restauração completa do motorista.html — commit estrutural 5baac016906733decd46cc1d7fec411edd74a2d6.
