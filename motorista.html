@@ -1220,6 +1220,8 @@ function advanceNavigationByLocation(position){
 function clearRideMap(){
   if(rideMapTimer){clearTimeout(rideMapTimer);rideMapTimer=null;}
   rideMapRequestId=null;
+  rideMapRouteCoords=[];
+  resetOffRouteState();
   if(rideMapLayer&&driverMap){driverMap.removeLayer(rideMapLayer);}
   rideMapLayer=null;
 }
@@ -1533,6 +1535,7 @@ function startDestinationArrivalWatch(r){
     driverLocation=current;
     followDriverOnMap(pos);
     advanceNavigationByLocation(pos);
+    checkOffRouteAndReroute(r,"dropoff");
     const destination=rideCoordinate(r,"dropoff");
     if(destination && distanceMeters(current,destination)<=120){
       autoFinishAtDestination(r);
@@ -1588,6 +1591,7 @@ function startPickupArrivalWatch(r){
     driverLocation=current;
     followDriverOnMap(pos);
     advanceNavigationByLocation(pos);
+    checkOffRouteAndReroute(r,"pickup");
     const pickup=rideCoordinate(r,"pickup");
     if(!pickup)return;
     if(distanceMeters(current,pickup)<=120){
