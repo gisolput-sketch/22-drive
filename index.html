@@ -162,6 +162,9 @@ const WA="5521999696851";
 const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co";
 const SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
 const defaults={base:20,includedKm:10,extraPerKm:2};
+const EXTRA_STOP_FEE=5;
+const WAITING_FREE_MINUTES=3;
+const WAITING_FEE_PER_BLOCK=3;
 const PROFILE_KEY="22drive_passenger_profile";
 const FAVORITES_KEY="22drive_passenger_favorites";
 
@@ -558,7 +561,13 @@ async function createReservationInSupabase(){
   const tolls=calculateTolls();
   const tripValue=type==="volta"?one*2:one;
   const tollValue=Number(tolls.total)||0;
-  const grandTotal=tripValue+tollValue;
+  const extraStops=stopResults.filter(Boolean).map((s,i)=>({
+    order:i+1,address:s.display_name,lat:Number(s.lat),lng:Number(s.lon)
+  }));
+  const extraStopValue=extraStops.length*EXTRA_STOP_FEE;
+  const waitingValue=0;
+  const waitingMinutes=0;
+  const grandTotal=tripValue+tollValue+extraStopValue+waitingValue;
   const depositValue=grandTotal*0.5;
 
   // Gravamos diretamente na tabela reservas para garantir que distância,
@@ -590,6 +599,10 @@ async function createReservationInSupabase(){
     return_time:returnTime,
     origin:originAddress,
     destination:destinationAddress,
+    paradas_extras:extraStops,
+    extra_stop_value:Number(extraStopValue.toFixed(2)),
+    waiting_value:Number(waitingValue.toFixed(2)),
+    waiting_minutes:waitingMinutes,
 
     // Campos legados mantidos para compatibilidade com funções/consultas existentes
     nome:passengerName,
@@ -617,6 +630,9 @@ async function createReservationInSupabase(){
     trip_value:Number(tripValue.toFixed(2)),
     toll_value:Number(tollValue.toFixed(2)),
     total_value:Number(grandTotal.toFixed(2)),
+    extra_stop_value:Number(extraStopValue.toFixed(2)),
+    waiting_value:Number(waitingValue.toFixed(2)),
+    waiting_minutes:waitingMinutes,
     deposit_value:Number(depositValue.toFixed(2)),
     status:"new"
   };
@@ -1120,22 +1136,39 @@ function calculateTripFare(km){
   return Math.round((base+(distance-included)*extra)*100)/100;
 }
 
+function getExtraStopCount(){
+  return stopResults.filter(Boolean).length;
+}
+
+function calculateStopFee(){
+  return getExtraStopCount()*EXTRA_STOP_FEE;
+}
+
+function calculateWaitingFee(waitingMinutes){
+  const minutes=Math.max(0,Number(waitingMinutes)||0);
+  const blocks=Math.floor(minutes/WAITING_FREE_MINUTES);
+  return blocks*WAITING_FEE_PER_BLOCK;
+}
+
 function calc(){
   const km=parseFloat($("km").value)||0;
   const type=document.querySelector('input[name="type"]:checked').value;
   const one=calculateTripFare(km);
   const tripTotal=type==="volta"?one*2:one;
   const tolls=calculateTolls();
-  const grandTotal=tripTotal+tolls.total;
+  const stopFee=calculateStopFee();
+  const grandTotal=tripTotal+tolls.total+stopFee;
 
   $("price").textContent=money(grandTotal);
-  $("detail").textContent=km<=10
+  $("detail").innerHTML=(km<=10
     ? `Até 10 km: ${money(rates.base)}${type==="volta"?" • ida e volta":""}`
-    : `10 km incluídos + ${(km-10).toFixed(1)} km × ${money(rates.extraPerKm)}/km excedente${type==="volta"?" • ida e volta":""}`;
-  $("tollDetail").innerHTML=tollBreakdownHtml(tolls.legs).replace(
-    money(tolls.total),
-    money(tolls.total)
-  );
+    : `10 km incluídos + ${(km-10).toFixed(1)} km × ${money(rates.extraPerKm)}/km excedente${type==="volta"?" • ida e volta":""}`)
+    + (stopFee>0 ? `<br>🛑 ${getExtraStopCount()} parada(s) × ${money(EXTRA_STOP_FEE)} = ${money(stopFee)}` : "")
+    + `<br>⏱️ Espera: 3 minutos por parada incluídos; após isso, ${money(WAITING_FEE_PER_BLOCK)} a cada 3 minutos completos.`;
+  $("tollDetail").innerHTML=tollBreakdownHtml(tolls.legs)
+    + (stopFee>0 ? `<br>🛑 <b>Paradas extras:</b> ${money(stopFee)}` : "")
+    + `<br>⏱️ <b>Espera:</b> cobrança somente após os 3 minutos gratuitos de cada parada.`
+    + `<br><br>💰 <b>Total:</b> ${money(grandTotal)}`;
 }
 function setMin(){
  const d=new Date(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");
@@ -1257,6 +1290,10 @@ $("form").addEventListener("submit",e=>{
 `;
   msg+=`🚗 Valor da viagem: ${money(tripTotal)}
 `;
+  msg+=`🛑 Paradas extras: ${selectedStops.length} × ${money(EXTRA_STOP_FEE)} = ${money(selectedStops.length*EXTRA_STOP_FEE)}
+`;
+  msg+=`⏱️ Espera: 3 minutos gratuitos por parada; depois ${money(WAITING_FEE_PER_BLOCK)} a cada 3 minutos completos
+`;
   msg+=`💳 Sinal de 50% para confirmar: ${money(grandTotal*0.5)}
 `;
   msg+=`🛣️ Pedágios: ${money(tolls.total)}
@@ -1269,7 +1306,9 @@ $("form").addEventListener("submit",e=>{
     });
   });
 
-  msg+=`💰 Total: ${money(grandTotal)}
+  msg+=`🛑 Taxa de paradas: ${money(selectedStops.length*EXTRA_STOP_FEE)}
+`;
+  msg+=`💰 Total inicial: ${money(grandTotal)}
 `;
 
 
