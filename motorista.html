@@ -1835,7 +1835,12 @@ function buildNavigationUrl(r,type){
     ?(coordinate[0]+","+coordinate[1])
     :textAddress;
   if(!destination)return "";
-  return "https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(destination)+"&travelmode=driving&dir_action=navigate";
+  let url="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(destination);
+  if(type==="dropoff" && Array.isArray(r.extraStops) && r.extraStops.length){
+    const waypoints=r.extraStops.map(s=>s&&((s.lat!=null&&s.lng!=null)?String(s.lat)+","+String(s.lng):String(s.address||"").trim())).filter(Boolean);
+    if(waypoints.length) url+="&waypoints="+encodeURIComponent(waypoints.join("|"));
+  }
+  return url+"&travelmode=driving&dir_action=navigate";
 }
 function openNavigationToRidePoint(r,type){
   const url=buildNavigationUrl(r,type);
@@ -2159,7 +2164,7 @@ function card(r){
  if(s==="new"||!r.status)buttons='<button class="btn green" onclick="acceptRide(\''+esc(r.id)+'\')">✓ Aceitar</button><button class="btn red" onclick="cancelRide(\''+esc(r.id)+'\')">✕ Recusar</button>';
  if(s==="accepted")buttons='<button class="btn green" onclick="openModal(\''+esc(r.id)+'\')">🗓️ Confirmar horário</button><button class="btn red" onclick="cancelRide(\''+esc(r.id)+'\')">Cancelar</button>';
  if(s==="confirmed")buttons='<button class="btn green" onclick="markDriverArrived(\''+esc(r.id)+'\')">'+(r.driverArrivedAt?"✅ Cheguei no embarque":"📍 Cheguei no embarque")+'</button><button class="btn primary" onclick="messagePassenger(\''+esc(r.id)+'\')">💬 WhatsApp</button><button class="btn gray" onclick="finishRide(\''+esc(r.id)+'\')">✓ Finalizar corrida</button>';
- return '<article class="request"><div class="head"><div><b>🚕 '+esc(passenger)+'</b>'+(phone?'<div class="muted">📱 '+esc(phone)+'</div>':"")+'</div><span class="badge '+b[0]+'">'+b[1]+'</span></div><div style="line-height:1.7;margin:12px 0;font-size:14px">📍 <b>Origem:</b> '+esc(origin)+mapLinks+'<br>🏁 <b>Destino:</b> '+esc(dest)+(date||time?'<br>🕐 <b>Pedido:</b> '+dateBR(date)+' '+esc(time):"")+(r.payment||r.pagamento?'<br>💳 <b>Pagamento:</b> '+esc(r.payment||r.pagamento):"")+(r.note||r.observacao?'<br>📝 <b>Obs.:</b> '+esc(r.note||r.observacao):"")+schedule+'</div><div class="actions">'+buttons+'</div></article>'
+ return '<article class="request"><div class="head"><div><b>🚕 '+esc(passenger)+'</b>'+(phone?'<div class="muted">📱 '+esc(phone)+'</div>':"")+'</div><span class="badge '+b[0]+'">'+b[1]+'</span></div><div style="line-height:1.7;margin:12px 0;font-size:14px">📍 <b>Origem:</b> '+esc(origin)+mapLinks+stopsHtml+'<br>🏁 <b>Destino:</b> '+esc(dest)+(date||time?'<br>🕐 <b>Pedido:</b> '+dateBR(date)+' '+esc(time):"")+(r.payment||r.pagamento?'<br>💳 <b>Pagamento:</b> '+esc(r.payment||r.pagamento):"")+(r.note||r.observacao?'<br>📝 <b>Obs.:</b> '+esc(r.note||r.observacao):"")+schedule+'</div><div class="actions">'+buttons+'</div></article>'
 }
 async function acceptRide(id){
   stopRideAlert(id);
