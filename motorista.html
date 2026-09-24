@@ -1099,6 +1099,42 @@ let driverMap=null,driverMarker=null,driverLocation=null;
 let rideMapLayer=null;
 let rideMapRequestId=null;
 let rideMapTimer=null;
+const navigationState={steps:[],index:0,rideId:null,type:null};
+function navText(step){
+  const m=step&&step.maneuver||{}; const type=String(m.type||""); const mod=String(m.modifier||"");
+  if(type==="arrive")return "Você chegou ao destino";
+  if(type==="depart")return "Siga pela rota";
+  if(type==="roundabout"||type==="rotary")return "Entre na rotatória";
+  const map={left:"Vire à esquerda",right:"Vire à direita",slight_left:"Mantenha-se à esquerda",slight_right:"Mantenha-se à direita",uturn:"Faça o retorno",straight:"Siga em frente"};
+  return map[mod]||"Continue pela rota";
+}
+function formatNavDistance(m){m=Number(m)||0;return m<1000?Math.round(m)+" m":(m/1000).toFixed(1).replace(".",",")+" km"}
+function updateNavigationPanel(){
+  const p=$("driverNavigationPanel"); if(!p)return;
+  const s=navigationState.steps[navigationState.index];
+  if(!s){p.classList.add("hidden");return;}
+  p.classList.remove("hidden");
+  $("navInstruction").textContent=navText(s);
+  $("navRoad").textContent=String(s.name||"").trim()||"Siga a rota indicada";
+  $("navDistance").textContent=formatNavDistance(s.distance);
+  const mod=String(s.maneuver?.modifier||"");
+  $("navNextIcon").textContent=mod==="left"?"←":mod==="right"?"→":mod==="slight_left"?"↖":mod==="slight_right"?"↗":mod==="uturn"?"↶":mod==="straight"?"↑":"➤";
+}
+function setNavigationSteps(route,rideId,type){
+  const steps=[];
+  (route?.legs||[]).forEach(leg=>(leg.steps||[]).forEach(s=>steps.push(s)));
+  navigationState.steps=steps; navigationState.index=0; navigationState.rideId=String(rideId||""); navigationState.type=type||null; updateNavigationPanel();
+}
+function advanceNavigationByLocation(position){
+  if(!navigationState.steps.length)return;
+  const p=[position.coords.latitude,position.coords.longitude];
+  while(navigationState.index<navigationState.steps.length-1){
+    const loc=navigationState.steps[navigationState.index+1]?.maneuver?.location;
+    if(!Array.isArray(loc)||loc.length<2)break;
+    if(distanceMeters(p,[Number(loc[1]),Number(loc[0])])<=45)navigationState.index++;else break;
+  }
+  updateNavigationPanel();
+}
 function clearRideMap(){
   if(rideMapTimer){clearTimeout(rideMapTimer);rideMapTimer=null;}
   rideMapRequestId=null;
