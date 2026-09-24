@@ -1455,24 +1455,9 @@ function startPickupArrivalWatch(r){
     if(distanceMeters(current,pickup)<=120){
       setRouteState(r.id,"dropoff_ready");
       stopPickupArrivalWatch();
-      const destinationUrl=buildNavigationUrl(r,"dropoff");
-      let switched=false;
-      try{
-        if(routeNavigationWindow&&!routeNavigationWindow.closed&&destinationUrl){
-          routeNavigationWindow.location.href=destinationUrl;
-          routeNavigationWindow.focus?.();
-          switched=true;
-        }
-      }catch(e){}
-      if(!switched && destinationUrl){
-        // Tenta abrir novamente; em alguns aparelhos o navegador pode bloquear.
-        try{routeNavigationWindow=window.open(destinationUrl,"22drive_navigation");switched=!!routeNavigationWindow;}catch(e){}
-      }
-      startDestinationArrivalWatch(r);
+      updateRideMapForRequest(r);
       renderTodayAcceptedRoutes();
-      notice(switched
-        ?"📍 Embarque alcançado. Navegação alterada automaticamente para o destino do passageiro."
-        :"📍 Embarque alcançado. Toque em “🏁 Iniciar rota” para abrir o destino do passageiro.");
+      notice("📍 Embarque alcançado. Agora o botão “🏁 Iniciar percurso” leva o mapa do 22 DRIVE até o destino.");
     }
   },()=>{}, {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
 }
