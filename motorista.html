@@ -190,8 +190,10 @@ body{overflow:hidden}
   border:3px solid #fff;
   box-shadow:0 0 0 11px #72c8ff45,0 0 28px #1696ff99;
 }
-.driver-map .leaflet-map-pane{will-change:transform;transition:transform .18s linear;}
-.driver-car-marker span{transition:transform .18s linear;}
+.driver-map{perspective:1000px;perspective-origin:50% 58%;}
+.driver-map .leaflet-map-pane{will-change:transform;transition:transform .18s linear;transform-style:preserve-3d;}
+.driver-car-marker span{transition:transform .18s linear;transform-style:preserve-3d;}
+body.navigation-active .driver-map{overflow:hidden;}
 .driver-bottom-area{
   position:fixed;
   left:0;
@@ -1252,6 +1254,8 @@ function updateNavigationSummary(){
   const pct=total?Math.min(100,Math.max(0,(1-remaining/total)*100)):0;
   $("navSummaryBar").style.width=pct.toFixed(1)+"%";
 }
+const NAV_PITCH_DEG=18;
+const NAV_MAP_SCALE=1.2;
 function applyNavigationBearing(heading){
   if(!driverMap)return;
   const h=Number(heading);
@@ -1260,15 +1264,16 @@ function applyNavigationBearing(heading){
   const mapPane=driverMap.getPane&&driverMap.getPane("mapPane");
   if(!mapPane)return;
   if(document.body.classList.contains("navigation-active")){
-    // O Leaflet reposiciona o mapPane com translate3d durante pan/zoom.
-    // Mantemos essa transformação e acrescentamos apenas a rotação da navegação.
+    // Mantém o deslocamento interno do Leaflet e acrescenta a perspectiva 3D da navegação.
     const base=String(mapPane.style.transform||"")
+      .replace(/\srotateX\([^)]*\)/g,"")
+      .replace(/\sperspective\([^)]*\)/g,"")
       .replace(/\srotate\([^)]*\)/g,"")
       .replace(/\sscale\([^)]*\)/g,"").trim();
-    mapPane.style.transform=(base?base+" ":"")+"rotate("+(-h).toFixed(1)+"deg) scale(1.12)";
-    mapPane.style.transformOrigin="50% 50%";
+    mapPane.style.transform=(base?base+" ":"")+"perspective(900px) rotateX("+NAV_PITCH_DEG+"deg) rotate("+(-h).toFixed(1)+"deg) scale("+NAV_MAP_SCALE+")";
+    mapPane.style.transformOrigin="50% 62%";
     const car=driverMarker?.getElement?.()?.querySelector?.(".driver-car-marker span");
-    if(car)car.style.transform="rotate("+h.toFixed(1)+"deg)";
+    if(car)car.style.transform="rotateX("+(-NAV_PITCH_DEG)+"deg) rotate("+h.toFixed(1)+"deg)";
   }
 }
 function resetNavigationBearing(){
@@ -1277,6 +1282,8 @@ function resetNavigationBearing(){
   const mapPane=driverMap.getPane&&driverMap.getPane("mapPane");
   if(mapPane){
     mapPane.style.transform=String(mapPane.style.transform||"")
+      .replace(/\srotateX\([^)]*\)/g,"")
+      .replace(/\sperspective\([^)]*\)/g,"")
       .replace(/\srotate\([^)]*\)/g,"")
       .replace(/\sscale\([^)]*\)/g,"").trim();
     mapPane.style.transformOrigin="";
