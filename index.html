@@ -592,7 +592,6 @@ async function verifySelectedSlots(){
 async function createReservationInSupabase(){
   const type=document.querySelector('input[name="type"]:checked').value;
   const payment=document.querySelector('input[name="payment"]:checked');
-  const sound=document.querySelector('input[name="sound"]:checked');
   const km=Number(parseFloat($("km").value)||0);
   const one=calculateTripFare(km);
   const tolls=calculateTolls();
@@ -1258,14 +1257,6 @@ $("form").addEventListener("submit",e=>{
 `;
   if(payment.value==="No amor") msg+=`📅 Data prevista para pagamento: ${noLovePaymentDate.split("-").reverse().join("/")}
 `;
-  msg+=`🎵 Som: ${sound.value}
-`;
-  if(sound.value==="Com som"){
-    msg+=`🎶 Estilo musical: ${$("musicStyle").value}
-`;
-    msg+=`🎤 Cantor(a)/artista de preferência: ${$("musicArtist").value.trim()||"Não informado"}
-`;
-  }
   msg+=`
 `;
   msg+=`🚗 Valor da viagem: ${money(tripTotal)}
