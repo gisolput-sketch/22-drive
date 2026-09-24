@@ -177,7 +177,11 @@ body{overflow:hidden}
   font-size:24px;
   cursor:pointer;
 }
-.driver-car-marker{background:transparent!important;border:0!important}
+.passenger-map-marker{background:transparent!important;border:0!important}
+.passenger-map-marker .blue-dot{
+  width:20px;height:20px;border-radius:50%;background:#1683ff;border:3px solid #fff;
+  box-shadow:0 0 0 7px #1683ff44,0 2px 8px #0008
+}
 .driver-car-marker span{
   width:48px;
   height:48px;
@@ -601,6 +605,7 @@ body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
   </header>
 
   <div id="driverMap" class="driver-map" aria-label="Mapa da área do motorista">
+      <button id="passengerLocationButton" class="driver-location-button" type="button" onclick="focusPassengerLocationOnDriverMap()" aria-label="Mostrar localização do passageiro" title="Localização do passageiro">📍</button>
     </div>
 
   <button id="navCompassButton" class="nav-compass-button hidden" type="button" onclick="toggleNavigationOrientation()" aria-label="Alternar orientação do mapa" title="Seguindo direção">🧭</button>
@@ -1191,7 +1196,7 @@ async function loadEarnings(){
 
 
 function dateBR(v){if(!v)return"";let p=String(v).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:v}
-let driverMap=null,driverMarker=null,driverLocation=null;
+let driverMap=null,driverMarker=null,driverLocation=null,passengerLocationMarker=null;
 let rideMapLayer=null;
 let rideMapRequestId=null;
 let rideMapTimer=null;
@@ -1380,8 +1385,7 @@ function followDriverOnMap(position){
   const p=[Number(position.coords.latitude),Number(position.coords.longitude)];
   if(!Number.isFinite(p[0])||!Number.isFinite(p[1]))return;
   driverLocation=p;
-  const icon=L.divIcon({className:"driver-car-marker",html:"<div class=\"driver-car-wrap\"><span class=\"driver-heading-cone\"></span><span class=\"driver-car-circle\">🚗</span></div>",iconSize:[92,92],iconAnchor:[46,46]});
-  if(driverMarker)driverMarker.setLatLng(p);else driverMarker=L.marker(p,{icon,zIndexOffset:1000}).addTo(driverMap);
+  if(driverMarker){try{driverMap.removeLayer(driverMarker);}catch(e){} driverMarker=null;}
   const heading=Number(position.coords.heading);
   if(Number.isFinite(heading)&&heading>=0&&heading<=360)applyNavigationBearing(heading);
   const center=driverMap.getCenter();
@@ -1450,6 +1454,7 @@ function advanceNavigationByLocation(position){
 }
 function clearRideMap(){
   if(rideMapTimer){clearTimeout(rideMapTimer);rideMapTimer=null;}
+  const passengerBtn=$("passengerLocationButton"); if(passengerBtn) passengerBtn.style.display="none";
   rideMapRequestId=null;
   rideMapRouteCoords=[];
   resetOffRouteState();
@@ -1459,6 +1464,8 @@ function clearRideMap(){
   const compass=$("navCompassButton");if(compass)compass.classList.add("hidden");
   if(rideMapLayer&&driverMap){driverMap.removeLayer(rideMapLayer);}
   rideMapLayer=null;
+  if(passengerLocationMarker&&driverMap){try{driverMap.removeLayer(passengerLocationMarker);}catch(e){}}
+  passengerLocationMarker=null;
 }
 function rideCoordinate(r,kind){
   const lat=kind==="pickup"?Number(r.originLat):Number(r.destinationLat);
@@ -1496,6 +1503,10 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
   if(rideMapTimer)clearTimeout(rideMapTimer);
   if(rideMapLayer)driverMap.removeLayer(rideMapLayer);
   rideMapLayer=L.layerGroup().addTo(driverMap);
+
+  if(passengerLocationMarker) passengerLocationMarker.setLatLng(pickup);
+  else passengerLocationMarker=L.marker(pickup,{icon:L.divIcon({className:"passenger-map-marker",html:"<div class=\"blue-dot\"></div>",iconSize:[20,20],iconAnchor:[10,10]}),zIndexOffset:1200,interactive:false}).addTo(driverMap);
+  const passengerBtn=$("passengerLocationButton"); if(passengerBtn) passengerBtn.style.display="grid";
 
   const pickupMarker=L.marker(pickup,{icon:rideMarkerIcon("pickup"),zIndexOffset:700})
     .bindPopup("<b>🟢 Embarque</b><br>"+esc(r.origin||"Endereço não informado"));
@@ -1582,14 +1593,9 @@ function initDriverMap(){
 
   const addOrMoveDriverMarker=()=>{
     if(!driverLocation||!driverMap)return;
-    const icon=L.divIcon({
-      className:"driver-car-marker",
-      html:"<span>🚗</span>",
-      iconSize:[52,52],
-      iconAnchor:[26,26]
-    });
-    if(driverMarker)driverMarker.setLatLng(driverLocation);
-    else driverMarker=L.marker(driverLocation,{icon,zIndexOffset:1000}).addTo(driverMap);
+    // A posição do motorista continua sendo usada internamente para rota/navegação,
+    // mas não é mais desenhada como carrinho no mapa.
+    if(driverMarker){try{driverMap.removeLayer(driverMarker);}catch(e){} driverMarker=null;}
   };
 
   if(navigator.geolocation){
@@ -1617,6 +1623,10 @@ function scheduleDriverMapReturn(){
   },10000);
 }
 
+function focusPassengerLocationOnDriverMap(){
+  if(!driverMap || !passengerLocationMarker) return;
+  driverMap.setView(passengerLocationMarker.getLatLng(),16,{animate:true});
+}
 function useCurrentDriverLocation(){
   const fallbackBtn=$("currentLocationButton");
   const btn=fallbackBtn;
@@ -1626,9 +1636,7 @@ function useCurrentDriverLocation(){
     driverLocation=[pos.coords.latitude,pos.coords.longitude];
     if(driverMap){
       driverMap.invalidateSize({pan:false});
-      const icon=L.divIcon({className:"driver-car-marker",html:"<div class=\"driver-car-wrap\"><span class=\"driver-heading-cone\"></span><span class=\"driver-car-circle\">🚗</span></div>",iconSize:[92,92],iconAnchor:[46,46]});
-      if(driverMarker)driverMarker.setLatLng(driverLocation);
-      else driverMarker=L.marker(driverLocation,{icon,zIndexOffset:1000}).addTo(driverMap);
+      if(driverMarker){try{driverMap.removeLayer(driverMarker);}catch(e){} driverMarker=null;}
       driverMap.setView(driverLocation,16,{animate:true});
       updateRideMapFromRequests();
     }
