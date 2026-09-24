@@ -12,7 +12,9 @@
 <label for="name">Nome completo</label><input id="name" autocomplete="name" placeholder="Seu nome completo">
 <label for="phone">WhatsApp</label><input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(21) 99999-9999">
 <label for="email">E-mail</label><input id="email" type="email" autocomplete="email" placeholder="seu@email.com">
-<button class="btn primary" id="sendBtn" type="button">📧 Cadastrar e enviar link</button><button class="btn secondary" id="loginBtn" type="button">← Voltar para entrar</button><div id="status" class="status"></div></section>
+<label for="password">Senha</label><input id="password" type="password" autocomplete="new-password" placeholder="Crie uma senha (mín. 6 caracteres)">
+<label for="password2">Confirmar senha</label><input id="password2" type="password" autocomplete="new-password" placeholder="Repita sua senha">
+<button class="btn primary" id="sendBtn" type="button">📧 Cadastrar e enviar confirmação</button><button class="btn secondary" id="loginBtn" type="button">← Voltar para entrar</button><div id="status" class="status"></div></section>
 <section id="waitingBox" style="display:none"><div class="success"><b>📧 Cadastro quase pronto!</b><br><br>Abra seu e-mail e toque no link de confirmação. Depois o cadastro será concluído automaticamente.</div><button class="btn link" id="backBtn" type="button">← Voltar</button></section>
 </main>
 <script>
@@ -30,28 +32,33 @@ async function finishRegistration(){
   try{
     const {data:existing,error:se}=await sb.from("passageiros").select("id").eq("whatsapp",normalized(draft.phone)).maybeSingle();
     if(se)throw se;
-    if(existing){localStorage.removeItem("22drive_registration_draft");location.href="./index.html?v=20260923k";return}
+    if(existing){localStorage.removeItem("22drive_registration_draft");location.href="./index.html?v=20260924a";return}
+    const {error:linkError}=await sb.functions.invoke("link-passenger-phone",{body:{phone:draft.phone}});
+    if(linkError)throw linkError;
     const {error}=await sb.rpc("salvar_passageiro",{p_nome:draft.name,p_whatsapp:normalized(draft.phone),p_email:draft.email,p_favoritos:[]});
     if(error)throw error;
     localStorage.removeItem("22drive_registration_draft");
     localStorage.setItem("22drive_passenger_profile",JSON.stringify({name:draft.name,phone:normalized(draft.phone),email:draft.email,favorites:[]}));
     $("formBox").style.display="none";$("waitingBox").style.display="block";
-    $("waitingBox").querySelector(".success").innerHTML="<b>✅ Cadastro confirmado!</b><br><br>Seu e-mail foi verificado e seu cadastro foi salvo. Abrindo o agendamento...";
-    setTimeout(()=>location.href="./index.html?v=20260923k",900);
+    $("waitingBox").querySelector(".success").innerHTML="<b>✅ Cadastro confirmado!</b><br><br>Seu e-mail foi verificado. Agora você poderá entrar usando somente seu WhatsApp e sua senha. Abrindo o 22 DRIVE...";
+    setTimeout(()=>location.href="./index.html?v=20260924a",1200);
   }catch(e){console.error(e);setStatus("❌ "+(e.message||"Não foi possível concluir o cadastro."))}
 }
 async function sendLink(){
   const name=$("name").value.trim(),phone=normalized($("phone").value),email=$("email").value.trim().toLowerCase();
+  const password=$("password").value,password2=$("password2").value;
   if(!name){setStatus("Informe seu nome.");return}
   if(!/^\d{10,11}$/.test(phone)){setStatus("Informe um WhatsApp brasileiro válido.");return}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setStatus("Informe um e-mail válido.");return}
+  if(password.length<6){setStatus("A senha deve ter pelo menos 6 caracteres.");return}
+  if(password!==password2){setStatus("As senhas não conferem.");return}
   $("sendBtn").disabled=true;setStatus("");
   try{
     localStorage.setItem("22drive_registration_draft",JSON.stringify({name,phone,email}));
-    const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true,emailRedirectTo:"https://gisolput-sketch.github.io/22-drive/"}});
+    const {error}=await sb.auth.signUp({email,password,options:{data:{name,phone},emailRedirectTo:"https://gisolput-sketch.github.io/22-drive/cadastro-passageiro.html"}});
     if(error)throw error;
     $("formBox").style.display="none";$("waitingBox").style.display="block";
-  }catch(e){console.error(e);localStorage.removeItem("22drive_registration_draft");setStatus("❌ "+(e.message||"Não foi possível enviar o link."))}
+  }catch(e){console.error(e);localStorage.removeItem("22drive_registration_draft");setStatus("❌ "+(e.message||"Não foi possível criar o cadastro."))}
   finally{$("sendBtn").disabled=false}
 }
 $("sendBtn").onclick=sendLink;$("loginBtn").onclick=()=>location.href="./login.html";$("backBtn").onclick=()=>location.reload();
