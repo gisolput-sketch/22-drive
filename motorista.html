@@ -564,15 +564,7 @@ body.navigation-active .driver-navigation-panel .nav-next-text #navInstruction{f
 body.navigation-active .driver-navigation-panel .nav-next-text #navRoad{font-size:13px;color:#e0ffff}
 body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
 @media(max-width:520px){.driver-nav-summary{left:8px;right:8px;bottom:8px;border-radius:22px}.nav-summary-top strong{font-size:20px}body.navigation-active .driver-navigation-panel{top:86px;left:8px;right:8px}}
-<style id="newRideAlertStyle">
-#newRideAlertOverlay{position:fixed;inset:0;z-index:99999;display:none}
-#newRideAlertOverlay.show{display:none}
-.new-ride-alert-box{width:min(560px,94vw);background:#fff;border:8px solid #e31b23;border-radius:28px;box-shadow:0 18px 60px rgba(0,0,0,.5);text-align:center;padding:30px 22px}
-.new-ride-alert-title{font-size:clamp(34px,9vw,62px);font-weight:1000;color:#d71920;line-height:1;margin-bottom:14px}
-.new-ride-alert-sub{font-size:20px;font-weight:800;color:#17212b;margin-bottom:22px}
-.new-ride-alert-button{border:0;border-radius:16px;padding:16px 30px;background:#d71920;color:#fff;font-size:20px;font-weight:900;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,.2)}
-@keyframes newRideFlash{from{background:rgba(120,0,0,.72)}to{background:rgba(230,0,0,.9)}}
-</style></style></style>
+
 <link rel="manifest" href="manifest-motorista.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="apple-touch-icon" href="icon-192.svg">
@@ -582,13 +574,6 @@ body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
 <body>
 
 <div class="driver-mobile-map" aria-hidden="true"></div>
-<div id="newRideAlertOverlay" role="alertdialog" aria-modal="true" aria-live="assertive">
-  <div class="new-ride-alert-box">
-    <div class="new-ride-alert-title">🚨 NOVA CORRIDA</div>
-    <div class="new-ride-alert-sub" id="newRideAlertPassenger">Uma nova solicitação chegou.</div>
-    <button class="new-ride-alert-button" type="button" onclick="closeNewRideAlert()">VER CORRIDA</button>
-  </div>
-</div>
 <main class="wrap">
 <section id="driverMapShell" class="driver-map-shell" aria-label="Área do Motorista">
   <header class="driver-topbar">
