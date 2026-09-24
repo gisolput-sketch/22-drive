@@ -1635,7 +1635,7 @@ function restoreTodayRoutesPanel(){
     let routeButton="";
     let arrivalButton="";
     if(phase==="dropoff_ready"){
-      routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">🚗 Iniciar rota</button>';
+      routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">🏁 Iniciar percurso</button>';
       arrivalButton='<button class="btn primary btnblock" style="margin-top:8px" type="button" onclick="messageArrivalWhatsApp('+JSON.stringify(String(r.id))+')">📲 Avisar passageiro que cheguei</button>';
     }else{
       const label=phase==="pickup"?"📍 Rota para embarque":"🚗 Iniciar rota";
