@@ -48,11 +48,11 @@ body{overflow:hidden}
   right:0;
   width:100%;
   min-height:78px;
-  padding:10px 16px;
+  padding:8px 10px;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:16px;
+  gap:8px;
   background:#050505;
   border-bottom:1px solid var(--gold);
   box-shadow:0 2px 18px #ffc70030;
@@ -66,8 +66,8 @@ body{overflow:hidden}
 }
 .driver-logo{
   display:block;
-  width:min(100%,260px);
-  height:56px;
+  width:min(100%,250px);
+  height:60px;
   object-fit:contain;
   object-position:left center;
 }
@@ -347,6 +347,10 @@ body{overflow:hidden}
 #gainModal .payment-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#f5c542,#d79b16)}
 #gainModal .payment-count{font-size:12px;color:#fff;font-weight:900;text-align:right}
 @media(max-width:520px){
+  .driver-topbar{min-height:82px;padding:8px 10px;gap:8px}
+  .driver-logo{width:min(100%,250px);height:60px}
+  .driver-status{width:150px;min-height:46px;padding:7px 10px;font-size:12px}
+  .driver-menu-button{flex-basis:48px;width:48px;height:48px;font-size:22px}
   #gainModal{padding:78px 8px 10px;}
   #gainModal .scheduled-menu-box{max-height:calc(100dvh - 88px);padding:14px;}
   #gainModal .gain-summary-grid{grid-template-columns:1fr;gap:7px;}
