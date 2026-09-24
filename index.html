@@ -1258,7 +1258,9 @@ $("form").addEventListener("submit",e=>{
   const one=calculateTripFare(km);
   const tripTotal=type==="volta"?one*2:one;
   const tolls=calculateTolls();
-  const grandTotal=tripTotal+tolls.total;
+  const selectedStops=stopResults.filter(Boolean);
+  const stopFee=selectedStops.length*EXTRA_STOP_FEE;
+  const grandTotal=tripTotal+tolls.total+stopFee;
 
   let msg=`🚗 22 DRIVE — NOVA SOLICITAÇÃO
 
