@@ -190,6 +190,8 @@ body{overflow:hidden}
   border:3px solid #fff;
   box-shadow:0 0 0 11px #72c8ff45,0 0 28px #1696ff99;
 }
+.driver-map .leaflet-map-pane{will-change:transform;transition:transform .18s linear;}
+.driver-car-marker span{transition:transform .18s linear;}
 .driver-bottom-area{
   position:fixed;
   left:0;
@@ -1150,7 +1152,7 @@ let lastRerouteLocation=null;
 const OFF_ROUTE_THRESHOLD_METERS=100;
 const OFF_ROUTE_CONFIRMATIONS=2;
 const REROUTE_COOLDOWN_MS=12000;
-const navigationState={steps:[],index:0,rideId:null,type:null,lastSpokenIndex:-1,lastAnnouncedDistance:Infinity,voiceEnabled:true,routeDistance:0,routeDuration:0,currentSpeed:0};
+const navigationState={steps:[],index:0,rideId:null,type:null,lastSpokenIndex:-1,lastAnnouncedDistance:Infinity,voiceEnabled:true,routeDistance:0,routeDuration:0,currentSpeed:0,heading:0};
 function navText(step){
   const m=step&&step.maneuver||{}; const type=String(m.type||"").toLowerCase(); const mod=String(m.modifier||"").toLowerCase();
   if(type==="arrive")return "Você chegou ao destino";
@@ -1250,6 +1252,38 @@ function updateNavigationSummary(){
   const pct=total?Math.min(100,Math.max(0,(1-remaining/total)*100)):0;
   $("navSummaryBar").style.width=pct.toFixed(1)+"%";
 }
+function applyNavigationBearing(heading){
+  if(!driverMap)return;
+  const h=Number(heading);
+  if(!Number.isFinite(h)||h<0||h>360)return;
+  navigationState.heading=h;
+  const mapPane=driverMap.getPane&&driverMap.getPane("mapPane");
+  if(!mapPane)return;
+  if(document.body.classList.contains("navigation-active")){
+    // O Leaflet reposiciona o mapPane com translate3d durante pan/zoom.
+    // Mantemos essa transformação e acrescentamos apenas a rotação da navegação.
+    const base=String(mapPane.style.transform||"")
+      .replace(/\srotate\([^)]*\)/g,"")
+      .replace(/\sscale\([^)]*\)/g,"").trim();
+    mapPane.style.transform=(base?base+" ":"")+"rotate("+(-h).toFixed(1)+"deg) scale(1.12)";
+    mapPane.style.transformOrigin="50% 50%";
+    const car=driverMarker?.getElement?.()?.querySelector?.(".driver-car-marker span");
+    if(car)car.style.transform="rotate("+h.toFixed(1)+"deg)";
+  }
+}
+function resetNavigationBearing(){
+  navigationState.heading=0;
+  if(!driverMap)return;
+  const mapPane=driverMap.getPane&&driverMap.getPane("mapPane");
+  if(mapPane){
+    mapPane.style.transform=String(mapPane.style.transform||"")
+      .replace(/\srotate\([^)]*\)/g,"")
+      .replace(/\sscale\([^)]*\)/g,"").trim();
+    mapPane.style.transformOrigin="";
+  }
+  const car=driverMarker?.getElement?.()?.querySelector?.(".driver-car-marker span");
+  if(car)car.style.transform="";
+}
 function followDriverOnMap(position){
   if(!driverMap||!position?.coords)return;
   const p=[Number(position.coords.latitude),Number(position.coords.longitude)];
@@ -1257,6 +1291,8 @@ function followDriverOnMap(position){
   driverLocation=p;
   const icon=L.divIcon({className:"driver-car-marker",html:"<span>🚗</span>",iconSize:[52,52],iconAnchor:[26,26]});
   if(driverMarker)driverMarker.setLatLng(p);else driverMarker=L.marker(p,{icon,zIndexOffset:1000}).addTo(driverMap);
+  const heading=Number(position.coords.heading);
+  if(Number.isFinite(heading)&&heading>=0&&heading<=360)applyNavigationBearing(heading);
   const center=driverMap.getCenter();
   const drift=distanceMeters([center.lat,center.lng],p);
   if(drift>80)driverMap.panTo(p,{animate:true,duration:0.5});
@@ -1327,6 +1363,7 @@ function clearRideMap(){
   rideMapRouteCoords=[];
   resetOffRouteState();
   document.body.classList.remove("navigation-active");
+  resetNavigationBearing();
   const navSummary=$("driverNavSummary");if(navSummary)navSummary.classList.add("hidden");
   if(rideMapLayer&&driverMap){driverMap.removeLayer(rideMapLayer);}
   rideMapLayer=null;
@@ -1435,6 +1472,7 @@ function initDriverMap(){
   driverMap.scrollWheelZoom.enable();
   driverMap.doubleClickZoom.enable();
   L.control.zoom({position:"bottomright"}).addTo(driverMap);
+  driverMap.on("move zoom",()=>applyNavigationBearing(navigationState.heading));
 
   const resizeMap=()=>{
     if(driverMap){
