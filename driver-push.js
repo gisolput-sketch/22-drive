@@ -8,6 +8,19 @@
 
   if (!/\/motorista\.html$/i.test(location.pathname)) return;
 
+  // Carrega o painel de novas solicitações diretamente, sem depender do Service Worker.
+  // Isso garante que uma corrida apareça mesmo quando Push não estiver disponível.
+  function loadLiveRequests() {
+    if (document.querySelector('script[data-22drive-live-requests]')) return;
+    const script = document.createElement('script');
+    script.src = './driver-requests.js?v=20260924';
+    script.async = false;
+    script.dataset['22driveLiveRequests'] = '1';
+    script.onload = () => console.log('22 DRIVE: painel de novas solicitações carregado diretamente.');
+    script.onerror = () => console.warn('22 DRIVE: não foi possível carregar driver-requests.js');
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function base64ToUint8Array(value) {
     const padding = '='.repeat((4 - value.length % 4) % 4);
     const base64 = (value + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -27,9 +40,6 @@
     const driver = getDriver();
     if (!driver) return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
-
-    // Browsers require a user gesture before asking for notification permission.
-    // If permission was already granted, registration can happen automatically.
     if (Notification.permission !== 'granted') return;
 
     try {
@@ -80,10 +90,16 @@
   }
 
   function boot() {
+    loadLiveRequests();
+    setTimeout(loadLiveRequests, 1500);
     setTimeout(registerAutomatically, 1200);
+    window.addEventListener('focus', loadLiveRequests);
     window.addEventListener('focus', registerAutomatically);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') registerAutomatically();
+      if (document.visibilityState === 'visible') {
+        loadLiveRequests();
+        registerAutomatically();
+      }
     });
   }
 
