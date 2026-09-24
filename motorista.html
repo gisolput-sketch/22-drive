@@ -1663,7 +1663,7 @@ function restoreTodayRoutesPanel(){
       routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">🏁 Rota para destino</button>';
       arrivalButton='<button class="btn primary btnblock" style="margin-top:8px" type="button" onclick="manualFinishAtDestination('+JSON.stringify(String(r.id))+')">🏁 Finalizar rota</button>';
     }else{
-      const label=phase==="pickup"?"📍 Rota para embarque":"🚗 Iniciar rota";
+      const label=phase==="pickup"?"📍 Rota para embarque":"🚗 Iniciar percurso";
       routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">'+label+'</button>';
       if(phase==="pickup"){
         routeButton+='<button class="btn primary btnblock" style="margin-top:8px" type="button" onclick="advancePickupManually('+JSON.stringify(String(r.id))+')">➡️ Cheguei ao embarque — próxima etapa</button>';
@@ -1766,7 +1766,7 @@ function renderMobileRequests(){
       primary='<button class="btn green" data-action="accept" data-id="'+esc(r.id)+'">✓ Aceitar</button><button class="btn red" data-action="cancel" data-id="'+esc(r.id)+'">✕ Recusar</button>';
       secondary='';
     }else if(s==="accepted"){
-      primary='<button class="btn green" type="button" data-action="route" data-id="'+esc(r.id)+'">🚗 Iniciar rota</button><button class="btn red" type="button" data-action="cancel" data-id="'+esc(r.id)+'">✕ Cancelar</button>';
+      primary='<button class="btn green" type="button" data-action="route" data-id="'+esc(r.id)+'">🚗 Iniciar percurso</button><button class="btn red" type="button" data-action="cancel" data-id="'+esc(r.id)+'">✕ Cancelar</button>';
       secondary='';
     }else{
       primary='<button class="btn green" data-action="arrived" data-id="'+esc(r.id)+'">'+(r.driverArrivedAt?"✅ Cheguei no embarque":"📍 Cheguei no embarque")+'</button><button class="btn green" data-action="whatsapp" data-id="'+esc(r.id)+'">💬 WhatsApp</button><button class="btn red" data-action="finish" data-id="'+esc(r.id)+'">✓ Finalizar</button>';
