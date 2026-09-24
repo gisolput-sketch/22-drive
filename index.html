@@ -713,11 +713,27 @@ function initMap(){
     return;
   }
   driveMap=L.map(mapEl,{zoomControl:true,preferCanvas:true}).setView([-22.73,-42.63],10);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
+  const osmLayer=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
     maxZoom:19,
     detectRetina:true,
+    subdomains:["a","b","c"],
     attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(driveMap);
+
+  let fallbackStarted=false;
+  osmLayer.on("tileerror",()=>{
+    if(fallbackStarted)return;
+    fallbackStarted=true;
+    try{
+      driveMap.removeLayer(osmLayer);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{
+        maxZoom:19,
+        subdomains:["a","b","c","d"],
+        attribution:'&copy; OpenStreetMap contributors &copy; CARTO'
+      }).addTo(driveMap);
+    }catch(err){console.error("Mapa fallback:",err);}
+  });
+
   setTimeout(()=>driveMap.invalidateSize(true),150);
   setTimeout(()=>driveMap.invalidateSize(true),600);
 }
