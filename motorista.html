@@ -1263,7 +1263,8 @@ function updateNavigationSummary(){
   const pct=total?Math.min(100,Math.max(0,(1-remaining/total)*100)):0;
   $("navSummaryBar").style.width=pct.toFixed(1)+"%";
 }
-const NAV_PITCH_DEG=24;
+const NAV_PITCH_MIN=14;
+const NAV_PITCH_MAX=30;
 const NAV_MAP_SCALE=1.2;
 function applyNavigationBearing(heading){
   if(!driverMap)return;
@@ -1273,12 +1274,14 @@ function applyNavigationBearing(heading){
   if(!mapPane)return;
   if(!document.body.classList.contains("navigation-active"))return;
   const visualHeading=navigationState.orientation==="heading"?navigationState.heading:0;
+  const speedKmh=Math.max(0,Number(navigationState.currentSpeed||0)*3.6);
+  const dynamicPitch=Math.min(NAV_PITCH_MAX,NAV_PITCH_MIN+(Math.min(1,speedKmh/80)*(NAV_PITCH_MAX-NAV_PITCH_MIN)));
   const base=String(mapPane.style.transform||"")
     .replace(/\srotateX\([^)]*\)/g,"")
     .replace(/\sperspective\([^)]*\)/g,"")
     .replace(/\srotate\([^)]*\)/g,"")
     .replace(/\sscale\([^)]*\)/g,"").trim();
-  mapPane.style.transform=(base?base+" ":"")+"perspective(900px) rotateX("+NAV_PITCH_DEG+"deg) rotate("+(-visualHeading).toFixed(1)+"deg) scale("+NAV_MAP_SCALE+")";
+  mapPane.style.transform=(base?base+" ":"")+"perspective(900px) rotateX("+dynamicPitch.toFixed(1)+"deg) rotate("+(-visualHeading).toFixed(1)+"deg) scale("+NAV_MAP_SCALE+")";
   mapPane.style.transformOrigin="50% 62%";
   const wrap=driverMarker?.getElement?.()?.querySelector?.(".driver-car-wrap");
   if(wrap)wrap.style.transform="rotate("+navigationState.heading.toFixed(1)+"deg)";
