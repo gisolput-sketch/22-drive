@@ -1142,6 +1142,17 @@ function setNavigationSteps(route,rideId,type){
   (route?.legs||[]).forEach(leg=>(leg.steps||[]).forEach(s=>steps.push(s)));
   navigationState.steps=steps; navigationState.index=0; navigationState.rideId=String(rideId||""); navigationState.type=type||null; navigationState.lastSpokenIndex=-1; updateNavigationPanel(); speakNavigationInstruction(true);
 }
+function followDriverOnMap(position){
+  if(!driverMap||!position?.coords)return;
+  const p=[Number(position.coords.latitude),Number(position.coords.longitude)];
+  if(!Number.isFinite(p[0])||!Number.isFinite(p[1]))return;
+  driverLocation=p;
+  const icon=L.divIcon({className:"driver-car-marker",html:"<span>🚗</span>",iconSize:[52,52],iconAnchor:[26,26]});
+  if(driverMarker)driverMarker.setLatLng(p);else driverMarker=L.marker(p,{icon,zIndexOffset:1000}).addTo(driverMap);
+  const center=driverMap.getCenter();
+  const drift=distanceMeters([center.lat,center.lng],p);
+  if(drift>80)driverMap.panTo(p,{animate:true,duration:0.5});
+}
 function advanceNavigationByLocation(position){
   if(!navigationState.steps.length)return;
   const p=[position.coords.latitude,position.coords.longitude];
@@ -1464,6 +1475,7 @@ function startDestinationArrivalWatch(r){
   destinationArrivalWatchId=navigator.geolocation.watchPosition(pos=>{
     const current=[pos.coords.latitude,pos.coords.longitude];
     driverLocation=current;
+    followDriverOnMap(pos);
     advanceNavigationByLocation(pos);
     const destination=rideCoordinate(r,"dropoff");
     if(destination && distanceMeters(current,destination)<=120){
