@@ -327,8 +327,18 @@ body{overflow:hidden}
   display:none;
   position:fixed;
   inset:0;
-  padding:90px 16px 20px;
-  background:#000a;
+  z-index:7000;
+  padding:88px 12px 18px;
+  background:#000f;
+  overflow:auto;
+}
+#gainModal.open{display:flex;align-items:flex-start;justify-content:center;}
+#gainModal .scheduled-menu-box{width:min(760px,100%);max-height:calc(100dvh - 106px);overflow:auto;}
+#gainModal .gain-summary-grid{grid-template-columns:repeat(3,1fr);}
+@media(max-width:520px){
+  #gainModal{padding:78px 8px 10px;}
+  #gainModal .scheduled-menu-box{max-height:calc(100dvh - 88px);padding:14px;}
+  #gainModal .gain-summary-grid{grid-template-columns:1fr;gap:7px;}
 }
 .scheduled-menu-modal.open{
   display:flex;
@@ -1201,13 +1211,15 @@ function toggleDriverSheet(){const s=$("driverSheet");s.classList.toggle("expand
 function toggleTopMenu(){const m=$("topMenuPanel");if(m)m.classList.toggle("open");}
 function closeTopMenu(){const m=$("topMenuPanel");if(m)m.classList.remove("open");}
 async function openGainsFromMenu(){
+  closeTopMenu();
   const modal=$("gainModal");
   if(!modal)return;
   modal.classList.add("open");
   modal.setAttribute("aria-hidden","false");
   gainPeriod="today";
   ["today","week","month"].forEach(x=>{const b=$("gain"+x.charAt(0).toUpperCase()+x.slice(1)+"Btn");if(b)b.classList.toggle("active",x==="today");});
-  $("gainStatus").textContent="⏳ Carregando ganhos...";
+  const status=$("gainStatus");
+  if(status)status.textContent="⏳ Carregando ganhos...";
   await loadFinancialChart();
 }
 function closeGains(){
