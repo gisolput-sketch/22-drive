@@ -1968,7 +1968,12 @@ function startRideRoute(id){
   if(!r)return;
   const state=getRouteState(id);
   if(state&&state.phase==="dropoff_ready"){
-    setRouteState(id,"dropoff");
+    const nextState={phase:"dropoff",stopIndex:(Array.isArray(r.extraStops)&&r.extraStops.length)?0:null,updatedAt:new Date().toISOString()};
+    try{
+      const all=JSON.parse(localStorage.getItem(ROUTE_STATE_KEY)||"{}");
+      all[String(id)]=nextState;
+      localStorage.setItem(ROUTE_STATE_KEY,JSON.stringify(all));
+    }catch(e){}
     renderTodayAcceptedRoutes();
     updateRideMapForRequest(r);
     startDestinationArrivalWatch(r);
