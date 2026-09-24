@@ -859,7 +859,7 @@ async function unlockDriverSound(){
     return audioCtx.state==="running";
   }catch(e){console.warn("22 DRIVE áudio:",e);return false;}
 }
-async async function playNewRideSound(){
+async function playNewRideSound(){
   try{
     const ready=await unlockDriverSound();
     if(!ready||!audioCtx)return;
