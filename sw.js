@@ -1,4 +1,4 @@
-const CACHE = '22-drive-push-v19';
+const CACHE = '22-drive-push-v20';
 
 self.addEventListener('install', event => {
   event.waitUntil(self.skipWaiting());
@@ -16,6 +16,11 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+  // Nunca deixe o service worker antigo ficar preso no cache.
+  if (url.pathname.endsWith('/sw.js')) {
+    event.respondWith(fetch(event.request, {cache:'no-store'}));
+    return;
+  }
 
   const isHtml = event.request.mode === 'navigate' || (event.request.headers.get('accept') || '').includes('text/html');
   if (isHtml) {
