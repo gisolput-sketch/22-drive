@@ -658,7 +658,20 @@ function locatePassengerAutomatically(){
  if(!navigator.geolocation||!driveMap)return;
  navigator.geolocation.getCurrentPosition(pos=>showPassengerLocationOnMap(pos.coords.latitude,pos.coords.longitude,false),()=>{},{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
 }
-window.addEventListener("load",()=>{try{initMap();}catch(err){console.error("Erro ao inicializar o mapa 22 DRIVE:",err);} setTimeout(()=>{if(driveMap)driveMap.invalidateSize(true);},150); setTimeout(()=>{if(driveMap)driveMap.invalidateSize(true);},700);});
+function bootPassengerMap(){
+  if(window.L){try{initMap();}catch(err){console.error("Erro ao inicializar o mapa 22 DRIVE:",err);}return;}
+  if(window.__leafletFallbackLoading)return;
+  window.__leafletFallbackLoading=true;
+  const script=document.createElement("script");
+  script.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+  script.onload=()=>{window.__leafletFallbackLoading=false;try{initMap();}catch(err){console.error("Erro ao inicializar o mapa 22 DRIVE:",err);}};
+  script.onerror=()=>{window.__leafletFallbackLoading=false;console.error("Leaflet não pôde ser carregado pelos dois servidores.");};
+  document.head.appendChild(script);
+}
+window.addEventListener("load",()=>{
+  bootPassengerMap();
+  [150,700,1500,3000].forEach(ms=>setTimeout(()=>{if(driveMap)driveMap.invalidateSize(true);else bootPassengerMap();},ms));
+});
 function clearSuggestions(inputId){
   const wrap=$(inputId).closest(".autocomplete-wrap");
   const box=wrap && wrap.querySelector(".suggestions");
