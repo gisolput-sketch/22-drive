@@ -2088,6 +2088,7 @@ function renderScheduledRides(){
     return da-db || ta.localeCompare(tb);
   });
   if(!rows.length){p.innerHTML='<div class="scheduled-empty">📅 Nenhuma viagem futura agendada.</div>';return;}
+  bindTodayRouteActions();
   p.innerHTML=rows.map(r=>{
     const d=r.confirmedDate||r.confirmed_date||r.date||r.data||"";
     const t=r.confirmedTime||r.confirmed_time||r.time||r.horario||"";
@@ -2547,8 +2548,8 @@ function restoreTodayRoutesPanel(){
     let routeButton="";
     let arrivalButton="";
     if(phase==="dropoff_ready"){
-      routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">🏁 Iniciar percurso</button>';
-      arrivalButton='<button class="btn primary btnblock" style="margin-top:8px" type="button" onclick="messageArrivalWhatsApp('+JSON.stringify(String(r.id))+')">📲 Avisar passageiro que cheguei</button><button class="btn gray btnblock" style="margin-top:8px" type="button" onclick="advanceRouteStageManually('+JSON.stringify(String(r.id))+')">➡️ Avançar etapa manualmente</button>';
+      routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" data-route-action="start" data-route-id="'+esc(r.id)+'">🏁 Iniciar percurso</button>';
+      arrivalButton='<button class="btn primary btnblock" style="margin-top:8px" type="button" data-route-action="whatsapp" data-route-id="'+esc(r.id)+'">📲 Avisar passageiro que cheguei</button><button class="btn gray btnblock" style="margin-top:8px" type="button" data-route-action="advance" data-route-id="'+esc(r.id)+'">➡️ Avançar etapa manualmente</button>';
     }else if(phase==="stop_waiting"){
       const stopIndex=Number(getRouteState(r.id)?.stopIndex)||0;
       const stop=r.extraStops?.[stopIndex];
@@ -2558,16 +2559,16 @@ function restoreTodayRoutesPanel(){
       const chargedBlocks=Math.floor(waitMinutes/3);
       const waitingCharge=chargedBlocks*3;
       routeButton='<div class="notice" style="margin-top:10px">🛑 <b>Parada '+(stopIndex+1)+'</b><br>'+esc(stop?.address||"Parada extra")+'<br>⏱️ Tempo de espera: <b>'+waitMinutes+' min</b><br>💰 Cobrança de espera: <b>'+moneyBR(waitingCharge)+'</b><br><small>3 minutos gratuitos. Depois, R$ 3,00 a cada 3 minutos completos.</small></div>';
-      arrivalButton='<button class="btn primary btnblock" style="margin-top:8px" type="button" onclick="continueAfterExtraStop('+JSON.stringify(String(r.id))+')">🚗 Passageiro voltou — continuar rota</button>';
+      arrivalButton='<button class="btn primary btnblock" style="margin-top:8px" type="button" data-route-action="continue-stop" data-route-id="'+esc(r.id)+'">🚗 Passageiro voltou — continuar rota</button>';
     }else if(phase==="dropoff"){
-      routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">🏁 Rota para destino</button>';
-      arrivalButton='<button class="btn primary btnblock" style="margin-top:8px" type="button" onclick="manualFinishAtDestination('+JSON.stringify(String(r.id))+')">🏁 Finalizar rota</button><button class="btn gray btnblock" style="margin-top:8px" type="button" onclick="advanceRouteStageManually('+JSON.stringify(String(r.id))+')">➡️ Avançar etapa manualmente</button>';
+      routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" data-route-action="start" data-route-id="'+esc(r.id)+'">🏁 Rota para destino</button>';
+      arrivalButton='<button class="btn primary btnblock" style="margin-top:8px" type="button" data-route-action="finish" data-route-id="'+esc(r.id)+'">🏁 Finalizar rota</button><button class="btn gray btnblock" style="margin-top:8px" type="button" data-route-action="advance" data-route-id="'+esc(r.id)+'">➡️ Avançar etapa manualmente</button>';
     }else{
       const label=phase==="pickup"?"📍 Rota para embarque":"🚗 Iniciar percurso";
-      routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" onclick="startRideRoute('+JSON.stringify(String(r.id))+')">'+label+'</button>';
+      routeButton='<button class="btn green btnblock" style="margin-top:10px" type="button" data-route-action="start" data-route-id="'+esc(r.id)+'">'+label+'</button>';
       if(phase==="pickup"){
-        routeButton+='<button class="btn primary btnblock" style="margin-top:8px" type="button" onclick="advancePickupManually('+JSON.stringify(String(r.id))+')">➡️ Cheguei ao embarque — próxima etapa</button>';
-        routeButton+='<button class="btn gray btnblock" style="margin-top:8px" type="button" onclick="advanceRouteStageManually('+JSON.stringify(String(r.id))+')">➡️ Avançar etapa manualmente</button>';
+        routeButton+='<button class="btn primary btnblock" style="margin-top:8px" type="button" data-route-action="pickup-done" data-route-id="'+esc(r.id)+'">➡️ Cheguei ao embarque — próxima etapa</button>';
+        routeButton+='<button class="btn gray btnblock" style="margin-top:8px" type="button" data-route-action="advance" data-route-id="'+esc(r.id)+'">➡️ Avançar etapa manualmente</button>';
       }
     }
     const value=rideValue(r);
@@ -2590,6 +2591,28 @@ function restoreTodayRoutesPanel(){
       }
     }
   });
+}
+/* Eventos dos botões de Corridas de hoje: delegação robusta para toque em celular. */
+function bindTodayRouteActions(){
+  const panel=$("todayRoutesPanel");
+  if(!panel || panel.dataset.bound==="1")return;
+  panel.dataset.bound="1";
+  panel.addEventListener("click",function(event){
+    const btn=event.target.closest("[data-route-action]");
+    if(!btn || !panel.contains(btn))return;
+    event.preventDefault();
+    event.stopPropagation();
+    if(event.stopImmediatePropagation)event.stopImmediatePropagation();
+    const id=btn.getAttribute("data-route-id");
+    const action=btn.getAttribute("data-route-action");
+    if(!id)return;
+    if(action==="start") return startRideRoute(id);
+    if(action==="whatsapp") return messageArrivalWhatsApp(id);
+    if(action==="advance") return advanceRouteStageManually(id);
+    if(action==="continue-stop") return continueAfterExtraStop(id);
+    if(action==="finish") return manualFinishAtDestination(id);
+    if(action==="pickup-done") return advancePickupManually(id);
+  },true);
 }
 async function openReviewsFromMenu(){
   const modal=$("reviewsMenuModal"),panel=$("reviewsMenuPanel");
