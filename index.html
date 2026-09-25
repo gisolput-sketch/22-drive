@@ -533,6 +533,29 @@ const $=id=>document.getElementById(id);
 
 let driveMap=null, fromMarker=null, toMarker=null, routeLine=null, passengerDriverMarker=null, passengerLocationMarker=null;
 /* Mapa 22 DRIVE: Leaflet + OpenStreetMap + OSRM + Nominatim. */
+function initMap(){
+  const el=$("map");
+  if(!el || !window.L){console.error("Leaflet não carregado.");return;}
+  if(driveMap){setTimeout(()=>driveMap.invalidateSize(true),100);return;}
+  const fallback=$("mapFallback");
+  if(fallback) fallback.style.display="none";
+  driveMap=L.map(el,{zoomControl:true,attributionControl:true});
+  const osm=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:19,
+    attribution:'&copy; OpenStreetMap contributors'
+  }).addTo(driveMap);
+  let loaded=false;
+  osm.on("tileload",()=>{loaded=true;});
+  setTimeout(()=>{
+    if(!loaded && driveMap){
+      osm.setUrl("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png");
+    }
+  },2500);
+  driveMap.setView([-22.73,-42.63],11);
+  setTimeout(()=>driveMap.invalidateSize(true),100);
+  setTimeout(()=>driveMap.invalidateSize(true),700);
+}
+
 let routeRequestId=0;
 function removeMapOverlay(obj){if(obj&&typeof obj.remove==="function"){try{obj.remove()}catch(_){}}}
 function showPassengerLocationOnMap(lat,lon,center){
