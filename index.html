@@ -18,7 +18,6 @@ label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}input,selec
 input:focus,select:focus,textarea:focus{border-color:#6b7280}.choices{display:grid;grid-template-columns:1fr 1fr;gap:9px}.choices label{margin:0}.choices input{display:none}.choices span{display:block;text-align:center;padding:12px;border:1px solid var(--line);border-radius:12px;cursor:pointer}.choices input:checked+span{background:var(--p);color:#fff;border-color:var(--p)}
 .price{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:17px;padding:16px}.price small{color:#166534}.price strong{display:block;font-size:29px;margin-top:3px}.notice{background:#fffbeb;border:1px solid #fde68a;padding:12px;border-radius:13px;font-size:12px;line-height:1.5;color:#854d0e}
 .btn{width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:900;cursor:pointer}.primary{background:var(--green);color:#fff}.dark{background:var(--p);color:#fff;margin-top:9px}.muted{font-size:11px;color:var(--muted);line-height:1.5}.availability{font-size:12px;margin-top:6px;line-height:1.4}.availability.ok{color:#15803d}.availability.busy{color:#dc2626;font-weight:800}
-.admin{display:none}.admin.on{display:block}.admin table{width:100%;border-collapse:collapse;font-size:12px}.admin th,.admin td{border-bottom:1px solid var(--line);padding:8px;text-align:left}.admin input{padding:8px}.tag{display:inline-block;padding:5px 8px;border-radius:999px;background:#f3f4f6;font-size:11px}.map{height:280px;border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-top:10px;background:#e5e7eb;position:relative}.map-fallback{position:absolute;inset:0;border:0;width:100%;height:100%;display:none;background:#e5e7eb}.map-fallback.show{display:block}.route-status{font-size:12px;color:var(--muted);margin-top:8px}.place-wrap{margin-bottom:11px}.place-wrap label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}.place-wrap gmp-place-autocomplete{width:100%;--gmpx-color-surface:#fff;--gmpx-color-on-surface:#111827;--gmpx-color-on-surface-variant:#6b7280;--gmpx-color-primary:#16a34a}
 hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none;text-align:center}
 .review-star{border:0;background:#f8fafc;color:#f4c400;font-size:42px;line-height:1;padding:4px;cursor:pointer}.review-star.on{color:#f4c400}.review-star:active{transform:scale(.95)}.success h2{margin-top:5px}.check{font-size:44px}
 @media(max-width:400px){.grid{grid-template-columns:1fr}.choices{grid-template-columns:1fr}}
@@ -533,384 +532,26 @@ if(!rates || rates.includedKm!==10 || rates.extraPerKm!==2){
 const $=id=>document.getElementById(id);
 
 let driveMap=null, fromMarker=null, toMarker=null, routeLine=null, passengerDriverMarker=null, passengerLocationMarker=null;
-/* Google Maps Platform — coloque sua chave no campo abaixo. */
-const GOOGLE_MAPS_API_KEY="COLE_SUA_CHAVE_GOOGLE_AQUI";
-let googleMapsPromise=null, googleMapsReady=false, googleRouteRequestId=0, googleMapLib=null, googleMarkerLib=null;
-
-let fromResult=null, toResult=null;
-let stopResults=[];
-let stopMarkers=[];
-let searchTimers={fromPlace:null,toPlace:null};
-let routeController=null;
-let __detectedTolls=[];
-let __detectedTollIds=new Set();
-
-
-function money(v){return v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}
-
-async function supabaseRpc(name,body){
-  const response=await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`,{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "apikey":SUPABASE_KEY,
-      "Authorization":"Bearer "+SUPABASE_KEY
-    },
-    body:JSON.stringify(body)
-  });
-  const text=await response.text();
-  let data=null;
-  try{data=text?JSON.parse(text):null}catch(_){data=null}
-  if(!response.ok) throw new Error((data&&data.message)||text||("Supabase HTTP "+response.status));
-  return data;
-}
-
-async function getOccupiedTimes(dateStr){
-  if(!dateStr) return [];
-  const data=await supabaseRpc("horarios_ocupados",{p_data:dateStr});
-  return Array.isArray(data)?data.map(x=>String(x.hora).slice(0,5)):[];
-}
-
-async function checkSlot(dateStr,timeStr,statusId){
-  const status=$(statusId);
-  if(!dateStr || !timeStr){
-    status.textContent="";
-    status.className="availability";
-    return true;
-  }
-  status.textContent="🔎 Verificando horário...";
-  status.className="availability";
-  try{
-    const occupied=await getOccupiedTimes(dateStr);
-    const busy=occupied.includes(String(timeStr).slice(0,5));
-    if(busy){
-      status.textContent="🔴 Este horário já está reservado. Escolha outro.";
-      status.className="availability busy";
-      return false;
-    }
-    status.textContent="🟢 Horário disponível.";
-    status.className="availability ok";
-    return true;
-  }catch(err){
-    console.error(err);
-    status.textContent="⚠️ Não foi possível verificar o horário agora.";
-    status.className="availability busy";
-    return false;
-  }
-}
-
-async function verifySelectedSlots(){
-  const type=document.querySelector('input[name="type"]:checked').value;
-  const idaOk=await checkSlot($("date").value,$("time").value,"availabilityStatus");
-  if(!idaOk) return false;
-  if(type==="volta"){
-    const voltaOk=await checkSlot($("rdate").value,$("rtime").value,"availabilityReturnStatus");
-    if(!voltaOk) return false;
-  }
-  return true;
-}
-
-async function createReservationInSupabase(){
-  const type=document.querySelector('input[name="type"]:checked').value;
-  const payment=document.querySelector('input[name="payment"]:checked');
-  const km=Number(parseFloat($("km").value)||0);
-  const one=calculateTripFare(km);
-  const tolls=calculateTolls();
-  const tripValue=type==="volta"?one*2:one;
-  const tollValue=Number(tolls.total)||0;
-  const extraStops=stopResults.filter(Boolean).map((s,i)=>({
-    order:i+1,address:s.display_name,lat:Number(s.lat),lng:Number(s.lon)
-  }));
-  const extraStopValue=extraStops.length*EXTRA_STOP_FEE;
-  const waitingValue=0;
-  const waitingMinutes=0;
-  const grandTotal=tripValue+tollValue+extraStopValue+waitingValue;
-  const depositValue=grandTotal*0.5;
-
-  // Gravamos diretamente na tabela reservas para garantir que distância,
-  // valor da viagem, pedágios e total cheguem ao painel do motorista.
-  // O RPC antigo recebia apenas p_valor e podia deixar esses campos zerados.
-  if(!passengerSupabase){
-    passengerSupabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-  }
-
-  const passengerProfile=loadPassengerProfile()||{};
-  const passengerName=String(passengerProfile.name||"").trim();
-  const passengerPhone=String(passengerProfile.phone||"").trim();
-  const originAddress=$("from").value;
-  const destinationAddress=$("to").value;
-  const travelDate=$("date").value;
-  const travelTime=$("time").value;
-  const returnDate=type==="volta"?$("rdate").value:null;
-  const returnTime=type==="volta"?$("rtime").value:null;
-
-  const reservation={
-    // Campos novos usados pelo painel atual
-    passenger_name:passengerName,
-    passenger_phone:passengerPhone,
-    passenger_email:loadPassengerProfile()?.email||null,
-    trip_type:type==="volta"?"ida_volta":"ida",
-    travel_date:travelDate,
-    travel_time:travelTime,
-    return_date:returnDate,
-    return_time:returnTime,
-    origin:originAddress,
-    destination:destinationAddress,
-    paradas_extras:extraStops,
-    extra_stop_value:Number(extraStopValue.toFixed(2)),
-    waiting_value:Number(waitingValue.toFixed(2)),
-    waiting_minutes:waitingMinutes,
-
-    // Campos legados mantidos para compatibilidade com funções/consultas existentes
-    nome:passengerName,
-    whatsapp:passengerPhone,
-    tipo_viagem:type==="volta"?"ida_volta":"ida",
-    data_ida:travelDate,
-    hora_ida:travelTime,
-    data_volta:returnDate,
-    hora_volta:returnTime,
-    embarque:originAddress,
-    destino:destinationAddress,
-    origin_lat:fromResult&&fromResult.lat?Number(fromResult.lat):null,
-    origin_lng:fromResult&&fromResult.lon?Number(fromResult.lon):null,
-    destination_lat:toResult&&toResult.lat?Number(toResult.lat):null,
-    destination_lng:toResult&&toResult.lon?Number(toResult.lon):null,
-    distance_km:Number(km.toFixed(2)),
-    passengers:1,
-    baggage:null,
-    observation:null,
-    payment_method:null,
-    payment_date:null,
-    sound_preference:null,
-    music_style:null,
-    music_artist:null,
-    trip_value:Number(tripValue.toFixed(2)),
-    toll_value:Number(tollValue.toFixed(2)),
-    total_value:Number(grandTotal.toFixed(2)),
-    extra_stop_value:Number(extraStopValue.toFixed(2)),
-    waiting_value:Number(waitingValue.toFixed(2)),
-    waiting_minutes:waitingMinutes,
-    deposit_value:Number(depositValue.toFixed(2)),
-    status:"new"
-  };
-
-  const {data,error}=await passengerSupabase
-    .from("reservas")
-    .insert(reservation)
-    .select("id")
-    .single();
-
-  if(error) throw new Error(error.message||"Não foi possível criar a reserva.");
-  if(!data||!data.id) throw new Error("A reserva foi criada, mas o ID não foi retornado.");
-  return {sucesso:true,reserva_id:data.id};
-}
-
-
-function loadGoogleMaps(){
-  if(googleMapsReady && window.google?.maps)return Promise.resolve();
-  if(googleMapsPromise)return googleMapsPromise;
-  googleMapsPromise=new Promise((resolve,reject)=>{
-    if(!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY==="AIzaSyBtjXwVH9XXoNP1tPARNgjdPn50kI2xIoQ"){
-      reject(new Error("CHAVE_GOOGLE_NAO_CONFIGURADA"));return;
-    }
-    if(window.google?.maps){
-      googleMapsReady=true;resolve();return;
-    }
-    const s=document.createElement("script");
-    s.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(GOOGLE_MAPS_API_KEY)+"&v=weekly&loading=async";
-    s.async=true;s.defer=true;
-    s.onload=()=>{googleMapsReady=true;resolve();};
-    s.onerror=()=>reject(new Error("GOOGLE_MAPS_CARREGAMENTO_FALHOU"));
-    document.head.appendChild(s);
-  });
-  return googleMapsPromise;
-}
-async function ensureGoogleLibraries(){
-  await loadGoogleMaps();
-  const [{Map,InfoWindow},{AdvancedMarkerElement}]=await Promise.all([
-    google.maps.importLibrary("maps"),
-    google.maps.importLibrary("marker")
-  ]);
-  googleMapLib={Map,InfoWindow};
-  googleMarkerLib={AdvancedMarkerElement};
-  return googleMapLib;
-}
-function googlePosition(lat,lng){return {lat:Number(lat),lng:Number(lng)};}
-function removeGoogleOverlay(obj){if(obj){try{obj.map=null}catch(_){}}}
-function googleDotContent(label=""){
-  const el=document.createElement("div");
-  el.style.cssText="width:20px;height:20px;border-radius:50%;background:#1683ff;border:3px solid #fff;box-shadow:0 0 0 7px #1683ff44,0 2px 8px #0008;";
-  if(label)el.title=label;
-  return el;
-}
-function createGoogleMarker(position,title="",dot=false){
-  const marker=new googleMarkerLib.AdvancedMarkerElement({
-    map:driveMap,position,title,
-    content:dot?googleDotContent(title):undefined
-  });
-  return marker;
-}
-async function initMap(){
-  const el=document.getElementById("map");
-  if(!el)return;
-  if(driveMap){setTimeout(()=>{try{driveMap.resize?.()}catch(_){}},100);return;}
-  try{
-    await ensureGoogleLibraries();
-    driveMap=new googleMapLib.Map(el,{
-      center:{lat:-22.73,lng:-42.63},
-      zoom:11,
-      mapId:"DEMO_MAP_ID",
-      mapTypeControl:true,
-      streetViewControl:false,
-      fullscreenControl:true,
-      zoomControl:true,
-      clickableIcons:true
-    });
-    const mapError=document.getElementById("mapFallback");
-    if(mapError)mapError.classList.remove("show");
-    setTimeout(()=>{google.maps.event.trigger(driveMap,"resize");},150);
-    setTimeout(()=>{google.maps.event.trigger(driveMap,"resize");},700);
-    if(navigator.geolocation){
-      navigator.geolocation.getCurrentPosition(pos=>{
-        showPassengerLocationOnMap(pos.coords.latitude,pos.coords.longitude,false);
-      },()=>{},{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
-    }
-  }catch(e){
-    console.error("Erro Google Maps 22 DRIVE",e);
-    const status=$("routeStatus");
-    if(status){
-      status.textContent=e.message==="CHAVE_GOOGLE_NAO_CONFIGURADA"
-        ?"⚠️ Google Maps ainda não está configurado: coloque sua chave no código."
-        :"❌ Não foi possível carregar o Google Maps. Verifique a chave e as APIs do Google Cloud.";
-    }
-  }
-}
-
-function passengerBlueDotIcon(){
-  return googleDotContent("Localização do passageiro");
-}
-let mapPickerMap=null;
-let mapPickerMarker=null;
-let mapPickerTarget="from";
-let mapPickerStopIndex=null;
-
-function initMapPicker(){
-  const el=$("mapPickerMap");
-  if(!el || typeof window.L==="undefined") return false;
-  if(mapPickerMap){setTimeout(()=>mapPickerMap.invalidateSize(true),100);return true;}
-  mapPickerMap=L.map(el,{zoomControl:true}).setView([-22.73,-42.63],13);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(mapPickerMap);
-  mapPickerMap.on("click",e=>setMapPickerPosition(e.latlng.lat,e.latlng.lng,true));
-  return true;
-}
-function setMapPickerPosition(lat,lng,center){
-  if(!mapPickerMap || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)))return;
-  const p=[Number(lat),Number(lng)];
-  if(mapPickerMarker) mapPickerMarker.setLatLng(p);
-  else mapPickerMarker=L.marker(p,{draggable:true,zIndexOffset:2000}).addTo(mapPickerMap);
-  if(mapPickerMarker.dragging && !mapPickerMarker.__pickerReady){
-    mapPickerMarker.__pickerReady=true;
-    mapPickerMarker.on("dragend",()=>{
-      const p=mapPickerMarker.getLatLng();
-      updateMapPickerInfo(p.lat,p.lng);
-    });
-  }
-  if(center)mapPickerMap.setView(p,16,{animate:true});
-  updateMapPickerInfo(p[0],p[1]);
-}
-function updateMapPickerInfo(lat,lng){
-  const info=$("mapPickerInfo");
-  if(info)info.textContent="📍 Ponto selecionado: "+Number(lat).toFixed(6)+", "+Number(lng).toFixed(6)+" • Toque em outro ponto ou arraste o pino.";
-}
-function openMapPicker(target,stopIndex=null){
-  mapPickerTarget=target||"from";
-  mapPickerStopIndex=target==="stop"?Number(stopIndex):null;
-  const overlay=$("mapPickerOverlay");
-  if(!overlay)return;
-  const title=$("mapPickerTitle");
-  if(title)title.textContent=target==="from"?"📍 Escolher embarque no mapa":target==="to"?"🏁 Escolher destino no mapa":"🛑 Escolher parada no mapa";
-  overlay.style.display="flex";
-  overlay.setAttribute("aria-hidden","false");
-  setTimeout(()=>{
-    if(!initMapPicker())return;
-    mapPickerMap.invalidateSize(true);
-    let r=null;
-    if(target==="from")r=fromResult;
-    else if(target==="to")r=toResult;
-    else r=stopResults[Number(stopIndex)]||null;
-    if(r&&Number.isFinite(Number(r.lat))&&Number.isFinite(Number(r.lon))){
-      setMapPickerPosition(Number(r.lat),Number(r.lon),true);
-      return;
-    }
-    if(navigator.geolocation){
-      navigator.geolocation.getCurrentPosition(pos=>setMapPickerPosition(pos.coords.latitude,pos.coords.longitude,true),()=>{
-        const center=mapPickerMap.getCenter();setMapPickerPosition(center.lat,center.lng,false);
-      },{enableHighAccuracy:true,timeout:8000,maximumAge:30000});
-    }else{
-      const center=mapPickerMap.getCenter();setMapPickerPosition(center.lat,center.lng,false);
-    }
-  },80);
-}
-function closeMapPicker(){
-  const overlay=$("mapPickerOverlay");
-  if(overlay){overlay.style.display="none";overlay.setAttribute("aria-hidden","true");}
-}
-async function confirmMapPicker(){
-  if(!mapPickerMarker){alert("Escolha um ponto no mapa.");return;}
-  const p=mapPickerMarker.getLatLng();
-  const button=$("mapPickerConfirmBtn");
-  if(button){button.disabled=true;button.textContent="⏳ Obtendo endereço...";}
-  let address="";
-  try{
-    const result=await reverseGeocodeLocation(p.lat,p.lng);
-    address=result.display_name||"";
-  }catch(err){console.warn("Reverse geocode do ponto escolhido:",err);}
-  const result={lat:String(p.lat),lon:String(p.lng),display_name:address||("Ponto escolhido no mapa: "+p.lat.toFixed(6)+", "+p.lng.toFixed(6)),address:{}};
-  if(mapPickerTarget==="from"){
-    fromResult=result;$("fromPlace").value=result.display_name;$("from").value=result.display_name;
-    if($("locationStatus"))$("locationStatus").textContent="📍 Embarque escolhido diretamente no mapa.";
-    showPassengerLocationOnMap(p.lat,p.lng,true);
-  }else if(mapPickerTarget==="to"){
-    toResult=result;$("toPlace").value=result.display_name;$("to").value=result.display_name;
-  }else{
-    const i=mapPickerStopIndex;
-    if(Number.isInteger(i)){
-      stopResults[i]=result;
-      const hidden=$("stopHidden-"+i);if(hidden)hidden.value=result.display_name;
-      const input=$("stopPlace-"+i);if(input)input.value=result.display_name;
-    }
-  }
-  closeMapPicker();
-  if(button){button.disabled=false;button.textContent="✅ Confirmar este local";}
-  if(fromResult&&toResult)computeDriveRoute();
-}
-
+/* Mapa 22 DRIVE: Leaflet + OpenStreetMap + OSRM + Nominatim. */
+let routeRequestId=0;
+function removeMapOverlay(obj){if(obj&&typeof obj.remove==="function"){try{obj.remove()}catch(_){}}}
 function showPassengerLocationOnMap(lat,lon,center){
-  if(!driveMap || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon)) || !googleMarkerLib)return;
-  const p=googlePosition(lat,lon);
-  if(passengerLocationMarker){
-    passengerLocationMarker.position=p;
-  }else{
-    passengerLocationMarker=createGoogleMarker(p,"Sua localização",true);
-  }
-  if(center)driveMap.setCenter(p),driveMap.setZoom(16);
+ if(!driveMap||!Number.isFinite(Number(lat))||!Number.isFinite(Number(lon)))return;
+ const p=[Number(lat),Number(lon)];
+ if(passengerLocationMarker)passengerLocationMarker.setLatLng(p);
+ else passengerLocationMarker=L.marker(p,{icon:passengerBlueDotIcon(),title:"Sua localização"}).addTo(driveMap);
+ if(center)driveMap.setView(p,16,{animate:true});
 }
 function focusPassengerLocation(){
-  if(passengerLocationMarker && driveMap){driveMap.setView(passengerLocationMarker.getLatLng(),16,{animate:true});return;}
-  if(fromResult?.lat && fromResult?.lon){showPassengerLocationOnMap(Number(fromResult.lat),Number(fromResult.lon),true);return;}
-  useCurrentLocation();
+ if(passengerLocationMarker&&driveMap){driveMap.setView(passengerLocationMarker.getLatLng(),16,{animate:true});return;}
+ if(fromResult?.lat&&fromResult?.lon){showPassengerLocationOnMap(Number(fromResult.lat),Number(fromResult.lon),true);return;}
+ useCurrentLocation();
 }
 function locatePassengerAutomatically(){
-  if(!navigator.geolocation || !driveMap) return;
-  navigator.geolocation.getCurrentPosition(pos=>{
-    showPassengerLocationOnMap(pos.coords.latitude,pos.coords.longitude,false);
-  },()=>{}, {enableHighAccuracy:true,timeout:10000,maximumAge:30000});
+ if(!navigator.geolocation||!driveMap)return;
+ navigator.geolocation.getCurrentPosition(pos=>showPassengerLocationOnMap(pos.coords.latitude,pos.coords.longitude,false),()=>{},{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
 }
-
-window.addEventListener("load",()=>{
-  if(driveMap) setTimeout(()=>driveMap.invalidateSize(true),150);
-});
-
+window.addEventListener("load",()=>{if(driveMap)setTimeout(()=>driveMap.invalidateSize(true),150);});
 function clearSuggestions(inputId){
   const wrap=$(inputId).closest(".autocomplete-wrap");
   const box=wrap && wrap.querySelector(".suggestions");
@@ -964,13 +605,12 @@ function reverseGeocodeLocation(lat,lon){
 }
 
 function setBoardingFromCoordinates(lat,lon,address){
-  const label=address||("Localização GPS: "+lat.toFixed(6)+", "+lon.toFixed(6));
-  fromResult={lat:String(lat),lon:String(lon),display_name:label,address:{}};
-  $("fromPlace").value=label;$("from").value=label;
-  removeGoogleOverlay(fromMarker);
-  if(googleMarkerLib&&driveMap)fromMarker=createGoogleMarker(googlePosition(lat,lon),"Sua localização exata",true);
-  showPassengerLocationOnMap(lat,lon,true);
-  if(toResult)computeDriveRoute();
+ const label=address||("Localização GPS: "+lat.toFixed(6)+", "+lon.toFixed(6));
+ fromResult={lat:String(lat),lon:String(lon),display_name:label,address:{}};
+ $("fromPlace").value=label;$("from").value=label;
+ if(fromMarker)removeMapOverlay(fromMarker);
+ if(driveMap)fromMarker=L.marker([Number(lat),Number(lon)],{icon:passengerBlueDotIcon(),title:"Embarque"}).addTo(driveMap);
+ showPassengerLocationOnMap(lat,lon,true);if(toResult)computeDriveRoute();
 }
 async function useCurrentLocation(){
   const status=$("locationStatus");
@@ -1152,67 +792,32 @@ function setDetectedTolls(tolls){
 
 
 async function computeDriveRoute(){
-  if(!fromResult||!toResult){
-    $("routeStatus").textContent="Digite o endereço e selecione uma sugestão para calcular a rota.";
-    return;
+ if(!fromResult||!toResult){$("routeStatus").textContent="Digite o endereço e selecione uma sugestão para calcular a rota.";return;}
+ const requestId=++routeRequestId,validStops=stopResults.filter(Boolean);
+ $("routeStatus").textContent="🗺️ Calculando rota pelas ruas...";
+ try{
+  const coordinates=[[Number(fromResult.lon),Number(fromResult.lat)],...validStops.map(s=>[Number(s.lon),Number(s.lat)]),[Number(toResult.lon),Number(toResult.lat)]];
+  const url="https://router.project-osrm.org/route/v1/driving/"+coordinates.map(([lon,lat])=>lon+","+lat).join(";")+"?overview=full&geometries=geojson&steps=false";
+  if(routeController)routeController.abort();routeController=new AbortController();
+  const response=await fetch(url,{signal:routeController.signal});if(!response.ok)throw new Error("OSRM HTTP "+response.status);
+  const data=await response.json();if(requestId!==routeRequestId)return;if(!data.routes?.length)throw new Error("Nenhuma rota encontrada.");
+  const route=data.routes[0],km=Number(route.distance||0)/1000,mins=Math.round(Number(route.duration||0)/60);
+  setDetectedTolls(routeTollsFromGeometry(route.geometry));
+  if(fromMarker)removeMapOverlay(fromMarker);if(toMarker)removeMapOverlay(toMarker);if(routeLine)removeMapOverlay(routeLine);stopMarkers.forEach(removeMapOverlay);stopMarkers=[];
+  fromMarker=L.marker([Number(fromResult.lat),Number(fromResult.lon)],{icon:passengerBlueDotIcon(),title:"Local de embarque"}).addTo(driveMap);
+  validStops.forEach((stop,i)=>{const marker=L.marker([Number(stop.lat),Number(stop.lon)],{title:"Parada "+(i+1)}).addTo(driveMap);marker.bindTooltip("Parada "+(i+1));stopMarkers.push(marker);});
+  toMarker=L.marker([Number(toResult.lat),Number(toResult.lon)],{icon:driveMarkerIcon(),title:"Destino"}).addTo(driveMap);
+  if(route.geometry?.coordinates?.length>1){
+   const latLngs=route.geometry.coordinates.map(([lon,lat])=>[Number(lat),Number(lon)]);
+   routeLine=L.polyline(latLngs,{color:"#1683ff",weight:5,opacity:.95}).addTo(driveMap);driveMap.fitBounds(routeLine.getBounds(),{padding:[25,25]});
   }
-  const requestId=++googleRouteRequestId;
-  const validStops=stopResults.filter(Boolean);
-  $("routeStatus").textContent=validStops.length?"🗺️ Calculando rota no Google Maps...":"🗺️ Calculando rota no Google Maps...";
-  try{
-    await ensureGoogleLibraries();
-    const {Route}=await google.maps.importLibrary("routes");
-    if(requestId!==googleRouteRequestId)return;
-    const origin=googlePosition(fromResult.lat,fromResult.lon);
-    const destination=googlePosition(toResult.lat,toResult.lon);
-    const intermediates=validStops.map(s=>({location:googlePosition(s.lat,s.lon)}));
-    const req={
-      origin,destination,
-      ...(intermediates.length?{intermediates}:{}),
-      travelMode:"DRIVING",
-      routingPreference:"TRAFFIC_AWARE",
-      language:"pt-BR",
-      units:google.maps.UnitSystem.METRIC,
-      fields:["path","distanceMeters","durationMillis","legs","viewport"]
-    };
-    const result=await Route.computeRoutes(req);
-    if(requestId!==googleRouteRequestId)return;
-    if(!result.routes||!result.routes.length)throw new Error("Nenhuma rota encontrada.");
-    const route=result.routes[0];
-    const km=Number(route.distanceMeters||0)/1000;
-    const mins=Math.round(Number(route.durationMillis||0)/60000);
-    const path=Array.isArray(route.path)?route.path:[];
-    const geometry={type:"LineString",coordinates:path.map(p=>{
-      const lat=typeof p.lat==="function"?p.lat():p.lat;
-      const lng=typeof p.lng==="function"?p.lng():p.lng;
-      return [Number(lng),Number(lat)];
-    })};
-    setDetectedTolls(routeTollsFromGeometry(geometry));
-    removeGoogleOverlay(fromMarker);removeGoogleOverlay(toMarker);removeGoogleOverlay(routeLine);
-    stopMarkers.forEach(removeGoogleOverlay);stopMarkers=[];
-    fromMarker=createGoogleMarker(origin,"Local do passageiro",true);
-    validStops.forEach((stop,i)=>stopMarkers.push(createGoogleMarker(googlePosition(stop.lat,stop.lon),"Parada "+(i+1))));
-    toMarker=createGoogleMarker(destination,"Destino");
-    if(path.length>1){
-      routeLine=new google.maps.Polyline({
-        map:driveMap,path,
-        strokeColor:"#1683ff",strokeOpacity:.95,strokeWeight:5,
-        geodesic:true
-      });
-      if(route.viewport)driveMap.fitBounds(route.viewport,{top:25,right:25,bottom:25,left:25});
-    }
-    showPassengerLocationOnMap(origin.lat,origin.lng,false);
-    $("km").value=km.toFixed(2);
-    $("routeStatus").textContent=`✅ ${km.toFixed(1)} km • aproximadamente ${mins} min de carro${validStops.length?" • "+validStops.length+" parada(s)":""}`;
-    calc();
-  }catch(err){
-    if(requestId!==googleRouteRequestId)return;
-    console.error("Google Routes 22 DRIVE",err);
-    $("km").value="0";setDetectedTolls([]);calc();
-    $("routeStatus").textContent="❌ Não foi possível calcular a rota no Google Maps. Verifique se Maps JavaScript API e Routes API estão ativadas.";
-  }
+  showPassengerLocationOnMap(Number(fromResult.lat),Number(fromResult.lon),false);$("km").value=km.toFixed(2);
+  $("routeStatus").textContent=`✅ ${km.toFixed(1)} km • aproximadamente ${mins} min de carro${validStops.length?" • "+validStops.length+" parada(s)":""}`;calc();
+ }catch(err){
+  if(requestId!==routeRequestId||err?.name==="AbortError")return;console.error("OSRM 22 DRIVE",err);$("km").value="0";setDetectedTolls([]);calc();
+  $("routeStatus").textContent="❌ Não foi possível calcular a rota pelas ruas agora. Tente novamente em alguns segundos.";
+ }
 }
-
 function renderStops(){
   const list=$("stopsList");
   if(!list) return;
@@ -1592,16 +1197,16 @@ $("form").addEventListener("submit",e=>{
 `;
   if(type==="volta") msg+=`🔄 Volta: ${$("rdate").value.split("-").reverse().join("/")} às ${$("rtime").value}
 `;
-  const fromMapsUrl="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent($("from").value);
-  const toMapsUrl="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent($("to").value);
+  const fromWazeUrl="https://www.waze.com/ul?q="+encodeURIComponent($("from").value);
+  const toWazeUrl="https://www.waze.com/ul?q="+encodeURIComponent($("to").value);
   msg+=`📍 Embarque: ${$("from").value}
-🗺️ Endereço Maps: ${fromMapsUrl}
+🗺️ Abrir no Waze: ${fromWazeUrl}
 `;
-  selectedStops.forEach((s,i)=>{ const u="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(s.display_name); msg+=`🛑 Parada ${i+1}: ${s.display_name}
-🗺️ Endereço Maps: ${u}
+  selectedStops.forEach((s,i)=>{ const u="https://www.waze.com/ul?q="+encodeURIComponent(s.display_name); msg+=`🛑 Parada ${i+1}: ${s.display_name}
+🗺️ Abrir no Waze: ${u}
 `; });
   msg+=`🏁 Destino: ${$("to").value}
-🗺️ Endereço Maps: ${toMapsUrl}
+🗺️ Abrir no Waze: ${toWazeUrl}
 📏 Distância total: ${km.toFixed(2)} km
 `;
   msg+=`🚗 Valor da viagem: ${money(tripTotal)}
