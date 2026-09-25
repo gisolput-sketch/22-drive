@@ -1568,6 +1568,46 @@ function showDriverCurrentLocation(lat,lng,center=false){
   driverLocation=p;
   if(driverMarker)driverMarker.setLatLng(p);
   else driverMarker=L.marker(p,{icon:driverCurrentLocationIcon(),zIndexOffset:1300,interactive:false}).addTo(driverMap);
+
+    // Camada gratuita de pontos de interesse do OpenStreetMap.
+    // Carrega sob demanda para não pesar o mapa.
+    const poiLayer=L.layerGroup();
+    let poiLoading=false, poiLoadedKey="";
+    const poiIcon=(emoji)=>L.divIcon({
+      className:"osm-poi-marker",
+      html:'<div style="width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid #1683ff;box-shadow:0 2px 8px #0005;display:grid;place-items:center;font-size:16px">'+emoji+'</div>',
+      iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-15]
+    });
+    const loadOsmPois=async()=>{
+      if(!driverMap || poiLoading)return;
+      const z=driverMap.getZoom();
+      if(z<12)return;
+      const b=driverMap.getBounds();
+      const key=[z,Math.round(b.getSouth()*100),Math.round(b.getWest()*100),Math.round(b.getNorth()*100),Math.round(b.getEast()*100)].join(",");
+      if(key===poiLoadedKey)return;
+      poiLoading=true;
+      try{
+        const bbox=[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].join(",");
+        const q='[out:json][timeout:12];(nwr["amenity"~"restaurant|hospital|school|fuel|pharmacy"]('+bbox+');nwr["shop"~"supermarket|convenience|mall"]('+bbox+'););out center tags 300;';
+        const res=await fetch("https://overpass-api.de/api/interpreter?data="+encodeURIComponent(q),{cache:"no-store"});
+        if(!res.ok)throw new Error("Overpass HTTP "+res.status);
+        const data=await res.json();
+        poiLayer.clearLayers();
+        (data.elements||[]).forEach(el=>{
+          const t=el.tags||{}, lat=Number(el.lat??el.center?.lat), lon=Number(el.lon??el.center?.lon);
+          if(!Number.isFinite(lat)||!Number.isFinite(lon))return;
+          const type=t.amenity||t.shop||"";
+          const icons={restaurant:"🍽️",hospital:"🏥",school:"🏫",fuel:"⛽",pharmacy:"💊",supermarket:"🛒",convenience:"🛒",mall:"🏬"};
+          const label=t.name||({restaurant:"Restaurante",hospital:"Hospital",school:"Escola",fuel:"Posto de combustível",pharmacy:"Farmácia",supermarket:"Mercado",convenience:"Mercado",mall:"Shopping"}[type]||"Local");
+          L.marker([lat,lon],{icon:poiIcon(icons[type]||"📍"),title:label}).bindPopup("<strong>"+String(label).replace(/[<>&]/g,m=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[m]))+"</strong>").addTo(poiLayer);
+        });
+        poiLoadedKey=key;
+      }catch(e){console.warn("22 DRIVE: não foi possível carregar pontos de interesse.",e)}
+      finally{poiLoading=false}
+    };
+    L.control.layers({"🗺️ Mapa":tiles},{"📍 Locais":poiLayer},{collapsed:true,position:"topright"}).addTo(driverMap);
+    driverMap.on("moveend",loadOsmPois);
+    loadOsmPois();
   if(center)driverMap.setView(p,15,{animate:true});
 }
 function followDriverOnMap(position){
