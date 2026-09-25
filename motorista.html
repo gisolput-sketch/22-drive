@@ -871,22 +871,42 @@ async function loadNewRequestsFromRpc(showAlerts=true){
   try{
     if(!supabaseClient && window.supabase) supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
     if(!supabaseClient)throw new Error("Supabase indisponível.");
-    const response=await fetch(
-      SUPABASE_URL+"/rest/v1/reservas?select=*&status=eq.new&order=created_at.asc&limit=100",
-      {cache:"no-store",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}}
+
+    // Busca DIRETAMENTE na tabela reservas. Não depende de RPC nem de Realtime.
+    // O motorista precisa enxergar todas as reservas com status "new".
+    const {data,error}=await supabaseClient
+      .from("reservas")
+      .select("*")
+      .eq("status","new")
+      .order("created_at",{ascending:true})
+      .limit(100);
+
+    if(error)throw error;
+
+    const incoming=(Array.isArray(data)?data:[]).map(normalizeReservation);
+    const oldNewIds=new Set(
+      remoteReservations
+        .filter(r=>String(r.status||"new").toLowerCase()==="new")
+        .map(r=>String(r.id))
     );
-    if(!response.ok)throw new Error("HTTP "+response.status+" — "+await response.text());
-    const data=await response.json();
-    const incoming=(data||[]).map(normalizeReservation);
-    const oldNewIds=new Set(remoteReservations.filter(r=>(r.status||"new")==="new").map(r=>String(r.id)));
     const incomingIds=new Set(incoming.map(r=>String(r.id)));
-    const others=remoteReservations.filter(r=>(r.status||"new")!=="new"&&!incomingIds.has(String(r.id)));
+
+    // Preserva corridas já aceitas/confirmadas na memória e substitui
+    // somente o conjunto de novas solicitações pela leitura atual da base.
+    const others=remoteReservations.filter(r=>String(r.status||"new").toLowerCase()!=="new"&&!incomingIds.has(String(r.id)));
     remoteReservations=[...incoming,...others];
     realtimeReady=true;
-    if(showAlerts) incoming.filter(r=>!oldNewIds.has(String(r.id))).forEach(showNewRideNotification);
+
+    if(showAlerts){
+      incoming
+        .filter(r=>!oldNewIds.has(String(r.id)))
+        .forEach(showNewRideNotification);
+    }
+
     render();
   }catch(err){
-    console.error("22 DRIVE novas solicitações:",err);
+    console.error("22 DRIVE — erro ao buscar novas solicitações:",err);
+    // Não apaga o que já estiver na tela se houver uma falha momentânea.
     if(!remoteReservations.length)realtimeReady=false;
   }
 }
