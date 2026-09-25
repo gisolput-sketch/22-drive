@@ -216,8 +216,16 @@ body.navigation-active .driver-map{overflow:hidden;}
   right:0;
   bottom:0;
   width:100%;
-  padding:12px 14px 14px;
-  background:var(--bg);
+  padding:12px 12px calc(14px + env(safe-area-inset-bottom));
+  background:transparent;
+  z-index:5000;
+  pointer-events:none;
+}
+.driver-sheet{pointer-events:auto;}
+#mobileRequests{position:relative;z-index:5100;}
+#mobileRequests .mobile-ride-card{position:relative;z-index:5200;}
+@media(max-width:520px){
+  .driver-bottom-area{padding-left:10px;padding-right:10px;}
 }
 .driver-sheet{
   width:100%;
@@ -1604,8 +1612,8 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
   const points=[pickup,dropoff];
   if(driverLocation)points.unshift(driverLocation);
   driverMap.fitBounds(L.latLngBounds(points),{padding:[35,35],maxZoom:15,animate:true});
-  // O alerta da nova corrida é exibido no cartão destacado; o popup do mapa não abre sozinho.
-  // O motorista ainda pode tocar no marcador para consultar o endereço.
+  // A solicitação é apresentada no cartão inferior, como em apps de corrida.
+  // Não abrir popup automaticamente para não cobrir o cartão.
 
   const requestId=id;
   const routePoints=(rerouteMode?[routeStartOverride,routeTargetOverride]:(driverLocation?[driverLocation,pickup,dropoff]:[pickup,dropoff]))
