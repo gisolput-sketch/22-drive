@@ -303,6 +303,10 @@ body.navigation-active .driver-map{overflow:hidden;}
 .mobile-ride-card .route-stop{flex:0 0 16px;width:16px;height:16px;margin-top:2px;border-radius:50%;background:#f5c542;box-shadow:0 0 0 2px #f5c542;display:block;text-align:center;color:#111;font-size:10px;line-height:16px}
 .mobile-ride-card .ride-actions .btn{flex:1}
 .today-route-item .btn{margin-top:8px}
+/* Painel de corridas: os botões de ação não devem disparar o cabeçalho nem permanecer sobre o mapa. */
+#todayRoutesCard .today-routes-header{cursor:default;user-select:none}
+#todayRoutesCard .today-route-item{cursor:default}
+#todayRoutesCard .today-route-item .btn{pointer-events:auto!important;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .today-routes-card{
   width:100%;
   padding:14px 16px;
@@ -748,14 +752,14 @@ body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
       <div id="mobileRequests"></div>
 
       <section class="today-routes-card" id="todayRoutesCard" aria-labelledby="todayRoutesTitle">
-        <div class="today-routes-header" role="button" tabindex="0" onclick="toggleTodayRoutes()" onkeydown="if(event.key==='Enter'||event.key===' ')toggleTodayRoutes()">
+        <div class="today-routes-header">
           <div class="today-routes-icon" aria-hidden="true">🚗</div>
           <div class="today-routes-heading">
             <h2 id="todayRoutesTitle">Corridas de hoje</h2>
             <p>Toque aqui para abrir suas corridas</p>
           </div>
           <span class="today-routes-count" id="todayRoutesCount"></span>
-          <button type="button" class="today-routes-close" onclick="closeTodayRoutesFromMenu(event)" aria-label="Fechar corridas de hoje">✕</button>
+          <button type="button" class="today-routes-close" onclick="event.preventDefault();event.stopPropagation();closeTodayRoutesFromMenu(event)" aria-label="Fechar corridas de hoje">✕</button>
         </div>
 
         <div class="today-routes-divider"></div>
@@ -2106,6 +2110,7 @@ function stopDestinationArrivalWatch(){
   destinationArrivalWatchRideId=null;
 }
 async function manualFinishAtDestination(id){
+  closeTodayRoutesFromMenu();
   const r=requests().find(x=>String(x.id)===String(id));
   if(!r)return;
   const state=getRouteState(id);
@@ -2209,6 +2214,7 @@ function startExtraStopWaiting(r,index){
 }
 
 function continueAfterExtraStop(id){
+  closeTodayRoutesFromMenu();
   const r=requests().find(x=>String(x.id)===String(id));
   const state=getRouteState(id);
   if(!r||!state||state.phase!=="stop_waiting")return;
@@ -2335,6 +2341,7 @@ function startPickupArrivalWatch(r){
 }
 // Navegação externa removida: o motorista permanece no módulo de navegação do 22 DRIVE.
 function startRideRoute(id){
+  closeTodayRoutesFromMenu();
   const r=requests().find(x=>String(x.id)===String(id));
   if(!r)return;
   const state=getRouteState(id);
@@ -2373,6 +2380,7 @@ function startRideRoute(id){
   notice("🚗 Percurso iniciado dentro do mapa do 22 DRIVE. A rota para o embarque está sendo exibida.");
 }
 function advancePickupManually(id){
+  closeTodayRoutesFromMenu();
   const r=requests().find(x=>String(x.id)===String(id));
   if(!r)return;
   const state=getRouteState(id);
@@ -2384,6 +2392,7 @@ function advancePickupManually(id){
 }
 
 function advanceRouteStageManually(id){
+  closeTodayRoutesFromMenu();
   const r=requests().find(x=>String(x.id)===String(id));
   if(!r)return;
   const state=getRouteState(id);
