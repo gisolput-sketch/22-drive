@@ -2132,15 +2132,11 @@ function startPickupArrivalWatch(r){
     followDriverOnMap(pos);
     advanceNavigationByLocation(pos);
     checkOffRouteAndReroute(r,"pickup");
-    const pickup=rideCoordinate(r,"pickup");
-    if(!pickup)return;
-    if(distanceMeters(current,pickup)<=120){
-      setRouteState(r.id,"dropoff_ready");
-      stopPickupArrivalWatch();
-      updateRideMapForRequest(r);
-      renderTodayAcceptedRoutes();
-      notice("📍 Embarque alcançado. Agora o botão “🏁 Iniciar percurso” leva o mapa do 22 DRIVE até o destino.");
-    }
+    // A chegada ao embarque NÃO é mais confirmada automaticamente por distância.
+    // O motorista continua recebendo GPS, rota, recálculo e acompanhamento normalmente.
+    // A mudança para a etapa do destino só acontece quando o motorista tocar
+    // manualmente em “➡️ Cheguei ao embarque — próxima etapa”.
+    return;
   },()=>{}, {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
 }
 // Navegação externa removida: o motorista permanece no módulo de navegação do 22 DRIVE.
