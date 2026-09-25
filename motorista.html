@@ -1187,11 +1187,28 @@ function openApp(){
   driver.status=normalizedStatus;
   if($("status"))$("status").value=normalizedStatus;
   applyDriverStatus(normalizedStatus,false);
-  initDriverMap();
-  render();
-  loadEarnings();
-  connectSupabaseRealtime();
-  startNewRequestFallback();
+  // Inicialização protegida: um erro do mapa não pode deixar a tela inteira preta.
+  try{
+    initDriverMap();
+  }catch(mapError){
+    console.error("22 DRIVE — erro ao iniciar mapa:",mapError);
+    driverMap=null;
+    const mapEl=$("driverMap");
+    if(mapEl){
+      mapEl.innerHTML='<div style="height:100%;display:grid;place-items:center;padding:24px;text-align:center;background:#eaf0f6;color:#17212b;font-weight:800"><div>🗺️ Carregando mapa...<br><small style="display:block;margin-top:8px;color:#64748b;font-weight:600">Toque em atualizar se o mapa não aparecer.</small></div></div>';
+    }
+    setTimeout(()=>{
+      try{
+        if(window.L && !driverMap) initDriverMap();
+      }catch(retryError){
+        console.error("22 DRIVE — nova tentativa do mapa:",retryError);
+      }
+    },800);
+  }
+  try{ render(); }catch(renderError){ console.error("22 DRIVE — erro ao renderizar painel:",renderError); }
+  try{ loadEarnings(); }catch(earnError){ console.error("22 DRIVE — erro nos ganhos:",earnError); }
+  try{ connectSupabaseRealtime(); }catch(realtimeError){ console.error("22 DRIVE — erro no realtime:",realtimeError); }
+  try{ startNewRequestFallback(); }catch(pollError){ console.error("22 DRIVE — erro no monitoramento:",pollError); }
 }
 async function logout(){try{const client=getAuthClient();if(client)await client.auth.signOut();}catch(e){console.error("22 DRIVE logout:",e)}localStorage.removeItem(DRIVER_KEY);location.reload()}
 function applyDriverStatus(v,showNotice=true){
