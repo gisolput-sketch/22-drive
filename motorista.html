@@ -2478,7 +2478,7 @@ function card(r){
  if(s==="confirmed")buttons='<button class="btn green" onclick="markDriverArrived(\''+esc(r.id)+'\')">'+(r.driverArrivedAt?"✅ Cheguei no embarque":"📍 Cheguei no embarque")+'</button><button class="btn primary" onclick="messagePassenger(\''+esc(r.id)+'\')">💬 WhatsApp</button><button class="btn gray" onclick="finishRide(\''+esc(r.id)+'\')">✓ Finalizar corrida</button>';
  return '<article class="request"><div class="head"><div><b>🚕 '+esc(passenger)+'</b>'+(phone?'<div class="muted">📱 '+esc(phone)+'</div>':"")+'</div><span class="badge '+b[0]+'">'+b[1]+'</span></div><div style="line-height:1.7;margin:12px 0;font-size:14px">📍 <b>Origem:</b> '+esc(origin)+mapLinks+stopsHtml+'<br>🏁 <b>Destino:</b> '+esc(dest)+(date||time?'<br>🕐 <b>Pedido:</b> '+dateBR(date)+' '+esc(time):"")+(r.payment||r.pagamento?'<br>💳 <b>Pagamento:</b> '+esc(r.payment||r.pagamento):"")+(r.note||r.observacao?'<br>📝 <b>Obs.:</b> '+esc(r.note||r.observacao):"")+schedule+'</div><div class="actions">'+buttons+'</div></article>'
 }
-async function acceptRide(id){
+async async function acceptRide(id){
   stopRideAlert(id);
   const idText=String(id);
   const buttons=[...document.querySelectorAll('[data-action="accept"][data-id="'+idText.replace(/"/g,'\\\"')+'"]')];
@@ -2503,13 +2503,16 @@ async function acceptRide(id){
     else remoteReservations.unshift(accepted);
 
     setRouteState(id,"accepted");
+    // Remover imediatamente o card de nova solicitação para impedir clique duplo
+    // ou que uma renderização concorrente mantenha o botão "Recusar" ativo.
+    buttons.forEach(btn=>btn.closest(".mobile-ride-card")?.remove());
     render();
     renderTodayAcceptedRoutes();
     notice("✅ Solicitação aceita. Agora a corrida aparece como “Iniciar rota”.");
   }catch(error){
     console.error("22 DRIVE aceitar reserva:",error);
     buttons.forEach(btn=>{btn.disabled=false;btn.textContent="✓ Aceitar";btn.style.opacity="";});
-    alert("❌ Não foi possível aceitar a viagem.\\n\\n"+(error?.message||"Erro desconhecido."));
+    alert("❌ Não foi possível aceitar a viagem.\n\n"+(error?.message||"Erro desconhecido."));
     render();
   }
 }
