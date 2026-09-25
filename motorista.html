@@ -2592,6 +2592,42 @@ function restoreTodayRoutesPanel(){
     }
   });
 }
+/* Fallback global de toque para Corridas de hoje. Funciona mesmo se o painel for redesenhado. */
+function handleTodayRouteActionElement(btn){
+  if(!btn)return false;
+  const id=btn.getAttribute("data-route-id");
+  const action=btn.getAttribute("data-route-action");
+  if(!id||!action)return false;
+  if(action==="start") startRideRoute(id);
+  else if(action==="whatsapp") messageArrivalWhatsApp(id);
+  else if(action==="advance") advanceRouteStageManually(id);
+  else if(action==="continue-stop") continueAfterExtraStop(id);
+  else if(action==="finish") manualFinishAtDestination(id);
+  else if(action==="pickup-done") advancePickupManually(id);
+  else return false;
+  return true;
+}
+function installTodayRouteGlobalTouch(){
+  if(window.__todayRouteGlobalTouch)return;
+  window.__todayRouteGlobalTouch=true;
+  const handler=function(event){
+    let btn=event.target && event.target.closest ? event.target.closest("[data-route-action]") : null;
+    if(!btn && event.changedTouches && event.changedTouches[0]){
+      const t=event.changedTouches[0];
+      const el=document.elementFromPoint(t.clientX,t.clientY);
+      btn=el && el.closest ? el.closest("[data-route-action]") : null;
+    }
+    if(!btn)return;
+    event.preventDefault();
+    event.stopPropagation();
+    handleTodayRouteActionElement(btn);
+  };
+  document.addEventListener("click",handler,true);
+  document.addEventListener("pointerup",handler,true);
+  document.addEventListener("touchend",handler,{capture:true,passive:false});
+}
+installTodayRouteGlobalTouch();
+
 /* Eventos dos botões de Corridas de hoje: delegação robusta para toque em celular. */
 function bindTodayRouteActions(){
   const panel=$("todayRoutesPanel");
