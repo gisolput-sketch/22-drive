@@ -2316,9 +2316,24 @@ function restoreTodayRoutesPanel(){
 }function renderTodayAcceptedRoutes(){
   const p=$("todayRoutesPanel"); if(!p)return;
   const todayKey=localDateKey();
+  const now=new Date();
+  const oneHourFromNow=new Date(now.getTime()+60*60*1000);
   const rows=requests().filter(r=>{
     const status=String(r.status||"new").toLowerCase();
-    return ["accepted","confirmed"].includes(status) && reservationDateKey(r)===todayKey;
+    if(!["accepted","confirmed"].includes(status))return false;
+    if(reservationDateKey(r)!==todayKey)return false;
+
+    // Mostrar somente corridas de hoje que já chegaram ao horário
+    // ou que acontecerão dentro da próxima 1 hora.
+    const timeText=String(r.confirmedTime||r.confirmed_time||r.time||r.horario||"").trim();
+    if(!timeText)return false;
+    const parts=timeText.slice(0,5).split(":");
+    const hour=Number(parts[0]);
+    const minute=Number(parts[1]);
+    if(!Number.isFinite(hour)||!Number.isFinite(minute))return false;
+    const rideTime=new Date(now);
+    rideTime.setHours(hour,minute,0,0);
+    return rideTime.getTime()<=oneHourFromNow.getTime();
   }).sort((a,b)=>{
     const ta=String(a.confirmedTime||a.confirmed_time||a.time||a.horario||"23:59").slice(0,5);
     const tb=String(b.confirmedTime||b.confirmed_time||b.time||b.horario||"23:59").slice(0,5);
