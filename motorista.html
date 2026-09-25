@@ -871,8 +871,12 @@ async function loadNewRequestsFromRpc(showAlerts=true){
   try{
     if(!supabaseClient && window.supabase) supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
     if(!supabaseClient)throw new Error("Supabase indisponível.");
-    const {data,error}=await supabaseClient.rpc("get_novas_solicitacoes_motorista");
-    if(error)throw error;
+    const response=await fetch(
+      SUPABASE_URL+"/rest/v1/reservas?select=*&status=eq.new&order=created_at.asc&limit=100",
+      {cache:"no-store",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}}
+    );
+    if(!response.ok)throw new Error("HTTP "+response.status+" — "+await response.text());
+    const data=await response.json();
     const incoming=(data||[]).map(normalizeReservation);
     const oldNewIds=new Set(remoteReservations.filter(r=>(r.status||"new")==="new").map(r=>String(r.id)));
     const incomingIds=new Set(incoming.map(r=>String(r.id)));
@@ -882,7 +886,7 @@ async function loadNewRequestsFromRpc(showAlerts=true){
     if(showAlerts) incoming.filter(r=>!oldNewIds.has(String(r.id))).forEach(showNewRideNotification);
     render();
   }catch(err){
-    console.error("22 DRIVE RPC novas solicitações:",err);
+    console.error("22 DRIVE novas solicitações:",err);
     if(!remoteReservations.length)realtimeReady=false;
   }
 }
