@@ -343,8 +343,35 @@ body.navigation-active .driver-map{overflow:hidden;}
 .today-routes-empty:empty:before{content:"🚗 Nenhuma rota aceita para hoje."}
 /* Aba fixa e recolhível de Corridas de hoje */
 #todayRoutesCard{
+  display:none;
   position:relative;
   z-index:1400;
+  cursor:pointer;
+}
+#todayRoutesCard.today-routes-menu-open{
+  display:block;
+  position:fixed;
+  left:12px;
+  right:12px;
+  top:96px;
+  bottom:18px;
+  width:auto;
+  max-width:900px;
+  margin:0 auto;
+  overflow:auto;
+  z-index:8000;
+  box-shadow:0 20px 60px #000d;
+}
+.today-routes-close{
+  flex:0 0 34px;
+  width:34px;
+  height:34px;
+  border:1px solid var(--gold);
+  border-radius:50%;
+  background:#050505;
+  color:#fff;
+  font-size:16px;
+  font-weight:900;
   cursor:pointer;
 }
 #todayRoutesCard .today-routes-header{
@@ -700,6 +727,7 @@ body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
             <p>Toque aqui para abrir suas corridas</p>
           </div>
           <span class="today-routes-count" id="todayRoutesCount"></span>
+          <button type="button" class="today-routes-close" onclick="closeTodayRoutesFromMenu(event)" aria-label="Fechar corridas de hoje">✕</button>
         </div>
 
         <div class="today-routes-divider"></div>
@@ -2268,12 +2296,16 @@ function openTodayRoutesFromMenu(){
   const card=$("todayRoutesCard");
   if(!card)return;
   card.classList.remove("collapsed");
+  card.classList.add("today-routes-menu-open");
   try{localStorage.setItem("22drive_today_routes_open","1");}catch(e){}
   renderTodayAcceptedRoutes();
-  requestAnimationFrame(()=>{
-    try{card.scrollIntoView({behavior:"smooth",block:"end"});}catch(e){}
-  });
   notice("🚗 Corridas de hoje abertas.");
+}
+function closeTodayRoutesFromMenu(event){
+  if(event)event.stopPropagation();
+  const card=$("todayRoutesCard");
+  if(!card)return;
+  card.classList.remove("today-routes-menu-open");
 }
 function restoreTodayRoutesPanel(){
   const card=$("todayRoutesCard");
