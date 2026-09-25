@@ -1330,6 +1330,9 @@ let driverMap=null,driverMarker=null,driverLocation=null,driverLocationWatchId=n
 let rideMapLayer=null;
 let rideMapRequestId=null;
 let rideMapTimer=null;
+// Evita redesenhar/reajustar o mapa a cada atualização do GPS, polling ou Realtime
+// enquanto a mesma nova solicitação continua na tela.
+let rideMapPreviewRequestId=null;
 let rideMapRouteCoords=[];
 let offRouteCount=0;
 let rerouteInProgress=false;
@@ -1611,6 +1614,7 @@ function clearRideMap(){
   if(rideMapTimer){clearTimeout(rideMapTimer);rideMapTimer=null;}
   const passengerBtn=$("passengerLocationButton"); if(passengerBtn) passengerBtn.style.display="none";
   rideMapRequestId=null;
+  rideMapPreviewRequestId=null;
   rideMapRouteCoords=[];
   resetOffRouteState();
   document.body.classList.remove("navigation-active");
@@ -1654,7 +1658,14 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
     clearRideMap();
     return;
   }
+  const isNewRequest=String(r?.status||"new").toLowerCase()==="new";
+  // Para uma nova solicitação, a prévia da rota é desenhada uma única vez.
+  // Atualizações posteriores do GPS/Realtime não devem executar fitBounds,
+  // refazer a rota ou movimentar a câmera.
+  if(isNewRequest && rideMapPreviewRequestId===id && rideMapLayer)return;
   rideMapRequestId=id;
+  if(isNewRequest)rideMapPreviewRequestId=id;
+  else rideMapPreviewRequestId=null;
   if(rideMapTimer)clearTimeout(rideMapTimer);
   if(rideMapLayer)driverMap.removeLayer(rideMapLayer);
   rideMapLayer=L.layerGroup().addTo(driverMap);
@@ -1677,7 +1688,6 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
   // Em uma nova solicitação, a câmera deve mostrar somente a solicitação.
   // A localização do motorista continua sendo atualizada, mas não controla
   // o enquadramento do mapa até a navegação ser iniciada.
-  const isNewRequest=String(r?.status||"new").toLowerCase()==="new";
   const points=[pickup,dropoff];
   if(driverLocation && !isNewRequest)points.unshift(driverLocation);
   driverMap.fitBounds(L.latLngBounds(points),{padding:[35,35],maxZoom:15,animate:true});
@@ -1744,7 +1754,15 @@ function updateRideMapFromRequests(){
   // O mapa só mostra a rota de uma nova solicitação.
   // Depois que o motorista aceita, o mapa fica livre para navegação.
   const ride=requests().find(r=>String(r.status||"new").toLowerCase()==="new");
-  if(ride)updateRideMapForRequest(ride); else clearRideMap();
+  if(ride){
+    const id=String(ride.id||"");
+    // Não chamar novamente a rotina de roteamento para a mesma solicitação.
+    // Isso evita que o mapa pule/reajuste a cada polling de 1,2 s.
+    if(rideMapPreviewRequestId===id && rideMapLayer)return;
+    updateRideMapForRequest(ride);
+  }else{
+    if(rideMapPreviewRequestId!==null || rideMapLayer)clearRideMap();
+  }
 }
 
 function initDriverMap(){
