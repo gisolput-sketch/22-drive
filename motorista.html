@@ -1214,7 +1214,7 @@ async function login(){
     if(button){button.disabled=false;button.textContent="Entrar";}
   }
 }
-function openApp(){
+async function openApp(){
   try{driver=JSON.parse(localStorage.getItem(DRIVER_KEY)||"null")}catch(e){driver=null}
   if(!driver)return;
   $("login")?.classList.add("hidden");
