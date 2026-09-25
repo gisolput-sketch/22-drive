@@ -16,8 +16,8 @@ main{padding:16px}.card{background:white;border:1px solid var(--line);border-rad
 h2{font-size:17px;margin:0 0 14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{margin-bottom:11px}
 label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:white;font:inherit;outline:none}
 input:focus,select:focus,textarea:focus{border-color:#6b7280}.choices{display:grid;grid-template-columns:1fr 1fr;gap:9px}.choices label{margin:0}.choices input{display:none}.choices span{display:block;text-align:center;padding:12px;border:1px solid var(--line);border-radius:12px;cursor:pointer}.choices input:checked+span{background:var(--p);color:#fff;border-color:var(--p)}
-.price{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:17px;padding:16px}.price small{color:#166534}.price strong{display:block;font-size:29px;margin-top:3px}.notice{background:#fffbeb;border:1px solid #fde68a;padding:12px;border-radius:13px;font-size:12px;line-height:1.5;color:#854d0e}
-.btn{width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:900;cursor:pointer}.primary{background:var(--green);color:#fff}.dark{background:var(--p);color:#fff;margin-top:9px}.muted{font-size:11px;color:var(--muted);line-height:1.5}.availability{font-size:12px;margin-top:6px;line-height:1.4}.availability.ok{color:#15803d}.availability.busy{color:#dc2626;font-weight:800}
+.price{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:17px;padding:16px}.price small{color:#166534}.price strong{display:block;font-size:29px;margin-top:3px}.notice{background:#fffbeb;border:1px solid #fde68a;padding:12px;border-radius:13px;font-size:12px;line-height:2;color:#854d0e}
+.btn{width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:900;cursor:pointer}.primary{background:var(--green);color:#fff}.dark{background:var(--p);color:#fff;margin-top:9px}.muted{font-size:11px;color:var(--muted);line-height:2}.availability{font-size:12px;margin-top:6px;line-height:1.4}.availability.ok{color:#15803d}.availability.busy{color:#dc2626;font-weight:800}
 hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none;text-align:center}
 .review-star{border:0;background:#f8fafc;color:#f4c400;font-size:42px;line-height:1;padding:4px;cursor:pointer}.review-star.on{color:#f4c400}.review-star:active{transform:scale(.95)}.success h2{margin-top:5px}.check{font-size:44px}
 @media(max-width:400px){.grid{grid-template-columns:1fr}.choices{grid-template-columns:1fr}}
@@ -49,7 +49,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
   box-shadow:0 0 0 7px #1683ff44,0 2px 8px #0008
 }
 
-.confirm-overlay{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.confirm-box{background:#fff;border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 18px 50px #0005}.confirm-box h3{margin:0 0 12px}.confirm-warning{white-space:pre-line;font-size:14px;line-height:1.5;color:#111827}.confirm-actions{display:flex;gap:10px;margin-top:18px}.confirm-actions button{flex:1}.btn.secondary{background:#e5e7eb;color:#111827}
+.confirm-overlay{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.confirm-box{background:#fff;border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 18px 50px #0005}.confirm-box h3{margin:0 0 12px}.confirm-warning{white-space:pre-line;font-size:14px;line-height:2;color:#111827}.confirm-actions{display:flex;gap:10px;margin-top:18px}.confirm-actions button{flex:1}.btn.secondary{background:#e5e7eb;color:#111827}
 
 .stop-row{display:flex;gap:8px;align-items:center;margin-top:9px;padding:10px;border:1px solid #2a3444;border-radius:14px;background:#07111f}.stop-row.dragging{opacity:.55;transform:scale(.99)}.stop-row .autocomplete-wrap{flex:1;min-width:0}.stop-number{font-size:12px;font-weight:800;color:#ffc700;margin:0 0 5px}.stop-drag-handle{width:42px;min-width:42px;height:42px;border:1px solid #475569;border-radius:12px;background:#050505;color:#ffc700;font-size:21px;font-weight:900;cursor:grab;display:grid;place-items:center;touch-action:none;user-select:none}.stop-drag-handle:active{cursor:grabbing}.remove-stop-btn{width:42px;min-width:42px;height:42px;border:0;border-radius:12px;background:#fee2e2;color:#991b1b;font-size:18px;font-weight:800;cursor:pointer}.add-stop-btn{margin-top:10px;width:100%;border:1px dashed #ffc700;background:#07111f;color:#ffc700;padding:12px;border-radius:12px;font-weight:900;cursor:pointer}.stops-list{margin-top:4px}.stops-hint{font-size:11px;color:#9fb0c8;margin:7px 0 0;line-height:1.4}
 
@@ -143,7 +143,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <input id="from" type="hidden" required>
 <input id="to" type="hidden" required>
 <input id="km" type="hidden" value="0" required>
-<p class="muted">O site calcula a distância real pelas ruas automaticamente. Tarifa: até 10 km, R$ 20,00. Após 10 km, acrescenta R$ 1,50 por km excedente.</p>
+<p class="muted">O site calcula a distância real pelas ruas automaticamente. Tarifa: até 10 km, R$ 20,00. Após 10 km, acrescenta R$ 2,00 por km excedente.</p>
 </section>
 
 <section class="card">
@@ -175,7 +175,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <button class="btn primary" type="button" onclick="saveRates()">Salvar tarifas</button>
 <hr>
 <p><span class="tag">WhatsApp</span> 21 99969-6851</p>
-<p class="muted">Tarifa atual: até 10 km = valor base de R$ 20,00. Acima de 10 km, acrescenta R$ 1,50 por cada quilômetro excedente. Pedágios são somados separadamente.</p>
+<p class="muted">Tarifa atual: até 10 km = valor base de R$ 20,00. Acima de 10 km, acrescenta R$ 2,00 por cada quilômetro excedente. Pedágios são somados separadamente.</p>
 </section>
 </main>
 </div>
@@ -184,7 +184,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 const WA="5521999696851";
 const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co";
 const SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
-const defaults={base:20,includedKm:10,extraPerKm:1.5};
+const defaults={base:20,includedKm:10,extraPerKm:2};
 const EXTRA_STOP_FEE=5;
 const WAITING_FREE_MINUTES=3;
 const WAITING_FEE_PER_BLOCK=3;
@@ -525,7 +525,7 @@ async function findPassengerProfile(){
   }catch(err){console.error(err);alert("Não foi possível consultar a base agora. Confira se o cadastro no Supabase já foi configurado.");}
 }
 let rates=JSON.parse(localStorage.getItem("22drive_rates")||"null")||defaults;
-if(!rates || rates.includedKm!==10 || rates.extraPerKm!==1.5){
+if(!rates || rates.includedKm!==10 || rates.extraPerKm!==2){
   rates={...defaults};
   localStorage.setItem("22drive_rates",JSON.stringify(rates));
 }
@@ -833,7 +833,7 @@ const tollPoints = [
   {id:"tres-corregos", name:"Praça de Três Córregos", lat:-22.350000, lon:-42.880000},
   {id:"santa-rita", name:"Praça de Santa Rita", lat:-21.900000, lon:-42.650000},
   {id:"casimiro-de-abreu", name:"Praça de Casimiro de Abreu", lat:-22.476441, lon:-42.088519},
-  {id:"campos", name:"Praça de Campos", lat:-21.552594, lon:-41.331597},
+  {id:"campos", name:"Praça de Campos", lat:-2252594, lon:-41.331597},
   {id:"itaborai", name:"Praça de Itaboraí", lat:-22.747000, lon:-42.826000},
   {id:"cachoeiras", name:"Praça de Cachoeiras", lat:-22.420000, lon:-42.620000}
 ];
@@ -1142,7 +1142,7 @@ function calculateTripFare(km){
   const distance=Math.max(0,Number(km)||0);
   const base=Number(rates.base)||20;
   const included=10;
-  const extra=Number(rates.extraPerKm)||1.5;
+  const extra=Number(rates.extraPerKm)||2;
   if(distance<=included)return Math.round(base*100)/100;
   return Math.round((base+(distance-included)*extra)*100)/100;
 }
@@ -1245,7 +1245,7 @@ function openAdmin(){
  $("admin").classList.toggle("on");$("base").value=rates.base;$("perkm").value=rates.extraPerKm;
 }
 function saveRates(){
- rates={base:parseFloat($("base").value)||20,includedKm:10,extraPerKm:parseFloat($("perkm").value)||1.5};
+ rates={base:parseFloat($("base").value)||20,includedKm:10,extraPerKm:parseFloat($("perkm").value)||2};
  localStorage.setItem("22drive_rates",JSON.stringify(rates));calc();alert("Tarifas salvas!");
 }
 $("form").addEventListener("submit",e=>{
