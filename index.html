@@ -561,10 +561,17 @@ function initMap(){
   const oldFallback=$("mapFallback");
   if(oldFallback) oldFallback.style.display="none";
   driveMap=L.map(el,{zoomControl:true,attributionControl:true});
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
+  const osmLayer=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
     maxZoom:19,
     attribution:'&copy; OpenStreetMap contributors'
   }).addTo(driveMap);
+  let tileLoaded=false;
+  osmLayer.on("tileload",()=>{tileLoaded=true;});
+  setTimeout(()=>{
+    if(!tileLoaded && driveMap){
+      osmLayer.setUrl("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png");
+    }
+  },2500);
   driveMap.setView([-22.73,-42.63],11);
   setTimeout(()=>driveMap.invalidateSize(true),150);
   setTimeout(()=>driveMap.invalidateSize(true),700);
@@ -587,7 +594,14 @@ function openMapPicker(mode){
   setTimeout(()=>{
     if(!window.mapPickerMap){
       mapPickerMap=L.map("mapPickerMap",{zoomControl:true});
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap contributors"}).addTo(mapPickerMap);
+       const pickerTiles=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap contributors"}).addTo(mapPickerMap);
+       let pickerTileLoaded=false;
+       pickerTiles.on("tileload",()=>{pickerTileLoaded=true;});
+       setTimeout(()=>{
+         if(!pickerTileLoaded && mapPickerMap){
+           pickerTiles.setUrl("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png");
+         }
+       },2500);
       mapPickerMap.setView([-22.73,-42.63],12);
       mapPickerMap.on("moveend",()=>{const c=mapPickerMap.getCenter();setMapPickerPosition(c.lat,c.lng,false);});
       mapPickerMap.on("click",e=>setMapPickerPosition(e.latlng.lat,e.latlng.lng,false));
