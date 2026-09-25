@@ -727,7 +727,7 @@ function loadGoogleMaps(){
 }
 async function ensureGoogleLibraries(){
   await loadGoogleMaps();
-  const [{Map,InfoWindow}],{AdvancedMarkerElement}=await Promise.all([
+  const [{Map,InfoWindow},{AdvancedMarkerElement}]=await Promise.all([
     google.maps.importLibrary("maps"),
     google.maps.importLibrary("marker")
   ]);
