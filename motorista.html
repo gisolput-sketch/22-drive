@@ -2532,8 +2532,13 @@ function renderMobileRequests(){
   const active=rs.filter(r=>{
     const status=String(r.status||"new").toLowerCase();
     // Toda NOVA solicitação fica no alerta até o motorista aceitar ou recusar.
-    // Apenas viagens já aceitas/confirmadas podem ser movidas para a área de hoje/agendadas.
-    return status==="new" || (["accepted","confirmed"].includes(status) && !isScheduledFromTwoDays(r));
+    if(status==="new")return true;
+    if(!["accepted","confirmed"].includes(status) || isScheduledFromTwoDays(r))return false;
+    // Depois que o motorista inicia o percurso, o cartão deixa de ocupar
+    // a parte inferior da tela e a navegação fica livre no mapa.
+    const routeState=getRouteState(r.id);
+    const inProgress=routeState && ["pickup","dropoff_ready","dropoff","stop_waiting"].includes(String(routeState.phase||""));
+    return !inProgress;
   });
   if($("sheetCount"))$("sheetCount").textContent=active.length?active.length+" solicitação"+(active.length===1?"":"ões"):"";
   if(!active.length){
