@@ -903,10 +903,28 @@ async function loadNewRequestsFromRpc(showAlerts=true){
         .forEach(showNewRideNotification);
     }
 
-    render();
+    // Renderiza o cartão de nova corrida diretamente. Isso garante que uma
+    // falha em outra parte do painel não impeça o card de aparecer.
+    try{ renderMobileRequests(); }catch(renderErr){ console.error("22 DRIVE — erro renderMobileRequests:",renderErr); }
+    try{ render(); }catch(renderErr){ console.error("22 DRIVE — erro render geral:",renderErr); }
+    // Reforço visual: se houver uma nova solicitação, o card deve ficar
+    // visível sobre o mapa, independentemente do restante do painel.
+    try{
+      const box=$("mobileRequests");
+      const pending=incoming.filter(r=>String(r.status||"new").toLowerCase()==="new");
+      if(box && pending.length && !box.querySelector(".mobile-ride-card")){
+        renderMobileRequests();
+      }
+      if(box && pending.length){
+        box.style.display="block";
+        box.style.visibility="visible";
+        box.style.opacity="1";
+        box.style.position="relative";
+        box.style.zIndex="99999";
+      }
+    }catch(visualErr){ console.error("22 DRIVE — reforço visual do card:",visualErr); }
   }catch(err){
     console.error("22 DRIVE — erro ao buscar novas solicitações:",err);
-    // Não apaga o que já estiver na tela se houver uma falha momentânea.
     if(!remoteReservations.length)realtimeReady=false;
   }
 }
