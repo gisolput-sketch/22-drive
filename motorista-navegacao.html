@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>22 DRIVE — Navegação</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111827;font-family:Inter,Roboto,Arial,sans-serif;color:#fff}
+#map{position:absolute;inset:0;width:100%;height:100%;background:#dbe3ea}
+.leaflet-container{font:inherit}
+#top{position:absolute;z-index:1000;top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:center;pointer-events:none}
+.panel{pointer-events:auto;background:rgba(17,24,39,.94);border-radius:18px;box-shadow:0 8px 28px #0007;border:1px solid #334155}
+#maneuver{flex:1;min-width:0;padding:12px 15px}
+#maneuver b{display:block;font-size:18px;line-height:1.15}#maneuver small{display:block;margin-top:4px;color:#cbd5e1}
+#compass{width:48px;height:48px;border:0;border-radius:50%;background:#fff;color:#111827;font-size:24px;box-shadow:0 5px 18px #0005}
+#bottom{position:absolute;z-index:1000;left:12px;right:12px;bottom:12px;display:flex;justify-content:center;pointer-events:none}
+#sheet{width:min(620px,100%);padding:14px;background:rgba(17,24,39,.95);border-radius:22px;box-shadow:0 10px 35px #0009;border:1px solid #334155;pointer-events:auto}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.stat{background:#1f2937;border-radius:13px;padding:9px;text-align:center}.stat small{display:block;color:#94a3b8;font-size:10px}.stat strong{display:block;margin-top:3px;font-size:17px}
+.actions{display:flex;gap:8px;margin-top:10px}.actions button{flex:1;min-height:46px;border:0;border-radius:13px;font-weight:900;font-size:14px}.primary{background:#00c853;color:#04120d}.dark{background:#334155;color:#fff}
+#status{margin-top:8px;color:#cbd5e1;font-size:12px;text-align:center}
+.car{width:54px;height:54px;border-radius:50%;background:#1683ff;border:3px solid #fff;box-shadow:0 0 0 10px #1683ff33,0 3px 12px #0007;display:grid;place-items:center;font-size:26px;transform-origin:center}
+@media(max-width:520px){#top{top:9px;left:9px;right:9px}.panel{border-radius:15px}#maneuver{padding:10px 12px}#maneuver b{font-size:16px}.stats{gap:5px}.stat{padding:8px 4px}.stat strong{font-size:15px}#bottom{left:8px;right:8px;bottom:8px}#sheet{padding:11px}}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="top">
+  <div id="maneuver" class="panel"><b id="maneuverTitle">Preparando navegação…</b><small id="maneuverSub">Aguardando localização do motorista</small></div>
+  <button id="compass" title="Recentrar">🧭</button>
+</div>
+<div id="bottom">
+  <section id="sheet">
+    <div class="stats">
+      <div class="stat"><small>PRÓXIMA MANOBRA</small><strong id="nextDistance">—</strong></div>
+      <div class="stat"><small>DISTÂNCIA</small><strong id="remaining">—</strong></div>
+      <div class="stat"><small>CHEGADA</small><strong id="eta">—</strong></div>
+    </div>
+    <div class="actions">
+      <button id="recenter" class="primary">📍 Recentrar</button>
+      <button id="finish" class="dark">✕ Sair da navegação</button>
+    </div>
+    <div id="status">Modo navegação 22 DRIVE</div>
+  </section>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co";
+const SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
+const params=new URLSearchParams(location.search);
+const rideId=params.get("id");
+const map=L.map("map",{zoomControl:false,attributionControl:true,preferCanvas:true}).setView([-22.73,-42.63],15);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20,attribution:"© OpenStreetMap"}).addTo(map);
+L.control.zoom({position:"bottomright"}).addTo(map);
+let driverMarker=null,destinationMarker=null,routeLine=null,watchId=null,lastPos=null,heading=0,target=null,routeCoords=[],lastRouteAt=0;
+
+const $=id=>document.getElementById(id);
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function km(v){return v<1?(v*1000).toFixed(0)+" m":v.toFixed(1)+" km"}
+function hav(a,b){const R=6371000,p=Math.PI/180,dLat=(b[0]-a[0])*p,dLon=(b[1]-a[1])*p,x=Math.sin(dLat/2)**2+Math.cos(a[0]*p)*Math.cos(b[0]*p)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))}
+function bearing(a,b){const p=Math.PI/180,y=Math.sin((b[1]-a[1])*p)*Math.cos(b[0]*p),x=Math.cos(a[0]*p)*Math.sin(b[0]*p)-Math.sin(a[0]*p)*Math.cos(b[0]*p)*Math.cos((b[1]-a[1])*p);return (Math.atan2(y,x)*180/Math.PI+360)%360}
+function setCar(lat,lng,hdg){const html='<div class="car" style="transform:rotate('+hdg+'deg)">🚗</div>';if(!driverMarker)driverMarker=L.marker([lat,lng],{icon:L.divIcon({className:"",html,iconSize:[54,54],iconAnchor:[27,27]})}).addTo(map);else{driverMarker.setLatLng([lat,lng]);driverMarker.setIcon(L.divIcon({className:"",html,iconSize:[54,54],iconAnchor:[27,27]}))}}
+function recenter(){if(!lastPos)return;map.setView(lastPos,17,{animate:true});}
+async function loadRide(){
+  if(!rideId){$("status").textContent="Use esta tela com ?id=ID_DA_CORRIDA.";return}
+  try{
+    const r=await fetch(SUPABASE_URL+"/rest/v1/reservas?id=eq."+encodeURIComponent(rideId)+"&select=id,origin,destination,destination_lat,destination_lng,status,driver_name,travel_time,total_value",{headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY}});
+    if(!r.ok)throw new Error("Não foi possível carregar a corrida.");
+    const rows=await r.json(); if(!rows.length)throw new Error("Corrida não encontrada.");
+    const ride=rows[0];
+    if(ride.destination_lat&&ride.destination_lng)target=[Number(ride.destination_lat),Number(ride.destination_lng)];
+    else target=await geocode(ride.destination);
+    if(!target)throw new Error("Destino sem coordenadas.");
+    destinationMarker=L.marker(target).addTo(map).bindPopup("🏁 "+esc(ride.destination||"Destino")).openPopup();
+    $("maneuverTitle").textContent="Rota para o destino";
+    $("maneuverSub").textContent=ride.destination||"Destino";
+    startGPS();
+  }catch(e){$("status").textContent="⚠️ "+e.message}
+}
+async function geocode(q){
+  if(!q)return null;
+  const u="https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(q);
+  const r=await fetch(u,{headers:{"Accept-Language":"pt-BR"}});const j=await r.json();return j[0]?[Number(j[0].lat),Number(j[0].lon)]:null;
+}
+async function route(){
+  if(!lastPos||!target)return;
+  const now=Date.now();if(now-lastRouteAt<6000)return;lastRouteAt=now;
+  try{
+    const u="https://router.project-osrm.org/route/v1/driving/"+lastPos[1]+","+lastPos[0]+";"+target[1]+","+target[0]+"?overview=full&geometries=geojson&steps=true";
+    const r=await fetch(u);const j=await r.json();if(!j.routes?.length)return;
+    const rt=j.routes[0];routeCoords=rt.geometry.coordinates.map(c=>[c[1],c[0]]);
+    if(routeLine)routeLine.setLatLngs(routeCoords);else routeLine=L.polyline(routeCoords,{weight:7,opacity:.9}).addTo(map);
+    $("remaining").textContent=km(rt.distance/1000);
+    $("eta").textContent=Math.max(1,Math.round(rt.duration/60))+" min";
+    const step=rt.legs?.[0]?.steps?.[0];
+    if(step){$("nextDistance").textContent=km(step.distance/1000);$("maneuverTitle").textContent=step.maneuver?.instruction||"Siga pela rota";$("maneuverSub").textContent=(step.name||"Estrada")+" • "+km(step.distance/1000)}
+  }catch(e){$("status").textContent="Rota temporariamente indisponível; mantendo localização."}
+}
+function startGPS(){
+  if(!navigator.geolocation){$("status").textContent="GPS não disponível neste aparelho.";return}
+  watchId=navigator.geolocation.watchPosition(pos=>{
+    const p=[pos.coords.latitude,pos.coords.longitude];let h=Number.isFinite(pos.coords.heading)&&pos.coords.heading>=0?pos.coords.heading:(lastPos?bearing(lastPos,p):heading);heading=h||0;lastPos=p;setCar(p[0],p[1],heading);
+    if(target){const d=hav(p,target);$("status").textContent=d<30?"🏁 Você chegou ao destino.":"🧭 Navegação ativa • "+km(d)+" restantes";if(d<30)$("maneuverTitle").textContent="Você chegou";else route()}
+    map.setView(p,17,{animate:true});
+  },err=>{$("status").textContent="⚠️ Ative a localização do aparelho para navegar."},{enableHighAccuracy:true,maximumAge:1000,timeout:15000});
+}
+$("recenter").onclick=recenter;$("compass").onclick=recenter;
+$("finish").onclick=()=>{if(watchId!==null)navigator.geolocation.clearWatch(watchId);history.back()};
+loadRide();
+</script>
+</body>
+</html>
