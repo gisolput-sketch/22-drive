@@ -1553,7 +1553,13 @@ async function rerouteFromCurrentLocation(r,phase){
   if(!r||!driverLocation||rerouteInProgress)return false;
   const now=Date.now();
   if(now-lastRerouteAt<REROUTE_COOLDOWN_MS)return false;
-  const target=phase==="pickup"?rideCoordinate(r,"pickup"):rideCoordinate(r,"dropoff");
+  let target=phase==="pickup"?rideCoordinate(r,"pickup"):rideCoordinate(r,"dropoff");
+  if(phase==="dropoff"){
+    const state=getRouteState(r.id);
+    const stopIndex=state&&state.phase==="dropoff"&&Number.isInteger(Number(state.stopIndex))?Number(state.stopIndex):null;
+    const stop=stopIndex!=null&&Array.isArray(r.extraStops)?r.extraStops[stopIndex]:null;
+    if(stop&&stop.lat!=null&&stop.lng!=null)target=[Number(stop.lat),Number(stop.lng)];
+  }
   if(!target)return false;
   if(lastRerouteLocation&&distanceMeters(driverLocation,lastRerouteLocation)<60)return false;
   rerouteInProgress=true;lastRerouteAt=now;lastRerouteLocation=driverLocation.slice();
@@ -1658,7 +1664,22 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
   // Não abrir popup automaticamente para não cobrir o cartão.
 
   const requestId=id;
-  const routePoints=(rerouteMode?[routeStartOverride,routeTargetOverride]:(driverLocation?[driverLocation,pickup,dropoff]:[pickup,dropoff]))
+  // A navegação interna usa somente a etapa atual:
+  // • pickup: motorista → embarque
+  // • dropoff: motorista → próxima parada ou destino
+  // Isso evita que o painel de instruções avance para o destino antes do embarque.
+  const activePhase=String(getRouteState(id)?.phase||"pickup");
+  let navigationTarget=activePhase==="pickup"?pickup:dropoff;
+  if(activePhase==="dropoff"){
+    const state=getRouteState(id);
+    const stopIndex=state&&state.phase==="dropoff"&&Number.isInteger(Number(state.stopIndex))?Number(state.stopIndex):null;
+    const stop=stopIndex!=null&&Array.isArray(r.extraStops)?r.extraStops[stopIndex]:null;
+    if(stop&&stop.lat!=null&&stop.lng!=null){
+      navigationTarget=[Number(stop.lat),Number(stop.lng)];
+    }
+  }
+  const navigationStart=rerouteMode?routeStartOverride:(driverLocation||null);
+  const routePoints=(navigationStart?[navigationStart,navigationTarget]:[navigationTarget])
     .map(p=>Number(p[1])+","+Number(p[0])).join(";");
   const osrmUrl="https://router.project-osrm.org/route/v1/driving/"+routePoints+"?overview=full&geometries=geojson&steps=true";
   const response=await fetch(osrmUrl);
@@ -2105,44 +2126,7 @@ function startPickupArrivalWatch(r){
     }
   },()=>{}, {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
 }
-let routeNavigationWindow=null;
-function buildNavigationUrl(r,type){
-  const coordinate=rideCoordinate(r,type);
-  const textAddress=type==="pickup"
-    ?String(r.origin||r.origem||"").trim()
-    :String(r.destination||r.destino||"").trim();
-  const destination=coordinate
-    ?(coordinate[0]+","+coordinate[1])
-    :textAddress;
-  if(!destination)return "";
-  let url="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(destination);
-  if(type==="dropoff" && Array.isArray(r.extraStops) && r.extraStops.length){
-    const waypoints=r.extraStops.map(s=>s&&((s.lat!=null&&s.lng!=null)?String(s.lat)+","+String(s.lng):String(s.address||"").trim())).filter(Boolean);
-    if(waypoints.length) url+="&waypoints="+encodeURIComponent(waypoints.join("|"));
-  }
-  return url+"&travelmode=driving&dir_action=navigate";
-}
-function openNavigationToRidePoint(r,type){
-  const url=buildNavigationUrl(r,type);
-  if(!url)return false;
-  // No celular, não dependemos de window.open/popup.
-  // A própria aba é enviada para a navegação, o que também funciona
-  // quando o navegador encaminha o link para o Google Maps.
-  try{
-    if(routeNavigationWindow&&!routeNavigationWindow.closed){
-      routeNavigationWindow.location.href=url;
-      routeNavigationWindow.focus?.();
-      return true;
-    }
-  }catch(e){}
-  try{
-    window.location.href=url;
-    return true;
-  }catch(e){
-    console.error("22 DRIVE navegação:",e);
-    return false;
-  }
-}
+// Navegação externa removida: o motorista permanece no módulo de navegação do 22 DRIVE.
 function startRideRoute(id){
   const r=requests().find(x=>String(x.id)===String(id));
   if(!r)return;
@@ -2478,7 +2462,7 @@ function card(r){
  if(s==="confirmed")buttons='<button class="btn green" onclick="markDriverArrived(\''+esc(r.id)+'\')">'+(r.driverArrivedAt?"✅ Cheguei no embarque":"📍 Cheguei no embarque")+'</button><button class="btn primary" onclick="messagePassenger(\''+esc(r.id)+'\')">💬 WhatsApp</button><button class="btn gray" onclick="finishRide(\''+esc(r.id)+'\')">✓ Finalizar corrida</button>';
  return '<article class="request"><div class="head"><div><b>🚕 '+esc(passenger)+'</b>'+(phone?'<div class="muted">📱 '+esc(phone)+'</div>':"")+'</div><span class="badge '+b[0]+'">'+b[1]+'</span></div><div style="line-height:1.7;margin:12px 0;font-size:14px">📍 <b>Origem:</b> '+esc(origin)+mapLinks+stopsHtml+'<br>🏁 <b>Destino:</b> '+esc(dest)+(date||time?'<br>🕐 <b>Pedido:</b> '+dateBR(date)+' '+esc(time):"")+(r.payment||r.pagamento?'<br>💳 <b>Pagamento:</b> '+esc(r.payment||r.pagamento):"")+(r.note||r.observacao?'<br>📝 <b>Obs.:</b> '+esc(r.note||r.observacao):"")+schedule+'</div><div class="actions">'+buttons+'</div></article>'
 }
-async async function acceptRide(id){
+async function acceptRide(id){
   stopRideAlert(id);
   const idText=String(id);
   const buttons=[...document.querySelectorAll('[data-action="accept"][data-id="'+idText.replace(/"/g,'\\\"')+'"]')];
