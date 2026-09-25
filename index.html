@@ -710,7 +710,7 @@ function loadGoogleMaps(){
   if(googleMapsReady && window.google?.maps)return Promise.resolve();
   if(googleMapsPromise)return googleMapsPromise;
   googleMapsPromise=new Promise((resolve,reject)=>{
-    if(!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY==="COLE_SUA_CHAVE_GOOGLE_AQUI"){
+    if(!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY==="AIzaSyBtjXwVH9XXoNP1tPARNgjdPn50kI2xIoQ"){
       reject(new Error("CHAVE_GOOGLE_NAO_CONFIGURADA"));return;
     }
     if(window.google?.maps){
