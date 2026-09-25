@@ -199,8 +199,8 @@ body{overflow:hidden}
   border:3px solid #fff;
   box-shadow:0 0 0 11px #72c8ff45,0 0 28px #1696ff99;
 }
-.driver-map{perspective:1000px;perspective-origin:50% 58%;}
-.driver-map .leaflet-map-pane{will-change:transform;transition:transform .18s linear;transform-style:preserve-3d;}
+.driver-map{perspective:none;}
+.driver-map .leaflet-map-pane{will-change:transform;transition:transform .35s ease-out;transform-origin:50% 58%;}
 .driver-car-marker span{transition:transform .18s linear;transform-style:preserve-3d;}.driver-car-wrap{position:relative;width:92px;height:92px;display:grid;place-items:center;transform-origin:50% 50%;transition:transform .18s linear;transform-style:preserve-3d;}
 .driver-car-circle{position:relative;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:#1696ff;color:#fff;font-size:24px;border:3px solid #fff;box-shadow:0 0 0 11px #72c8ff45,0 0 28px #1696ff99;z-index:2;}
 .driver-heading-cone{position:absolute;left:50%;top:2px;width:0;height:0;transform:translateX(-50%);border-left:13px solid transparent;border-right:13px solid transparent;border-bottom:34px solid rgba(25,132,255,.34);filter:drop-shadow(0 0 5px rgba(25,132,255,.42));z-index:1;}
@@ -1390,33 +1390,33 @@ document.addEventListener("pointerdown",()=>{
 },{passive:true});
 function speakNavigationInstruction(force=false,position=null){
   if(!navigationState.voiceEnabled || typeof window==="undefined" || !("speechSynthesis" in window))return;
-  const s=navigationState.steps[navigationState.index];
-  if(!s)return;
+  const s=navigationState.steps[navigationState.index]; if(!s)return;
   const synth=window.speechSynthesis;
   const distance=getNavigationManeuverDistance(position,s);
-  let threshold=distance>600?500:distance>250?200:distance>100?80:0;
-  if(!force&&threshold>0&&navigationState.lastAnnouncedDistance===threshold)return;
-  if(!force&&threshold===0&&navigationState.lastSpokenIndex===navigationState.index)return;
-  navigationState.lastSpokenIndex=navigationState.index;
-  navigationState.lastAnnouncedDistance=threshold;
-  const prefix=distance<=35?"":navigationVoiceDistance(distance);
+  const threshold=distance>600?500:distance>250?200:distance>100?80:0;
   const road=s.name?String(s.name).trim():"";
-  const text=(prefix||"")+navText(s)+(road?" pela "+road:"");
+  const text=(distance<=35?"":navigationVoiceDistance(distance))+navText(s)+(road?" pela "+road:"");
+  const now=Date.now();
+  const sameText=text===String(navigationState.lastSpokenText||"");
+  if(!force){
+    if(sameText && (now-(Number(navigationState.lastSpeechAt)||0))<20000)return;
+    if(threshold>0 && navigationState.lastAnnouncedDistance===threshold && sameText)return;
+    if(threshold===0 && navigationState.lastSpokenIndex===navigationState.index && sameText)return;
+  }
+  navigationState.lastSpokenIndex=navigationState.index; navigationState.lastAnnouncedDistance=threshold; navigationState.lastSpokenText=text; navigationState.lastSpeechAt=now;
   try{
     synth.cancel();
-    if(typeof synth.resume==="function")synth.resume();
-    const u=new SpeechSynthesisUtterance(text);
-    u.lang="pt-BR";
-    u.rate=0.92;
-    u.pitch=1;
-    u.volume=1;
-    const voices=synth.getVoices?synth.getVoices():[];
-    const voice=voices.find(v=>String(v.lang||"").toLowerCase()==="pt-br")||voices.find(v=>String(v.lang||"").toLowerCase().startsWith("pt"));
-    if(voice)u.voice=voice;
-    u.onend=()=>{try{if(synth.paused)synth.resume();}catch(e){}};
-    u.onerror=()=>{try{if(synth.paused)synth.resume();}catch(e){}};
-    synth.speak(u);
-    setTimeout(()=>{try{if(synth.paused)synth.resume();}catch(e){}},250);
+    setTimeout(()=>{
+      try{
+        if(!navigationState.voiceEnabled)return;
+        if(typeof synth.resume==="function")synth.resume();
+        const u=new SpeechSynthesisUtterance(text); u.lang="pt-BR"; u.rate=.92; u.pitch=1; u.volume=1;
+        const voices=synth.getVoices?synth.getVoices():[];
+        const voice=voices.find(v=>String(v.lang||"").toLowerCase()==="pt-br")||voices.find(v=>String(v.lang||"").toLowerCase().startsWith("pt"));
+        if(voice)u.voice=voice;
+        synth.speak(u);
+      }catch(e){console.warn("22 DRIVE voz:",e)}
+    },180);
   }catch(e){console.warn("22 DRIVE voz:",e)}
 }
 function toggleNavigationVoice(){
@@ -1456,7 +1456,14 @@ function updateTripProgress(){
 function setNavigationSteps(route,rideId,type){
   const steps=[];
   (route?.legs||[]).forEach(leg=>(leg.steps||[]).forEach(s=>steps.push(s)));
-  navigationState.steps=steps; navigationState.index=0; navigationState.rideId=String(rideId||""); navigationState.type=type||null; navigationState.lastSpokenIndex=-1; navigationState.lastAnnouncedDistance=Infinity; navigationState.routeDistance=Number(route?.distance)||steps.reduce((a,s)=>a+(Number(s.distance)||0),0); navigationState.routeDuration=Number(route?.duration)||steps.reduce((a,s)=>a+(Number(s.duration)||0),0); document.body.classList.add("navigation-active"); const compass=$("navCompassButton"); if(compass){compass.classList.remove("hidden");compass.textContent=navigationState.orientation==="heading"?"🧭":"⬆️";} applyNavigationBearing(navigationState.heading); updateNavigationPanel(); updateTripProgress(); updateNavigationSummary(); speakNavigationInstruction(true);
+  navigationState.steps=steps; navigationState.index=0; navigationState.rideId=String(rideId||""); navigationState.type=type||null;
+  navigationState.lastSpokenIndex=-1; navigationState.lastAnnouncedDistance=Infinity; navigationState.lastSpokenText=""; navigationState.lastSpeechAt=0;
+  navigationState.routeDistance=Number(route?.distance)||steps.reduce((a,s)=>a+(Number(s.distance)||0),0);
+  navigationState.routeDuration=Number(route?.duration)||steps.reduce((a,s)=>a+(Number(s.duration)||0),0);
+  document.body.classList.add("navigation-active");
+  if(driverMarker){try{driverMarker.setIcon(driverCurrentLocationIcon());}catch(e){}}
+  const compass=$("navCompassButton"); if(compass){compass.classList.remove("hidden");compass.textContent=navigationState.orientation==="heading"?"🧭":"⬆️";}
+  applyNavigationBearing(navigationState.heading); updateNavigationPanel(); updateTripProgress(); updateNavigationSummary(); speakNavigationInstruction(true);
 }
 function updateNavigationSummary(){
   const box=$("driverNavSummary");if(!box)return;
@@ -1493,7 +1500,7 @@ function applyNavigationBearing(heading){
     .replace(/\sperspective\([^)]*\)/g,"")
     .replace(/\srotate\([^)]*\)/g,"")
     .replace(/\sscale\([^)]*\)/g,"").trim();
-  mapPane.style.transform=(base?base+" ":"")+"perspective(900px) rotateX("+dynamicPitch.toFixed(1)+"deg) rotate("+(-visualHeading).toFixed(1)+"deg) scale("+NAV_MAP_SCALE+")";
+  mapPane.style.transform=(base?base+" ":"")+"rotate("+(-visualHeading).toFixed(1)+"deg) scale(1.06)";
   mapPane.style.transformOrigin="50% 62%";
   const wrap=driverMarker?.getElement?.()?.querySelector?.(".driver-car-wrap");
   if(wrap)wrap.style.transform="rotate("+navigationState.heading.toFixed(1)+"deg)";
@@ -1527,12 +1534,9 @@ function resetNavigationBearing(){
   if(wrap)wrap.style.transform="";
 }
 function driverCurrentLocationIcon(){
-  return L.divIcon({
-    className:"driver-current-map-marker",
-    html:"<div class=\"blue-dot\"></div>",
-    iconSize:[20,20],
-    iconAnchor:[10,10]
-  });
+  const navigation=document.body.classList.contains("navigation-active");
+  if(navigation)return L.divIcon({className:"driver-car-marker",html:"<div class=\"driver-car-wrap\"><div class=\"driver-heading-cone\"></div><div class=\"driver-car-circle\">🚗</div></div>",iconSize:[92,92],iconAnchor:[46,46]});
+  return L.divIcon({className:"driver-current-map-marker",html:"<div class=\"blue-dot\"></div>",iconSize:[20,20],iconAnchor:[10,10]});
 }
 function showDriverCurrentLocation(lat,lng,center=false){
   if(!driverMap||!Number.isFinite(Number(lat))||!Number.isFinite(Number(lng)))return;
@@ -1671,9 +1675,9 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
   if(rideMapLayer)driverMap.removeLayer(rideMapLayer);
   rideMapLayer=L.layerGroup().addTo(driverMap);
 
-  if(passengerLocationMarker) passengerLocationMarker.setLatLng(pickup);
-  else passengerLocationMarker=L.marker(pickup,{icon:L.divIcon({className:"passenger-map-marker",html:"<div class=\"blue-dot\"></div>",iconSize:[20,20],iconAnchor:[10,10]}),zIndexOffset:1200,interactive:false}).addTo(driverMap);
-  const passengerBtn=$("passengerLocationButton"); if(passengerBtn) passengerBtn.style.display="grid";
+  if(passengerLocationMarker&&driverMap){try{driverMap.removeLayer(passengerLocationMarker);}catch(e){}}
+  passengerLocationMarker=null;
+  const passengerBtn=$("passengerLocationButton"); if(passengerBtn) passengerBtn.style.display="none";
 
   const pickupMarker=L.marker(pickup,{icon:rideMarkerIcon("pickup"),zIndexOffset:700})
     .bindPopup("<b>🟢 Embarque</b><br>"+esc(r.origin||"Endereço não informado"));
