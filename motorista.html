@@ -689,10 +689,18 @@ body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
 @media (max-width:600px){#driverMap{min-height:320px}.driver-location-button{width:46px;height:46px;right:12px;top:12px}.driver-map .leaflet-control-zoom a{width:42px!important;height:42px!important;line-height:42px!important}}
 </style></style>
 <link rel="manifest" href="manifest-motorista.json">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
 <link rel="apple-touch-icon" href="icon-192.svg">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
+const GOOGLE_MAPS_API_KEY="COLE_SUA_CHAVE_GOOGLE_AQUI";
+let googleMapsPromise=null,googleMapLib=null,googleMarkerLib=null,googleRouteLib=null,driverTrafficLayer=null;
+function loadGoogleMapsDriver(){if(googleMapsPromise)return googleMapsPromise;googleMapsPromise=new Promise((resolve,reject)=>{if(window.google?.maps){resolve(window.google.maps);return;}const s=document.createElement("script");s.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(GOOGLE_MAPS_API_KEY)+"&v=weekly&loading=async";s.async=true;s.defer=true;s.onload=()=>window.google?.maps?resolve(window.google.maps):reject(new Error("Google Maps não carregou."));s.onerror=()=>reject(new Error("Não foi possível carregar o Google Maps."));document.head.appendChild(s)});return googleMapsPromise}
+async function ensureGoogleDriverLibraries(){const maps=await loadGoogleMapsDriver();if(!googleMapLib){const [m,ma,r]=await Promise.all([maps.importLibrary("maps"),maps.importLibrary("marker"),maps.importLibrary("routes")]);googleMapLib=m;googleMarkerLib=ma;googleRouteLib=r}return{Map:googleMapLib.Map,InfoWindow:googleMapLib.InfoWindow,AdvancedMarkerElement:googleMarkerLib.AdvancedMarkerElement,Route:googleRouteLib.Route}}
+function googleDriverPosition(p){return{lat:Number(p[0]),lng:Number(p[1])}}
+function googleDriverMarkerContent(kind){const e=document.createElement("div");e.style.cssText="width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:3px solid #fff;box-shadow:0 2px 10px #0007;font-size:18px;font-weight:900";if(kind==="pickup"){e.style.background="#16a34a";e.textContent="●"}else if(kind==="dropoff"){e.style.background="#ef4444";e.textContent="◆"}else if(kind==="stop"){e.style.background="#f5c542";e.style.color="#111";e.textContent="●"}else{e.style.width="46px";e.style.height="46px";e.style.background="#1683ff";e.textContent="🚗"}return e}
+function removeGoogleDriverOverlay(o){if(o){try{o.map=null}catch(e){}}}
+</script>
 </head>
 <body>
 
@@ -1220,7 +1228,7 @@ function openApp(){
   applyDriverStatus(normalizedStatus,false);
   // Inicialização protegida: um erro do mapa não pode deixar a tela inteira preta.
   try{
-    initDriverMap();
+    await initDriverMap();
   }catch(mapError){
     console.error("22 DRIVE — erro ao iniciar mapa:",mapError);
     driverMap=null;
@@ -1230,7 +1238,7 @@ function openApp(){
     }
     setTimeout(()=>{
       try{
-        if(window.L && !driverMap) initDriverMap();
+        if(!driverMap) initDriverMap();
       }catch(retryError){
         console.error("22 DRIVE — nova tentativa do mapa:",retryError);
       }
@@ -1537,26 +1545,7 @@ function updateNavigationSummary(){
 const NAV_PITCH_MIN=14;
 const NAV_PITCH_MAX=30;
 const NAV_MAP_SCALE=1.2;
-function applyNavigationBearing(heading){
-  if(!driverMap)return;
-  const h=Number(heading);
-  if(Number.isFinite(h)&&h>=0&&h<=360)navigationState.heading=h;
-  const mapPane=driverMap.getPane&&driverMap.getPane("mapPane");
-  if(!mapPane)return;
-  if(!document.body.classList.contains("navigation-active"))return;
-  const visualHeading=navigationState.orientation==="heading"?navigationState.heading:0;
-  const speedKmh=Math.max(0,Number(navigationState.currentSpeed||0)*3.6);
-  const dynamicPitch=Math.min(NAV_PITCH_MAX,NAV_PITCH_MIN+(Math.min(1,speedKmh/80)*(NAV_PITCH_MAX-NAV_PITCH_MIN)));
-  const base=String(mapPane.style.transform||"")
-    .replace(/\srotateX\([^)]*\)/g,"")
-    .replace(/\sperspective\([^)]*\)/g,"")
-    .replace(/\srotate\([^)]*\)/g,"")
-    .replace(/\sscale\([^)]*\)/g,"").trim();
-  mapPane.style.transform=(base?base+" ":"")+"rotate("+(-visualHeading).toFixed(1)+"deg) scale(1.06)";
-  mapPane.style.transformOrigin="50% 62%";
-  const wrap=driverMarker?.getElement?.()?.querySelector?.(".driver-car-wrap");
-  if(wrap)wrap.style.transform="rotate("+navigationState.heading.toFixed(1)+"deg)";
-}
+function applyNavigationBearing(h){if(!driverMap)return;h=Number(h);if(Number.isFinite(h)&&h>=0&&h<=360)navigationState.heading=h;if(driverMap.setHeading)try{driverMap.setHeading(-(navigationState.orientation==="heading"?navigationState.heading:0))}catch(e){}}
 function toggleNavigationOrientation(){
   navigationState.orientation=navigationState.orientation==="heading"?"north":"heading";
   const b=$("navCompassButton");
@@ -1567,438 +1556,28 @@ function toggleNavigationOrientation(){
   }
   applyNavigationBearing(navigationState.heading);
 }
-function resetNavigationBearing(){
-  navigationState.heading=0;
-  navigationState.orientation="heading";
-  const b=$("navCompassButton");
-  if(b){b.textContent="🧭";b.setAttribute("aria-label","Alternar orientação do mapa");b.title="Seguindo direção";}
-  if(!driverMap)return;
-  const mapPane=driverMap.getPane&&driverMap.getPane("mapPane");
-  if(mapPane){
-    mapPane.style.transform=String(mapPane.style.transform||"")
-      .replace(/\srotateX\([^)]*\)/g,"")
-      .replace(/\sperspective\([^)]*\)/g,"")
-      .replace(/\srotate\([^)]*\)/g,"")
-      .replace(/\sscale\([^)]*\)/g,"").trim();
-    mapPane.style.transformOrigin="";
-  }
-  const wrap=driverMarker?.getElement?.()?.querySelector?.(".driver-car-wrap");
-  if(wrap)wrap.style.transform="";
-}
-function driverCurrentLocationIcon(){
-  const navigation=document.body.classList.contains("navigation-active");
-  if(navigation)return L.divIcon({className:"driver-car-marker",html:"<div class=\"driver-car-wrap\"><div class=\"driver-heading-cone\"></div><div class=\"driver-car-circle\">🚗</div></div>",iconSize:[92,92],iconAnchor:[46,46]});
-  return L.divIcon({className:"driver-current-map-marker",html:"<div class=\"blue-dot\"></div>",iconSize:[20,20],iconAnchor:[10,10]});
-}
-function showDriverCurrentLocation(lat,lng,center=false){
-  if(!driverMap||!Number.isFinite(Number(lat))||!Number.isFinite(Number(lng)))return;
-  const p=[Number(lat),Number(lng)];
-  driverLocation=p;
-  if(driverMarker)driverMarker.setLatLng(p);
-  else driverMarker=L.marker(p,{icon:driverCurrentLocationIcon(),zIndexOffset:1300,interactive:false}).addTo(driverMap);
-
-    // Camada gratuita de pontos de interesse do OpenStreetMap.
-    // Carrega sob demanda para não pesar o mapa.
-    const poiLayer=L.layerGroup();
-    let poiLoading=false, poiLoadedKey="";
-    const poiIcon=(emoji)=>L.divIcon({
-      className:"osm-poi-marker",
-      html:'<div style="width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid #1683ff;box-shadow:0 2px 8px #0005;display:grid;place-items:center;font-size:16px">'+emoji+'</div>',
-      iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-15]
-    });
-    const loadOsmPois=async()=>{
-      if(!driverMap || poiLoading)return;
-      const z=driverMap.getZoom();
-      if(z<12)return;
-      const b=driverMap.getBounds();
-      const key=[z,Math.round(b.getSouth()*100),Math.round(b.getWest()*100),Math.round(b.getNorth()*100),Math.round(b.getEast()*100)].join(",");
-      if(key===poiLoadedKey)return;
-      poiLoading=true;
-      try{
-        const bbox=[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].join(",");
-        const q='[out:json][timeout:12];(nwr["amenity"~"restaurant|hospital|school|fuel|pharmacy"]('+bbox+');nwr["shop"~"supermarket|convenience|mall"]('+bbox+'););out center tags 300;';
-        const res=await fetch("https://overpass-api.de/api/interpreter?data="+encodeURIComponent(q),{cache:"no-store"});
-        if(!res.ok)throw new Error("Overpass HTTP "+res.status);
-        const data=await res.json();
-        poiLayer.clearLayers();
-        (data.elements||[]).forEach(el=>{
-          const t=el.tags||{}, lat=Number(el.lat??el.center?.lat), lon=Number(el.lon??el.center?.lon);
-          if(!Number.isFinite(lat)||!Number.isFinite(lon))return;
-          const type=t.amenity||t.shop||"";
-          const icons={restaurant:"🍽️",hospital:"🏥",school:"🏫",fuel:"⛽",pharmacy:"💊",supermarket:"🛒",convenience:"🛒",mall:"🏬"};
-          const label=t.name||({restaurant:"Restaurante",hospital:"Hospital",school:"Escola",fuel:"Posto de combustível",pharmacy:"Farmácia",supermarket:"Mercado",convenience:"Mercado",mall:"Shopping"}[type]||"Local");
-          L.marker([lat,lon],{icon:poiIcon(icons[type]||"📍"),title:label}).bindPopup("<strong>"+String(label).replace(/[<>&]/g,m=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[m]))+"</strong>").addTo(poiLayer);
-        });
-        poiLoadedKey=key;
-      }catch(e){console.warn("22 DRIVE: não foi possível carregar pontos de interesse.",e)}
-      finally{poiLoading=false}
-    };
-    L.control.layers({"🗺️ Mapa":tiles},{"📍 Locais":poiLayer},{collapsed:true,position:"topright"}).addTo(driverMap);
-    driverMap.on("moveend",loadOsmPois);
-    loadOsmPois();
-  if(center)driverMap.setView(p,15,{animate:true});
-}
-function followDriverOnMap(position){
-  if(!driverMap||!position?.coords)return;
-  const p=[Number(position.coords.latitude),Number(position.coords.longitude)];
-  if(!Number.isFinite(p[0])||!Number.isFinite(p[1]))return;
-  showDriverCurrentLocation(p[0],p[1],false);
-  const heading=Number(position.coords.heading);
-  if(Number.isFinite(heading)&&heading>=0&&heading<=360)applyNavigationBearing(heading);
-  const center=driverMap.getCenter();
-  const drift=distanceMeters([center.lat,center.lng],p);
-  if(drift>80)driverMap.panTo(p,{animate:true,duration:0.5});
-}
-function distancePointToSegmentMeters(p,a,b){
-  const latScale=111320;
-  const lonScale=111320*Math.cos(Number(p[0])*Math.PI/180);
-  const px=Number(p[1])*lonScale,py=Number(p[0])*latScale;
-  const ax=Number(a[1])*lonScale,ay=Number(a[0])*latScale;
-  const bx=Number(b[1])*lonScale,by=Number(b[0])*latScale;
-  const dx=bx-ax,dy=by-ay;
-  const len2=dx*dx+dy*dy;
-  let t=len2?((px-ax)*dx+(py-ay)*dy)/len2:0;
-  t=Math.max(0,Math.min(1,t));
-  return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
-}
-function distanceToCurrentRouteMeters(p){
-  if(!Array.isArray(rideMapRouteCoords)||rideMapRouteCoords.length<2)return Infinity;
-  let best=Infinity;
-  for(let i=0;i<rideMapRouteCoords.length-1;i++)best=Math.min(best,distancePointToSegmentMeters(p,rideMapRouteCoords[i],rideMapRouteCoords[i+1]));
-  return best;
-}
-function resetOffRouteState(){
-  offRouteCount=0;rerouteInProgress=false;lastRerouteAt=0;lastRerouteLocation=null;
-}
-function speakRerouteNotice(){
-  if(!navigationState.voiceEnabled||typeof window==="undefined"||!("speechSynthesis" in window))return;
-  try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance("Você saiu da rota. Recalculando o percurso.");u.lang="pt-BR";u.rate=.95;u.pitch=1;u.volume=1;window.speechSynthesis.speak(u);}catch(e){}
-}
-async function rerouteFromCurrentLocation(r,phase){
-  if(!r||!driverLocation||rerouteInProgress)return false;
-  const now=Date.now();
-  if(now-lastRerouteAt<REROUTE_COOLDOWN_MS)return false;
-  let target=phase==="pickup"?rideCoordinate(r,"pickup"):rideCoordinate(r,"dropoff");
-  if(phase==="dropoff"){
-    const state=getRouteState(r.id);
-    const stopIndex=state&&state.phase==="dropoff"&&Number.isInteger(Number(state.stopIndex))?Number(state.stopIndex):null;
-    const stop=stopIndex!=null&&Array.isArray(r.extraStops)?r.extraStops[stopIndex]:null;
-    if(stop&&stop.lat!=null&&stop.lng!=null)target=[Number(stop.lat),Number(stop.lng)];
-  }
-  if(!target)return false;
-  if(lastRerouteLocation&&distanceMeters(driverLocation,lastRerouteLocation)<60)return false;
-  rerouteInProgress=true;lastRerouteAt=now;lastRerouteLocation=driverLocation.slice();
-  speakRerouteNotice();notice("🔄 Você saiu da rota. Recalculando o percurso...");
-  try{await updateRideMapForRequest(r,driverLocation.slice(),target);offRouteCount=0;return true;}
-  catch(e){console.warn("22 DRIVE recálculo de rota:",e);return false;}
-  finally{rerouteInProgress=false;}
-}
-function checkOffRouteAndReroute(r,phase){
-  if(!r||!driverLocation||rideMapRouteCoords.length<2||rerouteInProgress)return;
-  const distance=distanceToCurrentRouteMeters(driverLocation);
-  if(distance<=OFF_ROUTE_THRESHOLD_METERS){offRouteCount=0;return;}
-  offRouteCount++;
-  if(offRouteCount>=OFF_ROUTE_CONFIRMATIONS)rerouteFromCurrentLocation(r,phase);
-}
-function advanceNavigationByLocation(position){
-  if(!navigationState.steps.length)return;
-  navigationState.currentSpeed=Number(position?.coords?.speed);
-  if(!Number.isFinite(navigationState.currentSpeed)||navigationState.currentSpeed<0)navigationState.currentSpeed=0;
-  const p=[position.coords.latitude,position.coords.longitude];
-  while(navigationState.index<navigationState.steps.length-1){
-    const loc=navigationState.steps[navigationState.index+1]?.maneuver?.location;
-    if(!Array.isArray(loc)||loc.length<2)break;
-    if(distanceMeters(p,[Number(loc[1]),Number(loc[0])])<=45)navigationState.index++;else break;
-  }
-  updateNavigationPanel();
-  updateTripProgress();
-  updateNavigationSummary();
-  speakNavigationInstruction(false,position);
-}
-function clearRideMap(){
-  if(rideMapTimer){clearTimeout(rideMapTimer);rideMapTimer=null;}
-  const passengerBtn=$("passengerLocationButton"); if(passengerBtn) passengerBtn.style.display="none";
-  rideMapRequestId=null;
-  rideMapPreviewRequestId=null;
-  rideMapRouteCoords=[];
-  resetOffRouteState();
-  document.body.classList.remove("navigation-active");
-  resetNavigationBearing();
-  const navSummary=$("driverNavSummary");if(navSummary)navSummary.classList.add("hidden");
-  const compass=$("navCompassButton");if(compass)compass.classList.add("hidden");
-  if(rideMapLayer&&driverMap){driverMap.removeLayer(rideMapLayer);}
-  rideMapLayer=null;
-  if(passengerLocationMarker&&driverMap){try{driverMap.removeLayer(passengerLocationMarker);}catch(e){}}
-  passengerLocationMarker=null;
-}
-function rideCoordinate(r,kind){
-  const lat=kind==="pickup"?Number(r.originLat):Number(r.destinationLat);
-  const lng=kind==="pickup"?Number(r.originLng):Number(r.destinationLng);
-  if(!Number.isFinite(lat)||!Number.isFinite(lng))return null;
-  return [lat,lng];}
-function rideMarkerIcon(kind){  const pickup=kind==="pickup";
-  return L.divIcon({    className:"",
-    html:'<div class="ride-map-pin '+(pickup?"pickup":"dropoff")+'"><span>'+(pickup?"●":"◆")+'</span></div>',
-    iconSize:[34,34],
-    iconAnchor:[9,30],
-    popupAnchor:[8,-26]
-  });
-}
-function rideLabelIcon(text){
-  return L.divIcon({
-    className:"",
-    html:'<div class="ride-map-label">'+esc(text)+'</div>',
-    iconSize:null,
-    iconAnchor:[0,35]
-  });
-}
+function resetNavigationBearing(){navigationState.heading=0;navigationState.orientation="heading";const b=$("navCompassButton");if(b){b.textContent="🧭";b.setAttribute("aria-label","Alternar orientação do mapa");b.title="Seguindo direção"}if(driverMap?.setHeading)try{driverMap.setHeading(0)}catch(e){}}
+function driverCurrentLocationIcon(){return googleDriverMarkerContent("driver")}
+function showDriverCurrentLocation(lat,lng,center=false){if(!driverMap||!Number.isFinite(Number(lat))||!Number.isFinite(Number(lng)))return;driverLocation=[Number(lat),Number(lng)];const p=googleDriverPosition(driverLocation);if(driverMarker)driverMarker.position=p;else driverMarker=new googleMarkerLib.AdvancedMarkerElement({map:driverMap,position:p,content:driverCurrentLocationIcon(),title:"Localização do motorista",zIndex:1300});if(center){driverMap.setCenter(p);driverMap.setZoom(16)}}
+function clearRideMap(){if(rideMapTimer){clearTimeout(rideMapTimer);rideMapTimer=null}const btn=$("passengerLocationButton");if(btn)btn.style.display="none";rideMapRequestId=null;rideMapPreviewRequestId=null;rideMapRouteCoords=[];resetOffRouteState();document.body.classList.remove("navigation-active");resetNavigationBearing();$("driverNavSummary")?.classList.add("hidden");$("navCompassButton")?.classList.add("hidden");if(Array.isArray(rideMapLayer))rideMapLayer.forEach(removeGoogleDriverOverlay);else removeGoogleDriverOverlay(rideMapLayer);rideMapLayer=null;removeGoogleDriverOverlay(passengerLocationMarker);passengerLocationMarker=null}
+function rideCoordinate(r,k){const lat=k==="pickup"?Number(r.originLat):Number(r.destinationLat),lng=k==="pickup"?Number(r.originLng):Number(r.destinationLng);return Number.isFinite(lat)&&Number.isFinite(lng)?[lat,lng]:null}
+function rideMarkerIcon(k){return googleDriverMarkerContent(k)}
 async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOverride=null){
-  if(!driverMap)return;
-  rideMapRouteCoords=[];
-  const rerouteMode=Array.isArray(routeStartOverride)&&Array.isArray(routeTargetOverride);
-  const pickup=rideCoordinate(r,"pickup");
-  const dropoff=rideCoordinate(r,"dropoff");
-  const extraStops=Array.isArray(r.extraStops)?r.extraStops:[];
-  const stopPoints=extraStops.map((s,i)=>{
-    const lat=Number(s?.lat??s?.latitude??s?.originLat);
-    const lng=Number(s?.lng??s?.longitude??s?.originLng);
-    if(!Number.isFinite(lat)||!Number.isFinite(lng))return null;
-    return {point:[lat,lng],index:i,address:String(s?.address??s?.endereco??("Parada "+(i+1)))};
-  }).filter(Boolean);
-  const id=String(r&&r.id||"");
-  if(!pickup||!dropoff){
-    clearRideMap();
-    return;
-  }
-  const isNewRequest=String(r?.status||"new").toLowerCase()==="new";
-  // Para uma nova solicitação, a prévia da rota é desenhada uma única vez.
-  // Atualizações posteriores do GPS/Realtime não devem executar fitBounds,
-  // refazer a rota ou movimentar a câmera.
-  if(isNewRequest && rideMapPreviewRequestId===id && rideMapLayer)return;
-  rideMapRequestId=id;
-  if(isNewRequest)rideMapPreviewRequestId=id;
-  else rideMapPreviewRequestId=null;
-  if(rideMapTimer)clearTimeout(rideMapTimer);
-  if(rideMapLayer)driverMap.removeLayer(rideMapLayer);
-  rideMapLayer=L.layerGroup().addTo(driverMap);
-
-  if(passengerLocationMarker&&driverMap){try{driverMap.removeLayer(passengerLocationMarker);}catch(e){}}
-  passengerLocationMarker=null;
-  const passengerBtn=$("passengerLocationButton"); if(passengerBtn) passengerBtn.style.display="none";
-
-  const pickupMarker=L.marker(pickup,{icon:rideMarkerIcon("pickup"),zIndexOffset:700})
-    .bindPopup("<b>🟢 Embarque</b><br>"+esc(r.origin||"Endereço não informado"));
-  const dropoffMarker=L.marker(dropoff,{icon:rideMarkerIcon("dropoff"),zIndexOffset:700})
-    .bindPopup("<b>🔴 Desembarque</b><br>"+esc(r.destination||"Endereço não informado"));
-  const pickupLabel=L.marker(pickup,{icon:rideLabelIcon("🟢 Embarque"),interactive:false,zIndexOffset:650});
-  const dropoffLabel=L.marker(dropoff,{icon:rideLabelIcon("🔴 Desembarque"),interactive:false,zIndexOffset:650});
-  // Mostra todas as paradas intermediárias da solicitação no mapa.
-  const stopMarkers=stopPoints.map((s,i)=>{
-    const marker=L.marker(s.point,{icon:rideMarkerIcon("stop"),zIndexOffset:720})
-      .bindPopup("<b>🟡 Parada "+(i+1)+"</b><br>"+esc(s.address));
-    const label=L.marker(s.point,{icon:rideLabelIcon("🟡 Parada "+(i+1)),interactive:false,zIndexOffset:680});
-    return {marker,label};
-  });
-  // Não desenha linha reta de fallback: a rota visível só aparece quando o roteador devolver o caminho pelas ruas.
-  rideMapLayer.addLayer(pickupMarker);
-  rideMapLayer.addLayer(dropoffMarker);
-  rideMapLayer.addLayer(pickupLabel);
-  rideMapLayer.addLayer(dropoffLabel);
-  stopMarkers.forEach(s=>{rideMapLayer.addLayer(s.marker);rideMapLayer.addLayer(s.label);});
-  // Em uma nova solicitação, a câmera deve mostrar somente a solicitação.
-  // A localização do motorista continua sendo atualizada, mas não controla
-  // o enquadramento do mapa até a navegação ser iniciada.
-  const previewPoints=[pickup,...stopPoints.map(s=>s.point),dropoff];
-  const points=previewPoints.slice();
-  if(driverLocation && !isNewRequest)points.unshift(driverLocation);
-  // Nova solicitação: não mexer na câmera antes da rota terminar de carregar.
-  // O enquadramento será feito uma única vez abaixo, quando a rota estiver pronta.
-  if(!isNewRequest) driverMap.fitBounds(L.latLngBounds(points),{padding:[35,35],maxZoom:15,animate:true});
-  // A solicitação é apresentada no cartão inferior, como em apps de corrida.
-  // Não abrir popup automaticamente para não cobrir o cartão.
-
-  const requestId=id;
-  // IMPORTANTE: uma NOVA solicitação é apenas uma prévia da rota.
-  // Ela NÃO deve ativar o modo navegação, voz, rotação/foco do mapa ou
-  // painel de instruções. A navegação só começa depois de "Iniciar rota".
-  const routeState=getRouteState(id);
-  const activePhase=String(routeState?.phase||"");
-  const shouldNavigate=rerouteMode||activePhase==="pickup"||activePhase==="dropoff";
-  let navigationTarget=pickup;
-  if(activePhase==="dropoff")navigationTarget=dropoff;
-  if(activePhase==="dropoff"){
-    const stopIndex=routeState&&Number.isInteger(Number(routeState.stopIndex))?Number(routeState.stopIndex):null;
-    const stop=stopIndex!=null&&Array.isArray(r.extraStops)?r.extraStops[stopIndex]:null;
-    if(stop&&stop.lat!=null&&stop.lng!=null){
-      navigationTarget=[Number(stop.lat),Number(stop.lng)];
-    }
-  }
-  const navigationStart=driverLocation||null;
-  // Prévia: roteia por embarque → todas as paradas → destino.
-  // Navegação ativa: mantém o trecho atual até o próximo alvo.
-  const previewRoutePoints=[pickup,...stopPoints.map(s=>s.point),dropoff];
-  const routeSequence=shouldNavigate
-    ? (navigationStart?[navigationStart,navigationTarget]:[navigationTarget])
-    : previewRoutePoints;
-  const routePoints=routeSequence
-    .map(p=>Number(p[1])+","+Number(p[0])).join(";");
-  const osrmUrl="https://router.project-osrm.org/route/v1/driving/"+routePoints+"?overview=full&geometries=geojson&steps=true";
-  const response=await fetch(osrmUrl);
-  if(!response.ok)throw new Error("routing");
-  const data=await response.json();
-  if(rideMapRequestId!==requestId||!rideMapLayer||!data.routes||!data.routes[0])throw new Error("route-stale");
-  const route=data.routes[0];
-  if(shouldNavigate){
-    setNavigationSteps(route,requestId,activePhase||null);
-  }else{
-    // Prévia de nova solicitação: mantém o mapa normal, sem modo navegação.
-    navigationState.steps=[];
-    navigationState.index=0;
-    navigationState.rideId="";
-    navigationState.type=null;
-    navigationState.routeDistance=0;
-    navigationState.routeDuration=0;
-    const navPanel=$("driverNavigationPanel");if(navPanel)navPanel.classList.add("hidden");
-    const navSummary=$("driverNavSummary");if(navSummary)navSummary.classList.add("hidden");
-    const compass=$("navCompassButton");if(compass)compass.classList.add("hidden");
-    document.body.classList.remove("navigation-active");
-    resetNavigationBearing();
-  }
-  const coords=route.geometry.coordinates.map(c=>[c[1],c[0]]);
-  rideMapRouteCoords=coords;
-  if(coords.length>1){
-    const roadRoute=L.polyline(coords,{color:"#1683ff",weight:6,opacity:.95,lineCap:"round",lineJoin:"round"});
-    rideMapLayer.addLayer(roadRoute);
-    const fitPoints=shouldNavigate&&rerouteMode?[driverLocation,...coords]:coords.slice();
-    // Durante uma nova solicitação, o enquadramento inclui embarque,
-    // todas as paradas e destino, mas nunca a posição do motorista.
-    if(driverLocation && (shouldNavigate || !isNewRequest))fitPoints.push(driverLocation);
-    driverMap.fitBounds(L.latLngBounds(fitPoints),{
-      padding:[35,35],
-      maxZoom:15,
-      animate:!isNewRequest
-    });
-  }
-  if(rideMapTimer)clearTimeout(rideMapTimer);
-  rideMapTimer=setTimeout(()=>{rideMapTimer=null;},1500);
+ if(!driverMap)return;const pickup=rideCoordinate(r,"pickup"),dropoff=rideCoordinate(r,"dropoff"),stops=(Array.isArray(r.extraStops)?r.extraStops:[]).map((s,i)=>{const lat=Number(s?.lat??s?.latitude??s?.originLat),lng=Number(s?.lng??s?.longitude??s?.originLng);return Number.isFinite(lat)&&Number.isFinite(lng)?{point:[lat,lng],address:String(s?.address??s?.endereco??("Parada "+(i+1)))}:null}).filter(Boolean),id=String(r?.id||"");
+ if(!pickup||!dropoff){clearRideMap();return}const isNew=String(r?.status||"new").toLowerCase()==="new";if(isNew&&rideMapPreviewRequestId===id&&rideMapLayer)return;rideMapRequestId=id;rideMapPreviewRequestId=isNew?id:null;if(Array.isArray(rideMapLayer))rideMapLayer.forEach(removeGoogleDriverOverlay);rideMapLayer=[];
+ try{const {Route,InfoWindow}=await ensureGoogleDriverLibraries();if(rideMapRequestId!==id)return;const info=new InfoWindow();const add=(p,k,html,z)=>{const m=new googleMarkerLib.AdvancedMarkerElement({map:driverMap,position:googleDriverPosition(p),content:rideMarkerIcon(k),zIndex:z||700});m.addListener("click",()=>{info.setContent(html);info.open({map:driverMap,anchor:m})});rideMapLayer.push(m)};
+ add(pickup,"pickup","<b>🟢 Embarque</b><br>"+esc(r.origin||"Endereço não informado"),700);stops.forEach((s,i)=>add(s.point,"stop","<b>🟡 Parada "+(i+1)+"</b><br>"+esc(s.address),720));add(dropoff,"dropoff","<b>🔴 Desembarque</b><br>"+esc(r.destination||"Endereço não informado"),700);
+ const nav=Boolean(navigationState.rideId&&String(navigationState.rideId)===id&&navigationState.type),origin=routeStartOverride||((nav&&driverLocation)?driverLocation:pickup),target=routeTargetOverride||((nav&&navigationState.type==="pickup")?pickup:dropoff),inter=nav?[]:stops.map(s=>({location:googleDriverPosition(s.point)}));
+ const result=await Route.computeRoutes({origin:googleDriverPosition(origin),destination:googleDriverPosition(target),...(inter.length?{intermediates:inter}:{}),travelMode:"DRIVING",routingPreference:"TRAFFIC_AWARE",language:"pt-BR",units:google.maps.UnitSystem.METRIC,fields:["path","distanceMeters","durationMillis","legs","viewport"]});if(rideMapRequestId!==id)return;const route=result.routes?.[0];if(!route)throw new Error("Nenhuma rota encontrada.");const path=Array.isArray(route.path)?route.path:[];
+ if(path.length>1){rideMapRouteCoords=path.map(p=>[Number(p.lat??p.latitude),Number(p.lng??p.longitude)]);const line=new google.maps.Polyline({map:driverMap,path,strokeColor:"#1683ff",strokeOpacity:.95,strokeWeight:6,zIndex:400});rideMapLayer.push(line);if(route.viewport)driverMap.fitBounds(route.viewport,{top:90,right:25,bottom:180,left:25})}
+ if(nav){const legacy={distance:Number(route.distanceMeters||0),duration:Number(route.durationMillis||0)/1000,legs:(route.legs||[]).map(l=>({steps:(l.steps||[]).map(s=>({distance:Number(s.distanceMeters||0),duration:Number(s.durationMillis||0)/1000,name:String(s.instructions||"Siga a rota"),maneuver:{type:"continue"},geometry:{coordinates:(s.path||[]).map(p=>[Number(p.lng??p.longitude),Number(p.lat??p.latitude)])}}))}))};setNavigationSteps(legacy,id,navigationState.type)}else{navigationState.steps=[];navigationState.index=0;navigationState.rideId="";navigationState.type=null;navigationState.routeDistance=0;navigationState.routeDuration=0;$("driverNavigationPanel")?.classList.add("hidden");$("driverNavSummary")?.classList.add("hidden");$("navCompassButton")?.classList.add("hidden");document.body.classList.remove("navigation-active");resetNavigationBearing()}
+ }catch(e){console.error("22 DRIVE Google Routes:",e);notice("⚠️ Não foi possível calcular a rota no Google Maps.")}
 }
-function updateRideMapFromRequests(){
-  if(!driverMap)return;
-  // O mapa só mostra a rota de uma nova solicitação.
-  // Depois que o motorista aceita, o mapa fica livre para navegação.
-  const ride=requests().find(r=>String(r.status||"new").toLowerCase()==="new");
-  if(ride){
-    const id=String(ride.id||"");
-    // Não chamar novamente a rotina de roteamento para a mesma solicitação.
-    // Isso evita que o mapa pule/reajuste a cada polling de 1,2 s.
-    if(rideMapPreviewRequestId===id && rideMapLayer)return;
-    updateRideMapForRequest(ride);
-  }else{
-    if(rideMapPreviewRequestId!==null || rideMapLayer)clearRideMap();
-  }
-}
-
-function initDriverMap(){
-  if(!window.L||driverMap)return;
-  const mapEl=$("driverMap");
-  if(!mapEl)return;
-
-  driverMap=L.map(mapEl,{zoomControl:false,attributionControl:true,preferCanvas:true,zoomAnimation:true,fadeAnimation:true,markerZoomAnimation:true}).setView([-22.7333,-42.625],13);
-
-  // Camada visual moderna do mapa: permanece dentro do 22 DRIVE e não abre app externo.
-  if(!mapEl.querySelector(".modern-map-hud")){
-    const hud=document.createElement("div");
-    hud.className="modern-map-hud";
-    hud.innerHTML='<span class="hud-dot"></span><strong>GPS ativo • 22 DRIVE</strong>';
-    mapEl.appendChild(hud);
-    const brand=document.createElement("div");
-    brand.className="modern-map-brand";
-    brand.textContent="22 DRIVE • Navegação interna";
-    mapEl.appendChild(brand);
-  }
-
-  const tiles=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
-    maxZoom:19,
-    attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
-    updateWhenIdle:true,
-    keepBuffer:2,
-    crossOrigin:true
-  }).addTo(driverMap);
-
-  tiles.on("tileerror",()=>console.warn("22 DRIVE: erro ao carregar um bloco do mapa."));
-
-  driverMap.dragging.enable();
-  driverMap.touchZoom.enable();
-  driverMap.scrollWheelZoom.enable();
-  driverMap.doubleClickZoom.enable();
-  L.control.zoom({position:"bottomright"}).addTo(driverMap);
-  driverMap.on("move zoom",()=>applyNavigationBearing(navigationState.heading));
-
-  const resizeMap=()=>{
-    if(driverMap){
-      driverMap.invalidateSize({pan:false});
-      if(driverMap){
-  driverMap.on('dragstart zoomstart',scheduleDriverMapReturn);
-}
-      updateRideMapFromRequests();
-    }
-  };
-  setTimeout(resizeMap,50);
-  setTimeout(resizeMap,300);
-  setTimeout(resizeMap,800);
-  window.addEventListener("resize",resizeMap,{passive:true});
-  window.addEventListener("orientationchange",()=>setTimeout(resizeMap,300),{passive:true});
-  if(window.visualViewport) window.visualViewport.addEventListener("resize",()=>setTimeout(resizeMap,100),{passive:true});
-
-  if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(pos=>{
-      // Se já houver solicitação, atualiza o ponto azul sem recentralizar.
-      // O enquadramento será definido pela solicitação.
-      const hasNewRequest=requests().some(r=>String(r.status||"new").toLowerCase()==="new");
-      showDriverCurrentLocation(pos.coords.latitude,pos.coords.longitude,!hasNewRequest);
-      updateRideMapFromRequests();
-    },err=>console.warn("22 DRIVE localização:",err),{
-      enableHighAccuracy:true,
-      timeout:10000,
-      maximumAge:30000
-    });
-    if(!driverLocationWatchId){
-      driverLocationWatchId=navigator.geolocation.watchPosition(pos=>{
-        showDriverCurrentLocation(pos.coords.latitude,pos.coords.longitude,false);
-        const heading=Number(pos.coords.heading);
-        if(Number.isFinite(heading)&&heading>=0&&heading<=360)applyNavigationBearing(heading);
-      },err=>console.warn("22 DRIVE atualização de localização:",err),{
-        enableHighAccuracy:true,
-        timeout:15000,
-        maximumAge:5000
-      });
-    }
-  }
-}
+function updateRideMapFromRequests(){if(!driverMap)return;const ride=requests().find(r=>String(r.status||"new").toLowerCase()==="new");if(ride){const id=String(ride.id||"");if(rideMapPreviewRequestId===id&&rideMapLayer)return;updateRideMapForRequest(ride)}else if(rideMapPreviewRequestId!==null||rideMapLayer)clearRideMap()}
+async function initDriverMap(){if(driverMap)return driverMap;const el=$("driverMap");if(!el)return null;try{const {Map}=await ensureGoogleDriverLibraries();driverMap=new Map(el,{center:{lat:-22.7333,lng:-42.625},zoom:13,mapId:"DEMO_MAP_ID",mapTypeControl:true,mapTypeControlOptions:{position:google.maps.ControlPosition.TOP_RIGHT},streetViewControl:false,fullscreenControl:true,zoomControl:true,gestureHandling:"greedy"});if(!el.querySelector(".modern-map-hud")){const h=document.createElement("div");h.className="modern-map-hud";h.innerHTML='<span class="hud-dot"></span><strong>GPS ativo • Google Maps</strong>';el.appendChild(h);const br=document.createElement("div");br.className="modern-map-brand";br.textContent="22 DRIVE • Google Maps";el.appendChild(br)}driverTrafficLayer=new google.maps.TrafficLayer();driverTrafficLayer.setMap(driverMap);driverMap.addListener("dragstart",scheduleDriverMapReturn);driverMap.addListener("zoom_changed",scheduleDriverMapReturn);const resize=()=>{google.maps.event.trigger(driverMap,"resize");updateRideMapFromRequests()};setTimeout(resize,100);setTimeout(resize,500);setTimeout(resize,1000);window.addEventListener("resize",resize,{passive:true});window.addEventListener("orientationchange",()=>setTimeout(resize,300),{passive:true});if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{const has=requests().some(r=>String(r.status||"new").toLowerCase()==="new");showDriverCurrentLocation(p.coords.latitude,p.coords.longitude,!has);updateRideMapFromRequests()},()=>{},{enableHighAccuracy:true,timeout:15000,maximumAge:10000});updateRideMapFromRequests();return driverMap}catch(e){console.error("22 DRIVE Google Maps:",e);el.innerHTML='<div style="height:100%;display:grid;place-items:center;padding:24px;text-align:center;background:#eaf0f6;color:#17212b;font-weight:800"><div>🗺️ Erro ao carregar o Google Maps.<br><small>Confira a chave e as APIs do Google Cloud.</small></div></div>';return null}}
 let driverMapReturnTimer=null;
-function scheduleDriverMapReturn(){
-  if(driverMapReturnTimer) clearTimeout(driverMapReturnTimer);
-  // Enquanto houver uma nova solicitação na tela, a câmera pertence à
-  // solicitação e nunca deve voltar automaticamente para o motorista.
-  const hasNewRequest=requests().some(r=>String(r.status||"new").toLowerCase()==="new");
-  if(hasNewRequest)return;
-  driverMapReturnTimer=setTimeout(()=>{
-    // Revalida antes de mover a câmera, pois uma solicitação pode ter
-    // chegado durante os 10 segundos do temporizador.
-    const stillHasNewRequest=requests().some(r=>String(r.status||"new").toLowerCase()==="new");
-    if(stillHasNewRequest)return;
-    if(driverLocation && driverMap){
-      driverMap.setView(driverLocation,16,{animate:true});
-    } else {
-      useCurrentDriverLocation();
-    }
-  },10000);
-}
-
-function focusPassengerLocationOnDriverMap(){
-  if(!driverMap || !passengerLocationMarker) return;
-  driverMap.setView(passengerLocationMarker.getLatLng(),16,{animate:true});
-}
+function scheduleDriverMapReturn(){if(driverMapReturnTimer)clearTimeout(driverMapReturnTimer);if(requests().some(r=>String(r.status||"new").toLowerCase()==="new"))return;driverMapReturnTimer=setTimeout(()=>{if(requests().some(r=>String(r.status||"new").toLowerCase()==="new"))return;if(driverLocation&&driverMap){const p=googleDriverPosition(driverLocation);driverMap.setCenter(p);driverMap.setZoom(16)}else useCurrentDriverLocation()},10000)}
+function focusPassengerLocationOnDriverMap(){if(!driverMap||!passengerLocationMarker)return;const p=passengerLocationMarker.position;if(p){driverMap.setCenter(p);driverMap.setZoom(16)}}
 function useCurrentDriverLocation(){
   const fallbackBtn=$("currentLocationButton");
   const btn=fallbackBtn;
@@ -2007,10 +1586,10 @@ function useCurrentDriverLocation(){
   navigator.geolocation.getCurrentPosition(pos=>{
     driverLocation=[pos.coords.latitude,pos.coords.longitude];
     if(driverMap){
-      driverMap.invalidateSize({pan:false});
+      google.maps.event.trigger(driverMap,"resize");
       if(driverMarker){try{driverMap.removeLayer(driverMarker);}catch(e){} driverMarker=null;}
       const hasNewRequest=requests().some(r=>String(r.status||"new").toLowerCase()==="new");
-      if(!hasNewRequest)driverMap.setView(driverLocation,16,{animate:true});
+      if(!hasNewRequest){driverMap.setCenter(googleDriverPosition(driverLocation));driverMap.setZoom(16);}
       updateRideMapFromRequests();
     }
     if(btn){btn.disabled=false;btn.textContent="⌖";}
