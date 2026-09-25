@@ -143,7 +143,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <input id="from" type="hidden" required>
 <input id="to" type="hidden" required>
 <input id="km" type="hidden" value="0" required>
-<p class="muted">O site calcula a distância real pelas ruas automaticamente. Tarifa: até 10 km, R$ 20,00. Após 10 km, acrescenta R$ 2,00 por km excedente.</p>
+<p class="muted">O site calcula a distância real pelas ruas automaticamente. Tarifa: até 10 km, R$ 20,00. Após 10 km, acrescenta R$ 1,50 por km excedente.</p>
 </section>
 
 <section class="card">
@@ -175,7 +175,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 <button class="btn primary" type="button" onclick="saveRates()">Salvar tarifas</button>
 <hr>
 <p><span class="tag">WhatsApp</span> 21 99969-6851</p>
-<p class="muted">Tarifa atual: até 10 km = valor base de R$ 20,00. Acima de 10 km, acrescenta R$ 2,00 por cada quilômetro excedente. Pedágios são somados separadamente.</p>
+<p class="muted">Tarifa atual: até 10 km = valor base de R$ 20,00. Acima de 10 km, acrescenta R$ 1,50 por cada quilômetro excedente. Pedágios são somados separadamente.</p>
 </section>
 </main>
 </div>
@@ -184,7 +184,7 @@ hr{border:0;border-top:1px solid var(--line);margin:15px 0}.success{display:none
 const WA="5521999696851";
 const SUPABASE_URL="https://mqvumerrkyddootxeziv.supabase.co";
 const SUPABASE_KEY="sb_publishable_Mrx_6uvptQIuy5YiJxVJ6w_h-iZ6Qmf";
-const defaults={base:20,includedKm:10,extraPerKm:2};
+const defaults={base:20,includedKm:10,extraPerKm:1.5};
 const EXTRA_STOP_FEE=5;
 const WAITING_FREE_MINUTES=3;
 const WAITING_FEE_PER_BLOCK=3;
@@ -525,15 +525,106 @@ async function findPassengerProfile(){
   }catch(err){console.error(err);alert("Não foi possível consultar a base agora. Confira se o cadastro no Supabase já foi configurado.");}
 }
 let rates=JSON.parse(localStorage.getItem("22drive_rates")||"null")||defaults;
-if(!rates || rates.includedKm!==10 || rates.extraPerKm!==2){
+if(!rates || rates.includedKm!==10 || rates.extraPerKm!==1.5){
   rates={...defaults};
   localStorage.setItem("22drive_rates",JSON.stringify(rates));
 }
 const $=id=>document.getElementById(id);
 
 let driveMap=null, fromMarker=null, toMarker=null, routeLine=null, passengerDriverMarker=null, passengerLocationMarker=null;
+let mapPickerMap=null;
 /* Mapa 22 DRIVE: Leaflet + OpenStreetMap + OSRM + Nominatim. */
 let routeRequestId=0;
+
+function passengerBlueDotIcon(){
+  return L.divIcon({
+    className:"passenger-location-marker",
+    html:'<div class="blue-dot"></div>',
+    iconSize:[20,20],
+    iconAnchor:[10,10]
+  });
+}
+function driveMarkerIcon(){
+  return L.divIcon({
+    className:"passenger-driver-marker",
+    html:'<div class="passenger-car-wrap">🏁</div>',
+    iconSize:[50,50],
+    iconAnchor:[25,25]
+  });
+}
+function initMap(){
+  const el=$("map");
+  if(!el || !window.L){console.error("Leaflet não carregado.");return;}
+  if(driveMap){setTimeout(()=>driveMap.invalidateSize(true),100);return;}
+  const oldFallback=$("mapFallback");
+  if(oldFallback) oldFallback.style.display="none";
+  driveMap=L.map(el,{zoomControl:true,attributionControl:true});
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:19,
+    attribution:'&copy; OpenStreetMap contributors'
+  }).addTo(driveMap);
+  driveMap.setView([-22.73,-42.63],11);
+  setTimeout(()=>driveMap.invalidateSize(true),150);
+  setTimeout(()=>driveMap.invalidateSize(true),700);
+  driveMap.on("click",async e=>{
+    if(window.__mapPickerMode){
+      setMapPickerPosition(e.latlng.lat,e.latlng.lng,false);
+    }
+  });
+}
+function openMapPicker(mode){
+  if(!window.L)return;
+  const overlay=$("mapPickerOverlay"), title=$("mapPickerTitle");
+  if(!overlay)return;
+  window.__mapPickerMode=mode;
+  window.__mapPickerLat=null;
+  window.__mapPickerLon=null;
+  if(title)title.textContent=mode==="from"?"📍 Escolher local de embarque":"🏁 Escolher destino";
+  overlay.style.display="flex";
+  overlay.setAttribute("aria-hidden","false");
+  setTimeout(()=>{
+    if(!window.mapPickerMap){
+      mapPickerMap=L.map("mapPickerMap",{zoomControl:true});
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap contributors"}).addTo(mapPickerMap);
+      mapPickerMap.setView([-22.73,-42.63],12);
+      mapPickerMap.on("moveend",()=>{const c=mapPickerMap.getCenter();setMapPickerPosition(c.lat,c.lng,false);});
+      mapPickerMap.on("click",e=>setMapPickerPosition(e.latlng.lat,e.latlng.lng,false));
+    }
+    mapPickerMap.invalidateSize(true);
+    if(mode==="from" && fromResult) mapPickerMap.setView([Number(fromResult.lat),Number(fromResult.lon)],16);
+    else if(mode==="to" && toResult) mapPickerMap.setView([Number(toResult.lat),Number(toResult.lon)],16);
+    else if(passengerLocationMarker) mapPickerMap.setView(passengerLocationMarker.getLatLng(),15);
+    else mapPickerMap.setView([-22.73,-42.63],12);
+  },80);
+}
+function setMapPickerPosition(lat,lon,center){
+  window.__mapPickerLat=Number(lat); window.__mapPickerLon=Number(lon);
+  const info=$("mapPickerInfo");
+  if(info)info.textContent="📍 "+Number(lat).toFixed(6)+", "+Number(lon).toFixed(6)+" — toque em confirmar para usar este local.";
+  if(window.mapPickerMap && center)window.mapPickerMap.setView([lat,lon],16);
+}
+async function confirmMapPicker(){
+  const lat=Number(window.__mapPickerLat),lon=Number(window.__mapPickerLon);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)){alert("Mova o mapa ou toque em um ponto para escolher o local.");return;}
+  let address="";
+  try{const r=await reverseGeocodeLocation(lat,lon);address=r.display_name||"";}catch(_){}
+  if(window.__mapPickerMode==="from") setBoardingFromCoordinates(lat,lon,address);
+  else{
+    const label=address||("Destino GPS: "+lat.toFixed(6)+", "+lon.toFixed(6));
+    toResult={lat:String(lat),lon:String(lon),display_name:label,address:{}};
+    $("toPlace").value=label;$("to").value=label;
+    if(toMarker)removeMapOverlay(toMarker);
+    if(driveMap)toMarker=L.marker([lat,lon],{icon:driveMarkerIcon(),title:"Destino"}).addTo(driveMap);
+    if(fromResult)computeDriveRoute();
+  }
+  closeMapPicker();
+}
+function closeMapPicker(){
+  const overlay=$("mapPickerOverlay");
+  if(overlay){overlay.style.display="none";overlay.setAttribute("aria-hidden","true");}
+  window.__mapPickerMode=null;
+}
+
 function removeMapOverlay(obj){if(obj&&typeof obj.remove==="function"){try{obj.remove()}catch(_){}}}
 function showPassengerLocationOnMap(lat,lon,center){
  if(!driveMap||!Number.isFinite(Number(lat))||!Number.isFinite(Number(lon)))return;
@@ -1051,7 +1142,7 @@ function calculateTripFare(km){
   const distance=Math.max(0,Number(km)||0);
   const base=Number(rates.base)||20;
   const included=10;
-  const extra=Number(rates.extraPerKm)||2;
+  const extra=Number(rates.extraPerKm)||1.5;
   if(distance<=included)return Math.round(base*100)/100;
   return Math.round((base+(distance-included)*extra)*100)/100;
 }
@@ -1154,7 +1245,7 @@ function openAdmin(){
  $("admin").classList.toggle("on");$("base").value=rates.base;$("perkm").value=rates.extraPerKm;
 }
 function saveRates(){
- rates={base:parseFloat($("base").value)||20,includedKm:9,extraPerKm:parseFloat($("perkm").value)||2};
+ rates={base:parseFloat($("base").value)||20,includedKm:10,extraPerKm:parseFloat($("perkm").value)||1.5};
  localStorage.setItem("22drive_rates",JSON.stringify(rates));calc();alert("Tarifas salvas!");
 }
 $("form").addEventListener("submit",e=>{
