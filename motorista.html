@@ -693,7 +693,7 @@ body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
 <link rel="apple-touch-icon" href="icon-192.svg">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
-const GOOGLE_MAPS_API_KEY="COLE_SUA_CHAVE_GOOGLE_AQUI";
+const GOOGLE_MAPS_API_KEY="AIzaSyBtjXwVH9XXoNP1tPARNgjdPn50kI2xIoQ";
 let googleMapsPromise=null,googleMapLib=null,googleMarkerLib=null,googleRouteLib=null,driverTrafficLayer=null;
 function loadGoogleMapsDriver(){if(googleMapsPromise)return googleMapsPromise;googleMapsPromise=new Promise((resolve,reject)=>{if(window.google?.maps){resolve(window.google.maps);return;}const s=document.createElement("script");s.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(GOOGLE_MAPS_API_KEY)+"&v=weekly&loading=async";s.async=true;s.defer=true;s.onload=()=>window.google?.maps?resolve(window.google.maps):reject(new Error("Google Maps não carregou."));s.onerror=()=>reject(new Error("Não foi possível carregar o Google Maps."));document.head.appendChild(s)});return googleMapsPromise}
 async function ensureGoogleDriverLibraries(){const maps=await loadGoogleMapsDriver();if(!googleMapLib){const [m,ma,r]=await Promise.all([maps.importLibrary("maps"),maps.importLibrary("marker"),maps.importLibrary("routes")]);googleMapLib=m;googleMarkerLib=ma;googleRouteLib=r}return{Map:googleMapLib.Map,InfoWindow:googleMapLib.InfoWindow,AdvancedMarkerElement:googleMarkerLib.AdvancedMarkerElement,Route:googleRouteLib.Route}}
