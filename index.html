@@ -1154,7 +1154,7 @@ function openAdmin(){
  $("admin").classList.toggle("on");$("base").value=rates.base;$("perkm").value=rates.extraPerKm;
 }
 function saveRates(){
- rates={base:parseFloat($("base").value)||20,includedKm:9,extraPerKm:parseFloat($("perkm").value)||2};
+ rates={base:parseFloat($("base").value)||20,includedKm:10,extraPerKm:parseFloat($("perkm").value)||2};
  localStorage.setItem("22drive_rates",JSON.stringify(rates));calc();alert("Tarifas salvas!");
 }
 $("form").addEventListener("submit",e=>{
