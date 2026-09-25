@@ -619,24 +619,15 @@ label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}
 .gain-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.gain-summary-grid .scheduled-item{margin:0;text-align:center}.gain-summary-grid small{font-size:15px;font-weight:700;color:#fff}
 
 .driver-navigation-panel{position:fixed;top:88px;left:12px;right:12px;z-index:1900;display:flex;align-items:center;gap:10px;padding:10px 12px;background:#07101c;border:1px solid #ffc700;border-radius:14px;box-shadow:0 6px 24px #0009;color:#fff}.driver-navigation-panel.hidden{display:none}.nav-next-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:12px;background:#1683ff;color:#fff;font-size:27px;font-weight:900;flex:none}.nav-next-text{min-width:0;flex:1}.nav-next-text #navInstruction{font-size:16px;font-weight:900;line-height:1.15}.nav-next-text #navRoad{font-size:11px;color:#b9c7d8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nav-distance{font-size:13px;font-weight:900;white-space:nowrap}.driver-navigation-panel.arrived .nav-next-icon{background:#16a34a}.nav-voice-button{width:42px;height:42px;flex:none;border:1px solid #ffc700;border-radius:12px;background:#0b1a2b;color:#fff;font-size:20px;cursor:pointer}.nav-voice-button.muted{opacity:.65}@media(max-width:520px){.nav-voice-button{width:38px;height:38px;font-size:18px}}@media(max-width:520px){.driver-navigation-panel{top:86px;left:8px;right:8px}.nav-next-text #navInstruction{font-size:14px}.nav-distance{font-size:12px}}
-.driver-trip-progress{margin:8px 12px;padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(8px)}
-.driver-trip-progress.hidden{display:none}
-.trip-progress-head,.trip-progress-foot{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#d8d8d8}
-.trip-progress-head strong{color:#fff}
-.trip-progress-track{height:7px;margin:7px 0;border-radius:99px;background:rgba(255,255,255,.16);overflow:hidden}
-.trip-progress-bar{height:100%;width:0;border-radius:99px;background:#d4af37;transition:width .35s ease}
 .driver-nav-summary{position:fixed;left:10px;right:10px;bottom:10px;z-index:1950;padding:14px 16px 12px;border-radius:24px;background:rgba(255,255,255,.96);color:#18212b;box-shadow:0 8px 30px rgba(0,0,0,.28);border:1px solid rgba(0,0,0,.08)}
 .driver-nav-summary.hidden{display:none}
 .nav-summary-top{display:grid;grid-template-columns:1.25fr 1fr .7fr;gap:10px;align-items:end}
 .nav-summary-top>div{display:flex;flex-direction:column}
 .nav-summary-top strong{font-size:22px;line-height:1.05;font-weight:900}
 .nav-summary-top span{font-size:11px;color:#68727d;margin-top:3px}
-.nav-summary-progress{height:7px;margin:12px 0 8px;border-radius:99px;background:#e2e6ea;overflow:hidden}
-.nav-summary-progress div{height:100%;width:0;border-radius:99px;background:#2455ff;transition:width .4s ease}
 .nav-summary-bottom{display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:800;color:#56616d}
 body.navigation-active .driver-map{height:calc(100vh - 92px);min-height:calc(100vh - 92px);border-bottom:0}
 body.navigation-active .driver-bottom-area{display:none}
-body.navigation-active .driver-trip-progress{display:none}
 body.navigation-active .driver-navigation-panel{top:96px;left:12px;right:12px;padding:14px 14px;border:0;border-radius:22px;background:#08716e;box-shadow:0 7px 22px rgba(0,0,0,.25)}
 body.navigation-active .driver-navigation-panel .nav-next-icon{width:58px;height:58px;background:transparent;font-size:42px}
 body.navigation-active .driver-navigation-panel .nav-next-text #navInstruction{font-size:19px}
@@ -694,19 +685,12 @@ body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
     <div class="nav-distance" id="navDistance">—</div><button type="button" class="nav-voice-button" id="navVoiceButton" onclick="toggleNavigationVoice()" aria-label="Ativar ou silenciar voz">🔊</button>
   </div>
 
-  <div id="driverTripProgress" class="driver-trip-progress hidden" aria-live="polite">
-    <div class="trip-progress-head"><span id="tripProgressLabel">Progresso da viagem</span><strong id="tripProgressPercent">0%</strong></div>
-    <div class="trip-progress-track"><div id="tripProgressBar" class="trip-progress-bar"></div></div>
-    <div class="trip-progress-foot"><span id="tripProgressDone">0 km</span><span id="tripProgressRemaining">— km restantes</span></div>
-  </div>
-
   <div id="driverNavSummary" class="driver-nav-summary hidden" aria-live="polite">
     <div class="nav-summary-top">
       <div><strong id="navEta">—</strong><span id="navEtaLabel"> chegada</span></div>
       <div><strong id="navTimeLeft">—</strong><span> restantes</span></div>
       <div><strong id="navSpeed">0</strong><span> km/h</span></div>
     </div>
-    <div class="nav-summary-progress"><div id="navSummaryBar"></div></div>
     <div class="nav-summary-bottom">
       <span id="navSummaryDistance">— km restantes</span>
       <span id="navSummaryStage">Até o destino</span>
