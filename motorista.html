@@ -1748,7 +1748,7 @@ function initDriverMap(){
 
   driverMap=L.map(mapEl,{zoomControl:false,attributionControl:true,preferCanvas:true}).setView([-22.7333,-42.625],13);
 
-  const tiles=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+  const tiles=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{
     maxZoom:19,
     attribution:"© OpenStreetMap contributors",
     updateWhenIdle:true,
