@@ -281,6 +281,8 @@ body.navigation-active .driver-map{overflow:hidden;}
   font-size:20px;
 }
 
+.mobile-ride-card .route-label.route-stop-label{color:#f5c542}
+.mobile-ride-card .route-stop{flex:0 0 16px;width:16px;height:16px;margin-top:2px;border-radius:50%;background:#f5c542;box-shadow:0 0 0 2px #f5c542;display:block;text-align:center;color:#111;font-size:10px;line-height:16px}
 .mobile-ride-card .ride-actions .btn{flex:1}
 .today-route-item .btn{margin-top:8px}
 .today-routes-card{
@@ -2562,7 +2564,12 @@ function renderMobileRequests(){
       primary='<button class="btn green" data-action="arrived" data-id="'+esc(r.id)+'">'+(r.driverArrivedAt?"✅ Cheguei no embarque":"📍 Cheguei no embarque")+'</button><button class="btn green" data-action="whatsapp" data-id="'+esc(r.id)+'">💬 WhatsApp</button><button class="btn red" data-action="finish" data-id="'+esc(r.id)+'">✓ Finalizar</button>';
       secondary='';
     }
-    return '<article class="mobile-ride-card '+(s==="new"?"new-request-alert":"")+'"><div class="new-alert-title"><span class="alert-dot">'+(s==="new"?"🚨":"")+'</span><span>'+esc(badge)+'</span></div><div class="ride-top"><span style="color:#cbd5e1">👥 '+esc(people)+' passageiro'+(Number(people)===1?"":"s")+'</span></div><div class="ride-price">'+moneyBR(value)+'</div><div class="ride-passenger"><span class="passenger-label">👤 Passageiro</span><strong>'+esc(passenger)+'</strong></div><div class="ride-meta"><span>💳 '+esc(pay)+'</span><span>📅 '+esc(dateBR(date))+' • 🕐 '+esc(time||"Não informado")+'</span></div><div class="ride-route"><div class="route-line"><span class="route-dot"></span><div><span class="route-label">Embarque</span><div class="route-address">'+esc(origin)+'</div></div></div><div class="route-line"><span class="route-pin">📍</span><div><span class="route-label route-dest">Destino</span><div class="route-address">'+esc(dest)+'</div></div></div></div><div class="ride-actions">'+primary+'</div><div class="ride-secondary">'+secondary+'</div></article>';
+    const stops=Array.isArray(r.extraStops)?r.extraStops:[];
+    const stopsHtml=stops.map((st,i)=>{
+      const address=st?.address??st?.endereco??st?.origin??st?.destination??("Parada "+(i+1));
+      return '<div class="route-line"><span class="route-stop">●</span><div><span class="route-label route-stop-label">Parada '+(i+1)+'</span><div class="route-address">'+esc(String(address))+'</div></div></div>';
+    }).join("");
+    return '<article class="mobile-ride-card '+(s==="new"?"new-request-alert":"")+'"><div class="new-alert-title"><span class="alert-dot">'+(s==="new"?"🚨":"")+'</span><span>'+esc(badge)+'</span></div><div class="ride-top"><span style="color:#cbd5e1">👥 '+esc(people)+' passageiro'+(Number(people)===1?"":"s")+'</span></div><div class="ride-price">'+moneyBR(value)+'</div><div class="ride-passenger"><span class="passenger-label">👤 Passageiro</span><strong>'+esc(passenger)+'</strong></div><div class="ride-meta"><span>💳 '+esc(pay)+'</span><span>📅 '+esc(dateBR(date))+' • 🕐 '+esc(time||"Não informado")+'</span></div><div class="ride-route"><div class="route-line"><span class="route-dot"></span><div><span class="route-label">Embarque</span><div class="route-address">'+esc(origin)+'</div></div></div>'+stopsHtml+'<div class="route-line"><span class="route-pin">📍</span><div><span class="route-label route-dest">Destino</span><div class="route-address">'+esc(dest)+'</div></div></div></div><div class="ride-actions">'+primary+'</div><div class="ride-secondary">'+secondary+'</div></article>';
   }).join("");
   el.querySelectorAll("[data-action]").forEach(btn=>{
     btn.addEventListener("click",()=>{
