@@ -1681,21 +1681,22 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
   // Não abrir popup automaticamente para não cobrir o cartão.
 
   const requestId=id;
-  // A navegação interna usa somente a etapa atual:
-  // • pickup: motorista → embarque
-  // • dropoff: motorista → próxima parada ou destino
-  // Isso evita que o painel de instruções avance para o destino antes do embarque.
-  const activePhase=String(getRouteState(id)?.phase||"pickup");
-  let navigationTarget=activePhase==="pickup"?pickup:dropoff;
+  // IMPORTANTE: uma NOVA solicitação é apenas uma prévia da rota.
+  // Ela NÃO deve ativar o modo navegação, voz, rotação/foco do mapa ou
+  // painel de instruções. A navegação só começa depois de "Iniciar rota".
+  const routeState=getRouteState(id);
+  const activePhase=String(routeState?.phase||"");
+  const shouldNavigate=rerouteMode||activePhase==="pickup"||activePhase==="dropoff";
+  let navigationTarget=pickup;
+  if(activePhase==="dropoff")navigationTarget=dropoff;
   if(activePhase==="dropoff"){
-    const state=getRouteState(id);
-    const stopIndex=state&&state.phase==="dropoff"&&Number.isInteger(Number(state.stopIndex))?Number(state.stopIndex):null;
+    const stopIndex=routeState&&Number.isInteger(Number(routeState.stopIndex))?Number(routeState.stopIndex):null;
     const stop=stopIndex!=null&&Array.isArray(r.extraStops)?r.extraStops[stopIndex]:null;
     if(stop&&stop.lat!=null&&stop.lng!=null){
       navigationTarget=[Number(stop.lat),Number(stop.lng)];
     }
   }
-  const navigationStart=rerouteMode?routeStartOverride:(driverLocation||null);
+  const navigationStart=driverLocation||null;
   const routePoints=(navigationStart?[navigationStart,navigationTarget]:[navigationTarget])
     .map(p=>Number(p[1])+","+Number(p[0])).join(";");
   const osrmUrl="https://router.project-osrm.org/route/v1/driving/"+routePoints+"?overview=full&geometries=geojson&steps=true";
@@ -1704,14 +1705,29 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
   const data=await response.json();
   if(rideMapRequestId!==requestId||!rideMapLayer||!data.routes||!data.routes[0])throw new Error("route-stale");
   const route=data.routes[0];
-  setNavigationSteps(route,requestId,getRouteState(requestId)?.phase||null);
+  if(shouldNavigate){
+    setNavigationSteps(route,requestId,activePhase||null);
+  }else{
+    // Prévia de nova solicitação: mantém o mapa normal, sem modo navegação.
+    navigationState.steps=[];
+    navigationState.index=0;
+    navigationState.rideId="";
+    navigationState.type=null;
+    navigationState.routeDistance=0;
+    navigationState.routeDuration=0;
+    const navPanel=$("driverNavigationPanel");if(navPanel)navPanel.classList.add("hidden");
+    const navSummary=$("driverNavSummary");if(navSummary)navSummary.classList.add("hidden");
+    const compass=$("navCompassButton");if(compass)compass.classList.add("hidden");
+    document.body.classList.remove("navigation-active");
+    resetNavigationBearing();
+  }
   const coords=route.geometry.coordinates.map(c=>[c[1],c[0]]);
   rideMapRouteCoords=coords;
   if(coords.length>1){
     const roadRoute=L.polyline(coords,{color:"#1683ff",weight:6,opacity:.95,lineCap:"round",lineJoin:"round"});
     rideMapLayer.addLayer(roadRoute);
-    const fitPoints=rerouteMode?[driverLocation,...coords]:coords.slice();
-    if(!rerouteMode&&driverLocation)fitPoints.push(driverLocation);
+    const fitPoints=shouldNavigate&&rerouteMode?[driverLocation,...coords]:coords.slice();
+    if(driverLocation)fitPoints.push(driverLocation);
     driverMap.fitBounds(L.latLngBounds(fitPoints),{padding:[35,35],maxZoom:15,animate:true});
   }
   if(rideMapTimer)clearTimeout(rideMapTimer);
