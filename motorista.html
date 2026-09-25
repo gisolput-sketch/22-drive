@@ -644,6 +644,7 @@ body.navigation-active .driver-navigation-panel .nav-distance{font-size:15px}
 
     <div id="topMenuPanel" class="top-menu-panel">
       <button type="button" onclick="openGainsFromMenu()">💰 Ganhos</button>
+      <button type="button" onclick="openTodayRoutesFromMenu()">🚗 Corridas de hoje</button>
       <button type="button" onclick="openScheduledFromMenu()">📅 Viagens agendadas</button>
       <button type="button" onclick="testDriverSound()">🔊 Testar som</button>
       <button type="button" onclick="openReviewsFromMenu()">⭐ Avaliações</button>
@@ -2261,6 +2262,18 @@ function toggleTodayRoutes(){
   if(!card)return;
   card.classList.toggle("collapsed");
   try{localStorage.setItem("22drive_today_routes_open",card.classList.contains("collapsed")?"0":"1");}catch(e){}
+}
+function openTodayRoutesFromMenu(){
+  closeTopMenu();
+  const card=$("todayRoutesCard");
+  if(!card)return;
+  card.classList.remove("collapsed");
+  try{localStorage.setItem("22drive_today_routes_open","1");}catch(e){}
+  renderTodayAcceptedRoutes();
+  requestAnimationFrame(()=>{
+    try{card.scrollIntoView({behavior:"smooth",block:"end"});}catch(e){}
+  });
+  notice("🚗 Corridas de hoje abertas.");
 }
 function restoreTodayRoutesPanel(){
   const card=$("todayRoutesCard");
