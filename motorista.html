@@ -1674,8 +1674,12 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
   rideMapLayer.addLayer(dropoffMarker);
   rideMapLayer.addLayer(pickupLabel);
   rideMapLayer.addLayer(dropoffLabel);
+  // Em uma nova solicitação, a câmera deve mostrar somente a solicitação.
+  // A localização do motorista continua sendo atualizada, mas não controla
+  // o enquadramento do mapa até a navegação ser iniciada.
+  const isNewRequest=String(r?.status||"new").toLowerCase()==="new";
   const points=[pickup,dropoff];
-  if(driverLocation)points.unshift(driverLocation);
+  if(driverLocation && !isNewRequest)points.unshift(driverLocation);
   driverMap.fitBounds(L.latLngBounds(points),{padding:[35,35],maxZoom:15,animate:true});
   // A solicitação é apresentada no cartão inferior, como em apps de corrida.
   // Não abrir popup automaticamente para não cobrir o cartão.
@@ -1727,7 +1731,9 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
     const roadRoute=L.polyline(coords,{color:"#1683ff",weight:6,opacity:.95,lineCap:"round",lineJoin:"round"});
     rideMapLayer.addLayer(roadRoute);
     const fitPoints=shouldNavigate&&rerouteMode?[driverLocation,...coords]:coords.slice();
-    if(driverLocation)fitPoints.push(driverLocation);
+    // Durante uma nova solicitação, não incluir a posição do motorista no
+    // enquadramento. Isso impede que o mapa "puxe" a câmera para o GPS.
+    if(driverLocation && (shouldNavigate || !isNewRequest))fitPoints.push(driverLocation);
     driverMap.fitBounds(L.latLngBounds(fitPoints),{padding:[35,35],maxZoom:15,animate:true});
   }
   if(rideMapTimer)clearTimeout(rideMapTimer);
@@ -1782,7 +1788,10 @@ function initDriverMap(){
 
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(pos=>{
-      showDriverCurrentLocation(pos.coords.latitude,pos.coords.longitude,true);
+      // Se já houver solicitação, atualiza o ponto azul sem recentralizar.
+      // O enquadramento será definido pela solicitação.
+      const hasNewRequest=requests().some(r=>String(r.status||"new").toLowerCase()==="new");
+      showDriverCurrentLocation(pos.coords.latitude,pos.coords.longitude,!hasNewRequest);
       updateRideMapFromRequests();
     },err=>console.warn("22 DRIVE localização:",err),{
       enableHighAccuracy:true,
@@ -1805,7 +1814,15 @@ function initDriverMap(){
 let driverMapReturnTimer=null;
 function scheduleDriverMapReturn(){
   if(driverMapReturnTimer) clearTimeout(driverMapReturnTimer);
+  // Enquanto houver uma nova solicitação na tela, a câmera pertence à
+  // solicitação e nunca deve voltar automaticamente para o motorista.
+  const hasNewRequest=requests().some(r=>String(r.status||"new").toLowerCase()==="new");
+  if(hasNewRequest)return;
   driverMapReturnTimer=setTimeout(()=>{
+    // Revalida antes de mover a câmera, pois uma solicitação pode ter
+    // chegado durante os 10 segundos do temporizador.
+    const stillHasNewRequest=requests().some(r=>String(r.status||"new").toLowerCase()==="new");
+    if(stillHasNewRequest)return;
     if(driverLocation && driverMap){
       driverMap.setView(driverLocation,16,{animate:true});
     } else {
@@ -1828,7 +1845,8 @@ function useCurrentDriverLocation(){
     if(driverMap){
       driverMap.invalidateSize({pan:false});
       if(driverMarker){try{driverMap.removeLayer(driverMarker);}catch(e){} driverMarker=null;}
-      driverMap.setView(driverLocation,16,{animate:true});
+      const hasNewRequest=requests().some(r=>String(r.status||"new").toLowerCase()==="new");
+      if(!hasNewRequest)driverMap.setView(driverLocation,16,{animate:true});
       updateRideMapFromRequests();
     }
     if(btn){btn.disabled=false;btn.textContent="⌖";}
