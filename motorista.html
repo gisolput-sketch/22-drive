@@ -1829,11 +1829,12 @@ function initDriverMap(){
     mapEl.appendChild(brand);
   }
 
-  const tiles=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{
+  const tiles=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
     maxZoom:19,
-    attribution:"© OpenStreetMap contributors",
+    attribution:"© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors",
     updateWhenIdle:true,
-    keepBuffer:2
+    keepBuffer:2,
+    crossOrigin:true
   }).addTo(driverMap);
 
   tiles.on("tileerror",()=>console.warn("22 DRIVE: erro ao carregar um bloco do mapa."));
