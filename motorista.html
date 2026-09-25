@@ -2658,12 +2658,13 @@ async function acceptRide(id){
     else remoteReservations.unshift(accepted);
 
     setRouteState(id,"accepted");
-    // Remover imediatamente o card de nova solicitação para impedir clique duplo
-    // ou que uma renderização concorrente mantenha o botão "Recusar" ativo.
+    // Ao aceitar, a navegação interna deve abrir imediatamente.
+    // Não exigir um segundo toque em "Iniciar percurso".
     buttons.forEach(btn=>btn.closest(".mobile-ride-card")?.remove());
     render();
     renderTodayAcceptedRoutes();
-    notice("✅ Solicitação aceita. Agora a corrida aparece como “Iniciar rota”.");
+    startRideRoute(id);
+    notice("✅ Solicitação aceita. Navegação interna do 22 DRIVE iniciada.");
   }catch(error){
     console.error("22 DRIVE aceitar reserva:",error);
     buttons.forEach(btn=>{btn.disabled=false;btn.textContent="✓ Aceitar";btn.style.opacity="";});
