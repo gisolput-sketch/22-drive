@@ -533,6 +533,10 @@ if(!rates || rates.includedKm!==10 || rates.extraPerKm!==2){
 const $=id=>document.getElementById(id);
 
 let driveMap=null, fromMarker=null, toMarker=null, routeLine=null, passengerDriverMarker=null, passengerLocationMarker=null;
+/* Google Maps Platform — coloque sua chave no campo abaixo. */
+const GOOGLE_MAPS_API_KEY="COLE_SUA_CHAVE_GOOGLE_AQUI";
+let googleMapsPromise=null, googleMapsReady=false, googleRouteRequestId=0, googleMapLib=null, googleMarkerLib=null;
+
 let fromResult=null, toResult=null;
 let stopResults=[];
 let stopMarkers=[];
@@ -702,96 +706,88 @@ async function createReservationInSupabase(){
 }
 
 
-function showMapFallback(){
-  const frame=document.getElementById("mapFallback");
-  if(!frame)return;
-  frame.src="https://www.openstreetmap.org/export/embed.html?bbox=-42.85%2C-22.90%2C-42.40%2C-22.55&layer=map";
-  frame.classList.add("show");
+function loadGoogleMaps(){
+  if(googleMapsReady && window.google?.maps)return Promise.resolve();
+  if(googleMapsPromise)return googleMapsPromise;
+  googleMapsPromise=new Promise((resolve,reject)=>{
+    if(!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY==="COLE_SUA_CHAVE_GOOGLE_AQUI"){
+      reject(new Error("CHAVE_GOOGLE_NAO_CONFIGURADA"));return;
+    }
+    if(window.google?.maps){
+      googleMapsReady=true;resolve();return;
+    }
+    const s=document.createElement("script");
+    s.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(GOOGLE_MAPS_API_KEY)+"&v=weekly&loading=async";
+    s.async=true;s.defer=true;
+    s.onload=()=>{googleMapsReady=true;resolve();};
+    s.onerror=()=>reject(new Error("GOOGLE_MAPS_CARREGAMENTO_FALHOU"));
+    document.head.appendChild(s);
+  });
+  return googleMapsPromise;
 }
-function initMap(){
+async function ensureGoogleLibraries(){
+  await loadGoogleMaps();
+  const [{Map,InfoWindow}],{AdvancedMarkerElement}=await Promise.all([
+    google.maps.importLibrary("maps"),
+    google.maps.importLibrary("marker")
+  ]);
+  googleMapLib={Map,InfoWindow};
+  googleMarkerLib={AdvancedMarkerElement};
+  return googleMapLib;
+}
+function googlePosition(lat,lng){return {lat:Number(lat),lng:Number(lng)};}
+function removeGoogleOverlay(obj){if(obj){try{obj.map=null}catch(_){}}}
+function googleDotContent(label=""){
+  const el=document.createElement("div");
+  el.style.cssText="width:20px;height:20px;border-radius:50%;background:#1683ff;border:3px solid #fff;box-shadow:0 0 0 7px #1683ff44,0 2px 8px #0008;";
+  if(label)el.title=label;
+  return el;
+}
+function createGoogleMarker(position,title="",dot=false){
+  const marker=new googleMarkerLib.AdvancedMarkerElement({
+    map:driveMap,position,title,
+    content:dot?googleDotContent(title):undefined
+  });
+  return marker;
+}
+async function initMap(){
   const el=document.getElementById("map");
   if(!el)return;
-  const frame=document.getElementById("mapFallback");
-  if(typeof window.L==="undefined"){
-    setTimeout(()=>{
-      if(typeof window.L==="undefined"){
-        showMapFallback();
-      }else{
-        initMap();
-      }
-    },1200);
-    return;
-  }
-  if(driveMap){setTimeout(()=>driveMap.invalidateSize(true),100);return;}
+  if(driveMap){setTimeout(()=>{try{driveMap.resize?.()}catch(_){}},100);return;}
   try{
-    driveMap=L.map(el,{zoomControl:true}).setView([-22.73,-42.63],11);
-    const tiles=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
-      maxZoom:19,
-      attribution:"© OpenStreetMap contributors",
-      crossOrigin:true
+    await ensureGoogleLibraries();
+    driveMap=new googleMapLib.Map(el,{
+      center:{lat:-22.73,lng:-42.63},
+      zoom:11,
+      mapId:"DEMO_MAP_ID",
+      mapTypeControl:true,
+      streetViewControl:false,
+      fullscreenControl:true,
+      zoomControl:true,
+      clickableIcons:true
     });
-    let tileErrorTimer=null;
-    tiles.on("tileerror",()=>{
-      clearTimeout(tileErrorTimer);
-      tileErrorTimer=setTimeout(()=>{
-        if(!el.querySelector(".leaflet-tile-loaded")) showMapFallback();
-      },800);
-    });
-    tiles.addTo(driveMap);
-
-    // Camada gratuita de pontos de interesse do OpenStreetMap.
-    // Carrega sob demanda para não pesar o mapa.
-    const poiLayer=L.layerGroup();
-    let poiLoading=false, poiLoadedKey="";
-    const poiIcon=(emoji)=>L.divIcon({
-      className:"osm-poi-marker",
-      html:'<div style="width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid #1683ff;box-shadow:0 2px 8px #0005;display:grid;place-items:center;font-size:16px">'+emoji+'</div>',
-      iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-15]
-    });
-    const loadOsmPois=async()=>{
-      if(!driveMap || poiLoading)return;
-      const z=driveMap.getZoom();
-      if(z<12)return;
-      const b=driveMap.getBounds();
-      const key=[z,Math.round(b.getSouth()*100),Math.round(b.getWest()*100),Math.round(b.getNorth()*100),Math.round(b.getEast()*100)].join(",");
-      if(key===poiLoadedKey)return;
-      poiLoading=true;
-      try{
-        const bbox=[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].join(",");
-        const q='[out:json][timeout:12];(nwr["amenity"~"restaurant|hospital|school|fuel|pharmacy"]('+bbox+');nwr["shop"~"supermarket|convenience|mall"]('+bbox+'););out center tags 300;';
-        const res=await fetch("https://overpass-api.de/api/interpreter?data="+encodeURIComponent(q),{cache:"no-store"});
-        if(!res.ok)throw new Error("Overpass HTTP "+res.status);
-        const data=await res.json();
-        poiLayer.clearLayers();
-        (data.elements||[]).forEach(el=>{
-          const t=el.tags||{}, lat=Number(el.lat??el.center?.lat), lon=Number(el.lon??el.center?.lon);
-          if(!Number.isFinite(lat)||!Number.isFinite(lon))return;
-          const type=t.amenity||t.shop||"";
-          const icons={restaurant:"🍽️",hospital:"🏥",school:"🏫",fuel:"⛽",pharmacy:"💊",supermarket:"🛒",convenience:"🛒",mall:"🏬"};
-          const label=t.name||({restaurant:"Restaurante",hospital:"Hospital",school:"Escola",fuel:"Posto de combustível",pharmacy:"Farmácia",supermarket:"Mercado",convenience:"Mercado",mall:"Shopping"}[type]||"Local");
-          L.marker([lat,lon],{icon:poiIcon(icons[type]||"📍"),title:label}).bindPopup("<strong>"+String(label).replace(/[<>&]/g,m=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[m]))+"</strong>").addTo(poiLayer);
-        });
-        poiLoadedKey=key;
-      }catch(e){console.warn("22 DRIVE: não foi possível carregar pontos de interesse.",e)}
-      finally{poiLoading=false}
-    };
-    L.control.layers({"🗺️ Mapa":tiles},{"📍 Locais":poiLayer},{collapsed:true,position:"topright"}).addTo(driveMap);
-    driveMap.on("moveend",loadOsmPois);
-    loadOsmPois();
-    if(frame) frame.classList.remove("show");
-    setTimeout(()=>driveMap.invalidateSize(true),100);
-    setTimeout(()=>driveMap.invalidateSize(true),700);
-    setTimeout(()=>{
-      if(!el.querySelector(".leaflet-tile-loaded")) showMapFallback();
-    },3500);
+    const mapError=document.getElementById("mapFallback");
+    if(mapError)mapError.classList.remove("show");
+    setTimeout(()=>{google.maps.event.trigger(driveMap,"resize");},150);
+    setTimeout(()=>{google.maps.event.trigger(driveMap,"resize");},700);
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(pos=>{
+        showPassengerLocationOnMap(pos.coords.latitude,pos.coords.longitude,false);
+      },()=>{},{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
+    }
   }catch(e){
-    console.error("Erro mapa 22 DRIVE",e);
-    showMapFallback();
+    console.error("Erro Google Maps 22 DRIVE",e);
+    const status=$("routeStatus");
+    if(status){
+      status.textContent=e.message==="CHAVE_GOOGLE_NAO_CONFIGURADA"
+        ?"⚠️ Google Maps ainda não está configurado: coloque sua chave no código."
+        :"❌ Não foi possível carregar o Google Maps. Verifique a chave e as APIs do Google Cloud.";
+    }
   }
 }
 
 function passengerBlueDotIcon(){
-  return L.divIcon({className:"passenger-location-marker",html:"<div class=\"blue-dot\"></div>",iconSize:[20,20],iconAnchor:[10,10]});
+  return googleDotContent("Localização do passageiro");
 }
 let mapPickerMap=null;
 let mapPickerMarker=null;
@@ -890,11 +886,14 @@ async function confirmMapPicker(){
 }
 
 function showPassengerLocationOnMap(lat,lon,center){
-  if(!driveMap || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return;
-  const p=[Number(lat),Number(lon)];
-  if(passengerLocationMarker) passengerLocationMarker.setLatLng(p);
-  else passengerLocationMarker=L.marker(p,{icon:passengerBlueDotIcon(),zIndexOffset:1200,interactive:false}).addTo(driveMap);
-  if(center) driveMap.setView(p,16,{animate:true});
+  if(!driveMap || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon)) || !googleMarkerLib)return;
+  const p=googlePosition(lat,lon);
+  if(passengerLocationMarker){
+    passengerLocationMarker.position=p;
+  }else{
+    passengerLocationMarker=createGoogleMarker(p,"Sua localização",true);
+  }
+  if(center)driveMap.setCenter(p),driveMap.setZoom(16);
 }
 function focusPassengerLocation(){
   if(passengerLocationMarker && driveMap){driveMap.setView(passengerLocationMarker.getLatLng(),16,{animate:true});return;}
@@ -965,21 +964,14 @@ function reverseGeocodeLocation(lat,lon){
 }
 
 function setBoardingFromCoordinates(lat,lon,address){
-  const label=address || ("Localização GPS: "+lat.toFixed(6)+", "+lon.toFixed(6));
-  fromResult={
-    lat:String(lat),
-    lon:String(lon),
-    display_name:label,
-    address:{}
-  };
-  $("fromPlace").value=label;
-  $("from").value=label;
-  if(fromMarker && driveMap) driveMap.removeLayer(fromMarker);
-  fromMarker=L.marker([lat,lon],{icon:passengerBlueDotIcon(),zIndexOffset:900}).addTo(driveMap).bindPopup("📍 Sua localização exata").openPopup();
+  const label=address||("Localização GPS: "+lat.toFixed(6)+", "+lon.toFixed(6));
+  fromResult={lat:String(lat),lon:String(lon),display_name:label,address:{}};
+  $("fromPlace").value=label;$("from").value=label;
+  removeGoogleOverlay(fromMarker);
+  if(googleMarkerLib&&driveMap)fromMarker=createGoogleMarker(googlePosition(lat,lon),"Sua localização exata",true);
   showPassengerLocationOnMap(lat,lon,true);
-  if(toResult) computeDriveRoute();
+  if(toResult)computeDriveRoute();
 }
-
 async function useCurrentLocation(){
   const status=$("locationStatus");
   const button=$("useLocationBtn");
@@ -1160,48 +1152,64 @@ function setDetectedTolls(tolls){
 
 
 async function computeDriveRoute(){
-  if(!fromResult || !toResult){
-    $("routeStatus").textContent="Digite o endereço e pressione Enter para pesquisar. Depois selecione uma sugestão.";
+  if(!fromResult||!toResult){
+    $("routeStatus").textContent="Digite o endereço e selecione uma sugestão para calcular a rota.";
     return;
   }
+  const requestId=++googleRouteRequestId;
   const validStops=stopResults.filter(Boolean);
-  if(routeController) routeController.abort();
-  routeController=new AbortController();
-  $("routeStatus").textContent=validStops.length?"🗺️ Calculando rota com as paradas...":"🗺️ Calculando rota pelas ruas...";
+  $("routeStatus").textContent=validStops.length?"🗺️ Calculando rota no Google Maps...":"🗺️ Calculando rota no Google Maps...";
   try{
-    const waypoints=[fromResult,...validStops,toResult];
-    const coords=waypoints.map(p=>parseFloat(p.lon)+","+parseFloat(p.lat)).join(";");
-    const url=`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
-    const response=await fetch(url,{signal:routeController.signal});
-    if(!response.ok) throw new Error("OSRM HTTP "+response.status);
-    const data=await response.json();
-    if(data.code!=="Ok" || !data.routes || !data.routes.length) throw new Error("Nenhuma rota encontrada.");
-    const route=data.routes[0];
-    const km=route.distance/1000;
-    const mins=Math.round(route.duration/60);
-    const detectedTolls=routeTollsFromGeometry(route.geometry);
-    setDetectedTolls(detectedTolls);
-    if(fromMarker) driveMap.removeLayer(fromMarker);
-    if(toMarker) driveMap.removeLayer(toMarker);
-    stopMarkers.forEach(m=>{try{driveMap.removeLayer(m)}catch(e){}}); stopMarkers=[];
-    if(routeLine) driveMap.removeLayer(routeLine);
-    const fromLat=parseFloat(fromResult.lat),fromLon=parseFloat(fromResult.lon),toLat=parseFloat(toResult.lat),toLon=parseFloat(toResult.lon);
-    fromMarker=L.marker([fromLat,fromLon],{icon:passengerBlueDotIcon(),zIndexOffset:900}).addTo(driveMap).bindPopup("📍 Local do passageiro");
-    showPassengerLocationOnMap(fromLat,fromLon,false);
-    validStops.forEach((stop,i)=>{
-      const marker=L.marker([parseFloat(stop.lat),parseFloat(stop.lon)]).addTo(driveMap).bindPopup("Parada "+(i+1));
-      stopMarkers.push(marker);
-    });
-    toMarker=L.marker([toLat,toLon]).addTo(driveMap).bindPopup("Destino");
-    routeLine=L.geoJSON(route.geometry,{style:{weight:5}}).addTo(driveMap);
-    driveMap.fitBounds(routeLine.getBounds(),{padding:[25,25]});
+    await ensureGoogleLibraries();
+    const {Route}=await google.maps.importLibrary("routes");
+    if(requestId!==googleRouteRequestId)return;
+    const origin=googlePosition(fromResult.lat,fromResult.lon);
+    const destination=googlePosition(toResult.lat,toResult.lon);
+    const intermediates=validStops.map(s=>({location:googlePosition(s.lat,s.lon)}));
+    const req={
+      origin,destination,
+      ...(intermediates.length?{intermediates}:{}),
+      travelMode:"DRIVING",
+      routingPreference:"TRAFFIC_AWARE",
+      language:"pt-BR",
+      units:google.maps.UnitSystem.METRIC,
+      fields:["path","distanceMeters","durationMillis","legs","viewport"]
+    };
+    const result=await Route.computeRoutes(req);
+    if(requestId!==googleRouteRequestId)return;
+    if(!result.routes||!result.routes.length)throw new Error("Nenhuma rota encontrada.");
+    const route=result.routes[0];
+    const km=Number(route.distanceMeters||0)/1000;
+    const mins=Math.round(Number(route.durationMillis||0)/60000);
+    const path=Array.isArray(route.path)?route.path:[];
+    const geometry={type:"LineString",coordinates:path.map(p=>{
+      const lat=typeof p.lat==="function"?p.lat():p.lat;
+      const lng=typeof p.lng==="function"?p.lng():p.lng;
+      return [Number(lng),Number(lat)];
+    })};
+    setDetectedTolls(routeTollsFromGeometry(geometry));
+    removeGoogleOverlay(fromMarker);removeGoogleOverlay(toMarker);removeGoogleOverlay(routeLine);
+    stopMarkers.forEach(removeGoogleOverlay);stopMarkers=[];
+    fromMarker=createGoogleMarker(origin,"Local do passageiro",true);
+    validStops.forEach((stop,i)=>stopMarkers.push(createGoogleMarker(googlePosition(stop.lat,stop.lon),"Parada "+(i+1))));
+    toMarker=createGoogleMarker(destination,"Destino");
+    if(path.length>1){
+      routeLine=new google.maps.Polyline({
+        map:driveMap,path,
+        strokeColor:"#1683ff",strokeOpacity:.95,strokeWeight:5,
+        geodesic:true
+      });
+      if(route.viewport)driveMap.fitBounds(route.viewport,{top:25,right:25,bottom:25,left:25});
+    }
+    showPassengerLocationOnMap(origin.lat,origin.lng,false);
     $("km").value=km.toFixed(2);
     $("routeStatus").textContent=`✅ ${km.toFixed(1)} km • aproximadamente ${mins} min de carro${validStops.length?" • "+validStops.length+" parada(s)":""}`;
     calc();
   }catch(err){
-    if(err.name==="AbortError") return;
-    console.error(err); $("km").value="0"; setDetectedTolls([]); calc();
-    $("routeStatus").textContent="❌ Não foi possível calcular a rota. Selecione novamente os endereços e as paradas.";
+    if(requestId!==googleRouteRequestId)return;
+    console.error("Google Routes 22 DRIVE",err);
+    $("km").value="0";setDetectedTolls([]);calc();
+    $("routeStatus").textContent="❌ Não foi possível calcular a rota no Google Maps. Verifique se Maps JavaScript API e Routes API estão ativadas.";
   }
 }
 
