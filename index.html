@@ -658,7 +658,7 @@ function locatePassengerAutomatically(){
  if(!navigator.geolocation||!driveMap)return;
  navigator.geolocation.getCurrentPosition(pos=>showPassengerLocationOnMap(pos.coords.latitude,pos.coords.longitude,false),()=>{},{enableHighAccuracy:true,timeout:10000,maximumAge:30000});
 }
-window.addEventListener("load",()=>{if(driveMap)setTimeout(()=>driveMap.invalidateSize(true),150);});
+window.addEventListener("load",()=>{try{initMap();}catch(err){console.error("Erro ao inicializar o mapa 22 DRIVE:",err);} setTimeout(()=>{if(driveMap)driveMap.invalidateSize(true);},150); setTimeout(()=>{if(driveMap)driveMap.invalidateSize(true);},700);});
 function clearSuggestions(inputId){
   const wrap=$(inputId).closest(".autocomplete-wrap");
   const box=wrap && wrap.querySelector(".suggestions");
