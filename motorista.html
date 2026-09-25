@@ -1653,6 +1653,13 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
   const rerouteMode=Array.isArray(routeStartOverride)&&Array.isArray(routeTargetOverride);
   const pickup=rideCoordinate(r,"pickup");
   const dropoff=rideCoordinate(r,"dropoff");
+  const extraStops=Array.isArray(r.extraStops)?r.extraStops:[];
+  const stopPoints=extraStops.map((s,i)=>{
+    const lat=Number(s?.lat??s?.latitude??s?.originLat);
+    const lng=Number(s?.lng??s?.longitude??s?.originLng);
+    if(!Number.isFinite(lat)||!Number.isFinite(lng))return null;
+    return {point:[lat,lng],index:i,address:String(s?.address??s?.endereco??("Parada "+(i+1)))};
+  }).filter(Boolean);
   const id=String(r&&r.id||"");
   if(!pickup||!dropoff){
     clearRideMap();
@@ -1680,15 +1687,24 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
     .bindPopup("<b>🔴 Desembarque</b><br>"+esc(r.destination||"Endereço não informado"));
   const pickupLabel=L.marker(pickup,{icon:rideLabelIcon("🟢 Embarque"),interactive:false,zIndexOffset:650});
   const dropoffLabel=L.marker(dropoff,{icon:rideLabelIcon("🔴 Desembarque"),interactive:false,zIndexOffset:650});
+  // Mostra todas as paradas intermediárias da solicitação no mapa.
+  const stopMarkers=stopPoints.map((s,i)=>{
+    const marker=L.marker(s.point,{icon:rideMarkerIcon("stop"),zIndexOffset:720})
+      .bindPopup("<b>🟡 Parada "+(i+1)+"</b><br>"+esc(s.address));
+    const label=L.marker(s.point,{icon:rideLabelIcon("🟡 Parada "+(i+1)),interactive:false,zIndexOffset:680});
+    return {marker,label};
+  });
   // Não desenha linha reta de fallback: a rota visível só aparece quando o roteador devolver o caminho pelas ruas.
   rideMapLayer.addLayer(pickupMarker);
   rideMapLayer.addLayer(dropoffMarker);
   rideMapLayer.addLayer(pickupLabel);
   rideMapLayer.addLayer(dropoffLabel);
+  stopMarkers.forEach(s=>{rideMapLayer.addLayer(s.marker);rideMapLayer.addLayer(s.label);});
   // Em uma nova solicitação, a câmera deve mostrar somente a solicitação.
   // A localização do motorista continua sendo atualizada, mas não controla
   // o enquadramento do mapa até a navegação ser iniciada.
-  const points=[pickup,dropoff];
+  const previewPoints=[pickup,...stopPoints.map(s=>s.point),dropoff];
+  const points=previewPoints.slice();
   if(driverLocation && !isNewRequest)points.unshift(driverLocation);
   driverMap.fitBounds(L.latLngBounds(points),{padding:[35,35],maxZoom:15,animate:true});
   // A solicitação é apresentada no cartão inferior, como em apps de corrida.
@@ -1711,7 +1727,13 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
     }
   }
   const navigationStart=driverLocation||null;
-  const routePoints=(navigationStart?[navigationStart,navigationTarget]:[navigationTarget])
+  // Prévia: roteia por embarque → todas as paradas → destino.
+  // Navegação ativa: mantém o trecho atual até o próximo alvo.
+  const previewRoutePoints=[pickup,...stopPoints.map(s=>s.point),dropoff];
+  const routeSequence=shouldNavigate
+    ? (navigationStart?[navigationStart,navigationTarget]:[navigationTarget])
+    : previewRoutePoints;
+  const routePoints=routeSequence
     .map(p=>Number(p[1])+","+Number(p[0])).join(";");
   const osrmUrl="https://router.project-osrm.org/route/v1/driving/"+routePoints+"?overview=full&geometries=geojson&steps=true";
   const response=await fetch(osrmUrl);
@@ -1741,8 +1763,8 @@ async function updateRideMapForRequest(r,routeStartOverride=null,routeTargetOver
     const roadRoute=L.polyline(coords,{color:"#1683ff",weight:6,opacity:.95,lineCap:"round",lineJoin:"round"});
     rideMapLayer.addLayer(roadRoute);
     const fitPoints=shouldNavigate&&rerouteMode?[driverLocation,...coords]:coords.slice();
-    // Durante uma nova solicitação, não incluir a posição do motorista no
-    // enquadramento. Isso impede que o mapa "puxe" a câmera para o GPS.
+    // Durante uma nova solicitação, o enquadramento inclui embarque,
+    // todas as paradas e destino, mas nunca a posição do motorista.
     if(driverLocation && (shouldNavigate || !isNewRequest))fitPoints.push(driverLocation);
     driverMap.fitBounds(L.latLngBounds(fitPoints),{padding:[35,35],maxZoom:15,animate:true});
   }
